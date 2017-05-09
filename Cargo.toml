@@ -5,7 +5,7 @@ version = "0.1.0"
 authors = ["meh. <meh@schizofreni.co>"]
 license = "WTFPL"
 
-description = "TUN creation and handling."
+description = "TUN device creation and handling."
 repository  = "https://github.com/meh/rust-tun"
 keywords    = ["tun", "network", "tunnel", "bindings"]
 
