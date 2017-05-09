@@ -1,0 +1,17 @@
+[package]
+name    = "tun"
+version = "0.1.0"
+
+authors = ["meh. <meh@schizofreni.co>"]
+license = "WTFPL"
+
+description = "TUN creation and handling."
+repository  = "https://github.com/meh/rust-tun"
+keywords    = ["tun", "network", "tunnel", "bindings"]
+
+[dependencies]
+libc = "0.2"
+error-chain = "0.10"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ioctl-sys = "0.5"
