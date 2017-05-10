@@ -3,6 +3,8 @@ use libc::{sockaddr};
 
 pub const IFNAMSIZ: usize = 16;
 
+pub const IFF_UP: c_short = 0x1;
+
 pub const IFF_TUN:   c_short = 0x0001;
 pub const IFF_NO_PI: c_short = 0x1000;
 
@@ -63,6 +65,8 @@ pub struct ifreq {
 	pub ifru: ifru,
 }
 
+ioctl!(bad read siocgifflags with 0x8913; ifreq);
+ioctl!(bad write siocsifflags with 0x8914; ifreq);
 ioctl!(bad read siocgifaddr with 0x8915; ifreq);
 ioctl!(bad write siocsifaddr with 0x8916; ifreq);
 ioctl!(bad read siocgifdstaddr with 0x8917; ifreq);

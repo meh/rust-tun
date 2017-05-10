@@ -141,16 +141,38 @@ impl device::Device for Device {
 		&self.name
 	}
 
+	fn enabled(&mut self, value: bool) -> Result<()> {
+		unsafe {
+			let mut req = self.request();
+
+			if siocgifflags(self.ctl, &mut req) < 0 {
+				return Err(io::Error::last_os_error().into());
+			}
+
+			if value {
+				req.ifru.flags |= IFF_UP;
+			}
+			else {
+				req.ifru.flags &= !IFF_UP;
+			}
+
+			if siocsifflags(self.ctl, &mut req) < 0 {
+				return Err(io::Error::last_os_error().into());
+			}
+
+			Ok(())
+		}
+	}
+
 	fn address(&self) -> Result<Ipv4Addr> {
 		unsafe {
 			let mut req = self.request();
 
 			if siocgifaddr(self.ctl, &mut req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				posix::from_sockaddr(&req.ifru.addr)
-			}
+
+			posix::from_sockaddr(&req.ifru.addr)
 		}
 	}
 
@@ -160,11 +182,10 @@ impl device::Device for Device {
 			req.ifru.addr = posix::to_sockaddr(value.into())?;
 
 			if siocsifaddr(self.ctl, &req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				Ok(())
-			}
+
+			Ok(())
 		}
 	}
 
@@ -173,11 +194,10 @@ impl device::Device for Device {
 			let mut req = self.request();
 
 			if siocgifdstaddr(self.ctl, &mut req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				posix::from_sockaddr(&req.ifru.dstaddr)
-			}
+
+			posix::from_sockaddr(&req.ifru.dstaddr)
 		}
 	}
 
@@ -187,11 +207,10 @@ impl device::Device for Device {
 			req.ifru.dstaddr = posix::to_sockaddr(value.into())?;
 
 			if siocsifdstaddr(self.ctl, &req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				Ok(())
-			}
+
+			Ok(())
 		}
 	}
 
@@ -200,11 +219,10 @@ impl device::Device for Device {
 			let mut req = self.request();
 
 			if siocgifbrdaddr(self.ctl, &mut req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				posix::from_sockaddr(&req.ifru.broadaddr)
-			}
+
+			posix::from_sockaddr(&req.ifru.broadaddr)
 		}
 	}
 
@@ -214,11 +232,10 @@ impl device::Device for Device {
 			req.ifru.broadaddr = posix::to_sockaddr(value.into())?;
 
 			if siocsifbrdaddr(self.ctl, &req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				Ok(())
-			}
+
+			Ok(())
 		}
 	}
 
@@ -227,11 +244,10 @@ impl device::Device for Device {
 			let mut req = self.request();
 
 			if siocgifnetmask(self.ctl, &mut req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				posix::from_sockaddr(&req.ifru.netmask)
-			}
+
+			posix::from_sockaddr(&req.ifru.netmask)
 		}
 	}
 
@@ -241,11 +257,10 @@ impl device::Device for Device {
 			req.ifru.netmask = posix::to_sockaddr(value.into())?;
 
 			if siocsifnetmask(self.ctl, &req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				Ok(())
-			}
+
+			Ok(())
 		}
 	}
 
@@ -254,11 +269,10 @@ impl device::Device for Device {
 			let mut req = self.request();
 
 			if siocgifmtu(self.ctl, &mut req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				Ok(req.ifru.mtu)
-			}
+
+			Ok(req.ifru.mtu)
 		}
 	}
 
@@ -268,11 +282,10 @@ impl device::Device for Device {
 			req.ifru.mtu = value;
 
 			if siocsifmtu(self.ctl, &req) < 0 {
-				Err(io::Error::last_os_error().into())
+				return Err(io::Error::last_os_error().into());
 			}
-			else {
-				Ok(())
-			}
+
+			Ok(())
 		}
 	}
 }

@@ -7,6 +7,9 @@ pub trait Device: Read + Write {
 	/// Get the device name.
 	fn name(&self) -> &str;
 
+	/// Turn on or off the interface.
+	fn enabled(&mut self, value: bool) -> Result<()>;
+
 	/// Get the address.
 	fn address(&self) -> Result<Ipv4Addr>;
 
