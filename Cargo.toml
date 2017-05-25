@@ -10,7 +10,7 @@ repository  = "https://github.com/meh/rust-tun"
 keywords    = ["tun", "network", "tunnel", "bindings"]
 
 [dependencies]
-libc = "0.2"
+libc        = "0.2"
 error-chain = "0.10"
 
 [target.'cfg(target_os = "linux")'.dependencies]

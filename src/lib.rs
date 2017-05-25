@@ -12,8 +12,14 @@ extern crate ioctl_sys as ioctl;
 mod error;
 pub use error::*;
 
+mod address;
+pub use address::IntoAddress;
+
 mod device;
 pub use device::Device;
 
+mod configuration;
+pub use configuration::Configuration;
+
 pub mod platform;
-pub use platform::{create, next};
+pub use platform::{configure, create, next};

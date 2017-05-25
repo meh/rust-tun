@@ -3,7 +3,8 @@ use libc::{sockaddr};
 
 pub const IFNAMSIZ: usize = 16;
 
-pub const IFF_UP: c_short = 0x1;
+pub const IFF_UP:      c_short = 0x1;
+pub const IFF_RUNNING: c_short = 0x40;
 
 pub const IFF_TUN:   c_short = 0x0001;
 pub const IFF_NO_PI: c_short = 0x1000;
@@ -77,6 +78,7 @@ ioctl!(bad read siocgifnetmask with 0x891b; ifreq);
 ioctl!(bad write siocsifnetmask with 0x891c; ifreq);
 ioctl!(bad read siocgifmtu with 0x8921; ifreq);
 ioctl!(bad write siocsifmtu with 0x8922; ifreq);
+ioctl!(bad write siocsifname with 0x8923; ifreq);
 
 ioctl!(write tunsetiff with b'T', 202; c_int);
 ioctl!(write tunsetpersist with b'T', 203; c_int);

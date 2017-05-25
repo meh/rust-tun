@@ -11,7 +11,7 @@ use libc::{AF_INET, SOCK_DGRAM, O_RDWR};
 
 use error::*;
 use device;
-use platform::posix;
+use platform::posix::SockAddr;
 use platform::linux::sys::*;
 
 /// A TUN device using the TUN/TAP driver.
@@ -24,12 +24,20 @@ pub struct Device {
 impl Device {
 	pub(crate) fn allocate(name: Option<&str>) -> Result<Self> {
 		unsafe {
-			let dev = name.map(|n| CString::new(n).unwrap());
-			if let Some(dev) = dev.as_ref() {
-				if dev.as_bytes_with_nul().len() > IFNAMSIZ {
-					return Err(ErrorKind::NameTooLong.into());
+			let dev = match name {
+				Some(name) => {
+					let name = CString::new(name)?;
+
+					if name.as_bytes_with_nul().len() > IFNAMSIZ {
+						return Err(ErrorKind::NameTooLong.into());
+					}
+
+					Some(name)
 				}
-			}
+
+				None =>
+					None
+			};
 
 			let tun = libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR);
 			if tun < 0 {
@@ -141,6 +149,27 @@ impl device::Device for Device {
 		&self.name
 	}
 
+	fn set_name(&mut self, value: &str) -> Result<()> {
+		unsafe {
+			let name = CString::new(value)?;
+
+			if name.as_bytes_with_nul().len() > IFNAMSIZ {
+				return Err(ErrorKind::NameTooLong.into());
+			}
+
+			let mut req = self.request();
+			ptr::copy_nonoverlapping(name.as_ptr() as *const c_char, req.ifru.newname.as_mut_ptr(), value.len());
+
+			if siocsifname(self.ctl, &req) < 0 {
+				return Err(io::Error::last_os_error().into());
+			}
+
+			self.name = value.into();
+
+			Ok(())
+		}
+	}
+
 	fn enabled(&mut self, value: bool) -> Result<()> {
 		unsafe {
 			let mut req = self.request();
@@ -150,7 +179,7 @@ impl device::Device for Device {
 			}
 
 			if value {
-				req.ifru.flags |= IFF_UP;
+				req.ifru.flags |= IFF_UP | IFF_RUNNING;
 			}
 			else {
 				req.ifru.flags &= !IFF_UP;
@@ -172,14 +201,14 @@ impl device::Device for Device {
 				return Err(io::Error::last_os_error().into());
 			}
 
-			posix::from_sockaddr(&req.ifru.addr)
+			SockAddr::new(&req.ifru.addr).map(Into::into)
 		}
 	}
 
 	fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
 			let mut req   = self.request();
-			req.ifru.addr = posix::to_sockaddr(value.into())?;
+			req.ifru.addr = SockAddr::from(value).into();
 
 			if siocsifaddr(self.ctl, &req) < 0 {
 				return Err(io::Error::last_os_error().into());
@@ -197,14 +226,14 @@ impl device::Device for Device {
 				return Err(io::Error::last_os_error().into());
 			}
 
-			posix::from_sockaddr(&req.ifru.dstaddr)
+			SockAddr::new(&req.ifru.dstaddr).map(Into::into)
 		}
 	}
 
 	fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
 			let mut req      = self.request();
-			req.ifru.dstaddr = posix::to_sockaddr(value.into())?;
+			req.ifru.dstaddr = SockAddr::from(value).into();
 
 			if siocsifdstaddr(self.ctl, &req) < 0 {
 				return Err(io::Error::last_os_error().into());
@@ -222,14 +251,14 @@ impl device::Device for Device {
 				return Err(io::Error::last_os_error().into());
 			}
 
-			posix::from_sockaddr(&req.ifru.broadaddr)
+			SockAddr::new(&req.ifru.broadaddr).map(Into::into)
 		}
 	}
 
 	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
 			let mut req        = self.request();
-			req.ifru.broadaddr = posix::to_sockaddr(value.into())?;
+			req.ifru.broadaddr = SockAddr::from(value).into();
 
 			if siocsifbrdaddr(self.ctl, &req) < 0 {
 				return Err(io::Error::last_os_error().into());
@@ -247,14 +276,14 @@ impl device::Device for Device {
 				return Err(io::Error::last_os_error().into());
 			}
 
-			posix::from_sockaddr(&req.ifru.netmask)
+			SockAddr::new(&req.ifru.netmask).map(Into::into)
 		}
 	}
 
 	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
 			let mut req      = self.request();
-			req.ifru.netmask = posix::to_sockaddr(value.into())?;
+			req.ifru.netmask = SockAddr::from(value).into();
 
 			if siocsifnetmask(self.ctl, &req) < 0 {
 				return Err(io::Error::last_os_error().into());

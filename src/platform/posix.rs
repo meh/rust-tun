@@ -1,42 +1,70 @@
 use std::mem;
+use std::ptr;
 use std::net::{Ipv4Addr};
 
-use libc::{c_ushort, c_int, c_uint};
+use libc::{c_ushort, c_uint};
 use libc::{sockaddr, sockaddr_in, in_addr};
 use libc::{AF_INET};
 
 use error::*;
 
-pub unsafe fn to_sockaddr(ip: Ipv4Addr) -> Result<sockaddr> {
-	let     ip   = ip.octets();
-	let mut addr = mem::zeroed::<sockaddr_in>();
+#[derive(Copy, Clone)]
+pub struct SockAddr(sockaddr_in);
 
-	addr.sin_family = AF_INET as c_ushort;
-	addr.sin_port   = 0;
-	addr.sin_addr   = in_addr { s_addr:
-		((ip[3] as c_uint) << 24) |
-		((ip[2] as c_uint) << 16) |
-		((ip[1] as c_uint) <<  8) |
-		((ip[0] as c_uint))
-	};
-
-	Ok(mem::transmute(addr))
-}
-
-pub unsafe fn from_sockaddr(value: &sockaddr) -> Result<Ipv4Addr> {
-	match value.sa_family as c_int {
-		AF_INET => {
-			let addr = mem::transmute::<_, &sockaddr_in>(value);
-			let ip   = addr.sin_addr.s_addr;
-
-			Ok(Ipv4Addr::new(
-				((ip      ) & 0xff) as u8,
-				((ip >>  8) & 0xff) as u8,
-				((ip >> 16) & 0xff) as u8,
-				((ip >> 24) & 0xff) as u8))
+impl SockAddr {
+	pub fn new(value: &sockaddr) -> Result<Self> {
+		if value.sa_family != AF_INET as c_ushort {
+			return Err(ErrorKind::InvalidAddress.into());
 		}
 
-		_ =>
-			Err(ErrorKind::UnsupportedFamily.into())
+		Ok(SockAddr(unsafe { ptr::read(value as *const _ as *const _) }))
+	}
+
+	pub unsafe fn as_ptr(&self) -> *const sockaddr {
+		&self.0 as *const _ as *const sockaddr
+	}
+}
+
+impl From<Ipv4Addr> for SockAddr {
+	fn from(ip: Ipv4Addr) -> SockAddr {
+		let     parts = ip.octets();
+		let mut addr  = unsafe { mem::zeroed::<sockaddr_in>() };
+
+		addr.sin_family = AF_INET as c_ushort;
+		addr.sin_port   = 0;
+		addr.sin_addr   = in_addr { s_addr:
+			((parts[3] as c_uint) << 24) |
+			((parts[2] as c_uint) << 16) |
+			((parts[1] as c_uint) <<  8) |
+			((parts[0] as c_uint))
+		};
+
+		SockAddr(addr)
+	}
+}
+
+impl Into<Ipv4Addr> for SockAddr {
+	fn into(self) -> Ipv4Addr {
+		let ip = self.0.sin_addr.s_addr;
+
+		Ipv4Addr::new(
+			((ip      ) & 0xff) as u8,
+			((ip >>  8) & 0xff) as u8,
+			((ip >> 16) & 0xff) as u8,
+			((ip >> 24) & 0xff) as u8)
+	}
+}
+
+impl Into<sockaddr> for SockAddr {
+	fn into(self) -> sockaddr {
+		unsafe {
+			mem::transmute(self.0)
+		}
+	}
+}
+
+impl Into<sockaddr_in> for SockAddr {
+	fn into(self) -> sockaddr_in {
+		self.0
 	}
 }
