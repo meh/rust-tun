@@ -1,7 +1,7 @@
 use std::mem;
 use std::ptr;
 use std::io::{self, Read, Write};
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
+use std::os::unix::io::{RawFd, AsRawFd};
 use std::ffi::{CString, CStr};
 use std::net::{Ipv4Addr};
 
@@ -11,14 +11,14 @@ use libc::{AF_INET, SOCK_DGRAM, O_RDWR};
 
 use error::*;
 use device;
-use platform::posix::SockAddr;
+use platform::posix::{SockAddr, Fd};
 use platform::linux::sys::*;
 
 /// A TUN device using the TUN/TAP driver.
 pub struct Device {
 	name: String,
-	tun:  RawFd,
-	ctl:  RawFd,
+	tun:  Fd,
+	ctl:  Fd,
 }
 
 impl Device {
@@ -62,8 +62,8 @@ impl Device {
 
 			Ok(Device {
 				name: CStr::from_ptr(req.ifrn.name.as_ptr()).to_string_lossy().into(),
-				tun:  tun,
-				ctl:  ctl,
+				tun:  Fd(tun),
+				ctl:  Fd(ctl),
 			})
 		}
 	}
@@ -78,7 +78,7 @@ impl Device {
 	/// Make the device persistent.
 	pub fn persist(&mut self) -> Result<()> {
 		unsafe {
-			if tunsetpersist(self.tun, &1) < 0 {
+			if tunsetpersist(self.tun.as_raw_fd(), &1) < 0 {
 				Err(io::Error::last_os_error().into())
 			}
 			else {
@@ -90,7 +90,7 @@ impl Device {
 	/// Set the owner of the device.
 	pub fn user(&mut self, value: i32) -> Result<()> {
 		unsafe {
-			if tunsetowner(self.tun, &value) < 0 {
+			if tunsetowner(self.tun.as_raw_fd(), &value) < 0 {
 				Err(io::Error::last_os_error().into())
 			}
 			else {
@@ -102,7 +102,7 @@ impl Device {
 	/// Set the group of the device.
 	pub fn group(&mut self, value: i32) -> Result<()> {
 		unsafe {
-			if tunsetgroup(self.tun, &value) < 0 {
+			if tunsetgroup(self.tun.as_raw_fd(), &value) < 0 {
 				Err(io::Error::last_os_error().into())
 			}
 			else {
@@ -114,33 +114,17 @@ impl Device {
 
 impl Read for Device {
 	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-		unsafe {
-			let amount = libc::read(self.tun, buf.as_mut_ptr() as *mut _, buf.len());
-
-			if amount < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
-
-			Ok(amount as usize)
-		}
+		self.tun.read(buf)
 	}
 }
 
 impl Write for Device {
 	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-		unsafe {
-			let amount = libc::write(self.tun, buf.as_ptr() as *const _, buf.len());
-
-			if amount < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
-
-			Ok(amount as usize)
-		}
+		self.tun.write(buf)
 	}
 
 	fn flush(&mut self) -> io::Result<()> {
-		Ok(())
+		self.tun.flush()
 	}
 }
 
@@ -160,7 +144,7 @@ impl device::Device for Device {
 			let mut req = self.request();
 			ptr::copy_nonoverlapping(name.as_ptr() as *const c_char, req.ifru.newname.as_mut_ptr(), value.len());
 
-			if siocsifname(self.ctl, &req) < 0 {
+			if siocsifname(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -174,7 +158,7 @@ impl device::Device for Device {
 		unsafe {
 			let mut req = self.request();
 
-			if siocgifflags(self.ctl, &mut req) < 0 {
+			if siocgifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -185,7 +169,7 @@ impl device::Device for Device {
 				req.ifru.flags &= !IFF_UP;
 			}
 
-			if siocsifflags(self.ctl, &mut req) < 0 {
+			if siocsifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -197,7 +181,7 @@ impl device::Device for Device {
 		unsafe {
 			let mut req = self.request();
 
-			if siocgifaddr(self.ctl, &mut req) < 0 {
+			if siocgifaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -210,7 +194,7 @@ impl device::Device for Device {
 			let mut req   = self.request();
 			req.ifru.addr = SockAddr::from(value).into();
 
-			if siocsifaddr(self.ctl, &req) < 0 {
+			if siocsifaddr(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -222,7 +206,7 @@ impl device::Device for Device {
 		unsafe {
 			let mut req = self.request();
 
-			if siocgifdstaddr(self.ctl, &mut req) < 0 {
+			if siocgifdstaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -235,7 +219,7 @@ impl device::Device for Device {
 			let mut req      = self.request();
 			req.ifru.dstaddr = SockAddr::from(value).into();
 
-			if siocsifdstaddr(self.ctl, &req) < 0 {
+			if siocsifdstaddr(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -247,7 +231,7 @@ impl device::Device for Device {
 		unsafe {
 			let mut req = self.request();
 
-			if siocgifbrdaddr(self.ctl, &mut req) < 0 {
+			if siocgifbrdaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -260,7 +244,7 @@ impl device::Device for Device {
 			let mut req        = self.request();
 			req.ifru.broadaddr = SockAddr::from(value).into();
 
-			if siocsifbrdaddr(self.ctl, &req) < 0 {
+			if siocsifbrdaddr(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -272,7 +256,7 @@ impl device::Device for Device {
 		unsafe {
 			let mut req = self.request();
 
-			if siocgifnetmask(self.ctl, &mut req) < 0 {
+			if siocgifnetmask(self.ctl.as_raw_fd(), &mut req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -285,7 +269,7 @@ impl device::Device for Device {
 			let mut req      = self.request();
 			req.ifru.netmask = SockAddr::from(value).into();
 
-			if siocsifnetmask(self.ctl, &req) < 0 {
+			if siocsifnetmask(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -297,7 +281,7 @@ impl device::Device for Device {
 		unsafe {
 			let mut req = self.request();
 
-			if siocgifmtu(self.ctl, &mut req) < 0 {
+			if siocgifmtu(self.ctl.as_raw_fd(), &mut req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -310,7 +294,7 @@ impl device::Device for Device {
 			let mut req  = self.request();
 			req.ifru.mtu = value;
 
-			if siocsifmtu(self.ctl, &req) < 0 {
+			if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
@@ -321,43 +305,29 @@ impl device::Device for Device {
 
 impl AsRawFd for Device {
 	fn as_raw_fd(&self) -> RawFd {
-		self.tun
-	}
-}
-
-impl IntoRawFd for Device {
-	fn into_raw_fd(self) -> RawFd {
-		self.tun
-	}
-}
-
-impl Drop for Device {
-	fn drop(&mut self) {
-		unsafe {
-			libc::close(self.tun);
-			libc::close(self.ctl);
-		}
+		self.tun.as_raw_fd()
 	}
 }
 
 #[cfg(feature = "mio")]
 mod mio {
 	use std::io;
+	use std::os::unix::io::{AsRawFd};
 	use mio::{Ready, Poll, PollOpt, Token};
 	use mio::event::Evented;
 	use mio::unix::EventedFd;
 
 	impl Evented for super::Device {
 		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
-			EventedFd(&self.tun).register(poll, token, interest, opts)
+			EventedFd(&self.tun.as_raw_fd()).register(poll, token, interest, opts)
 		}
 
 		fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
-			EventedFd(&self.tun).reregister(poll, token, interest, opts)
+			EventedFd(&self.tun.as_raw_fd()).reregister(poll, token, interest, opts)
 		}
 
 		fn deregister(&self, poll: &Poll) -> io::Result<()> {
-			EventedFd(&self.tun).deregister(poll)
+			EventedFd(&self.tun.as_raw_fd()).deregister(poll)
 		}
 	}
 }
