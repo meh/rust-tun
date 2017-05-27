@@ -4,6 +4,7 @@ use std::io::{self, Read, Write};
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::ffi::{CString, CStr};
 use std::net::{Ipv4Addr};
+use std::sync::Arc;
 
 use libc;
 use libc::{c_char};
@@ -11,7 +12,7 @@ use libc::{AF_INET, SOCK_DGRAM, O_RDWR};
 
 use error::*;
 use device;
-use platform::posix::{SockAddr, Fd};
+use platform::posix::{self, SockAddr, Fd};
 use platform::linux::sys::*;
 
 /// A TUN device using the TUN/TAP driver.
@@ -109,6 +110,12 @@ impl Device {
 				Ok(())
 			}
 		}
+	}
+
+	/// Split the interface into a `Reader` and `Writer`.
+	pub fn split(self) -> (posix::Reader, posix::Writer) {
+		let fd = Arc::new(self.tun);
+		(posix::Reader(fd.clone()), posix::Writer(fd.clone()))
 	}
 }
 
