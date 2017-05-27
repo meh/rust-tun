@@ -22,7 +22,7 @@ pub struct Device {
 }
 
 impl Device {
-	pub(crate) fn allocate(name: Option<&str>) -> Result<Self> {
+	pub fn allocate(name: Option<&str>) -> Result<Self> {
 		unsafe {
 			let dev = match name {
 				Some(name) => {
@@ -336,6 +336,28 @@ impl Drop for Device {
 		unsafe {
 			libc::close(self.tun);
 			libc::close(self.ctl);
+		}
+	}
+}
+
+#[cfg(feature = "mio")]
+mod mio {
+	use std::io;
+	use mio::{Ready, Poll, PollOpt, Token};
+	use mio::event::Evented;
+	use mio::unix::EventedFd;
+
+	impl Evented for super::Device {
+		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+			EventedFd(&self.tun).register(poll, token, interest, opts)
+		}
+
+		fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+			EventedFd(&self.tun).reregister(poll, token, interest, opts)
+		}
+
+		fn deregister(&self, poll: &Poll) -> io::Result<()> {
+			EventedFd(&self.tun).deregister(poll)
 		}
 	}
 }

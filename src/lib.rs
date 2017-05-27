@@ -9,6 +9,9 @@ extern crate error_chain;
 #[macro_use]
 extern crate ioctl_sys as ioctl;
 
+#[cfg(all(feature = "mio", target_os = "linux"))]
+extern crate mio;
+
 mod error;
 pub use error::*;
 
