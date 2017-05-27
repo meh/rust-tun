@@ -48,7 +48,7 @@ impl Device {
 			if let Some(dev) = dev.as_ref() {
 				ptr::copy_nonoverlapping(dev.as_ptr() as *const c_char, req.ifrn.name.as_mut_ptr(), dev.as_bytes().len());
 			}
-			req.ifru.flags = IFF_TUN | IFF_NO_PI;
+			req.ifru.flags = IFF_TUN;
 
 			if tunsetiff(tun, &mut req as *mut _ as *mut _) < 0 {
 				libc::close(tun);
