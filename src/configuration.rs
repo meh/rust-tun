@@ -1,5 +1,4 @@
-//            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-//                    Version 2, December 2004
+//            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE Version 2, December 2004
 //
 // Copyleft (ↄ) meh. <meh@schizofreni.co> | http://meh.schizofreni.co
 //
@@ -49,6 +48,11 @@ impl<T: Device> Configuration<T> {
 
 	pub fn netmask<A: IntoAddress>(&mut self, value: A) -> Result<&mut Self> {
 		self.inner.as_mut().unwrap().set_netmask(value.into_address()?)?;
+		Ok(self)
+	}
+
+	pub fn mtu(&mut self, value: i32) -> Result<&mut Self> {
+		self.inner.as_mut().unwrap().set_mtu(value)?;
 		Ok(self)
 	}
 
