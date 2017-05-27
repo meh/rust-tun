@@ -73,6 +73,12 @@ impl IntoAddress for Ipv4Addr {
 	}
 }
 
+impl<'a> IntoAddress for &'a Ipv4Addr {
+	fn into_address(&self) -> Result<Ipv4Addr> {
+		(&**self).into_address()
+	}
+}
+
 impl IntoAddress for IpAddr {
 	fn into_address(&self) -> Result<Ipv4Addr> {
 		match *self {
@@ -85,9 +91,21 @@ impl IntoAddress for IpAddr {
 	}
 }
 
+impl<'a> IntoAddress for &'a IpAddr {
+	fn into_address(&self) -> Result<Ipv4Addr> {
+		(&**self).into_address()
+	}
+}
+
 impl IntoAddress for SocketAddrV4 {
 	fn into_address(&self) -> Result<Ipv4Addr> {
 		Ok(self.ip().clone())
+	}
+}
+
+impl<'a> IntoAddress for &'a SocketAddrV4 {
+	fn into_address(&self) -> Result<Ipv4Addr> {
+		(&**self).into_address()
 	}
 }
 
@@ -100,5 +118,11 @@ impl IntoAddress for SocketAddr {
 			SocketAddr::V6(_) =>
 				Err(ErrorKind::InvalidAddress.into())
 		}
+	}
+}
+
+impl<'a> IntoAddress for &'a SocketAddr {
+	fn into_address(&self) -> Result<Ipv4Addr> {
+		(&**self).into_address()
 	}
 }
