@@ -326,22 +326,20 @@ impl AsRawFd for Device {
 #[cfg(feature = "mio")]
 mod mio {
 	use std::io;
-	use std::os::unix::io::{AsRawFd};
 	use mio::{Ready, Poll, PollOpt, Token};
 	use mio::event::Evented;
-	use mio::unix::EventedFd;
 
 	impl Evented for super::Device {
 		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
-			EventedFd(&self.tun.as_raw_fd()).register(poll, token, interest, opts)
+			self.tun.register(poll, token, interest, opts)
 		}
 
 		fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
-			EventedFd(&self.tun.as_raw_fd()).reregister(poll, token, interest, opts)
+			self.tun.reregister(poll, token, interest, opts)
 		}
 
 		fn deregister(&self, poll: &Poll) -> io::Result<()> {
-			EventedFd(&self.tun.as_raw_fd()).deregister(poll)
+			self.tun.deregister(poll)
 		}
 	}
 }
