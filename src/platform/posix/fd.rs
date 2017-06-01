@@ -50,3 +50,25 @@ impl Drop for Fd {
 		}
 	}
 }
+
+#[cfg(feature = "mio")]
+mod mio {
+	use std::io;
+	use mio::{Ready, Poll, PollOpt, Token};
+	use mio::event::Evented;
+	use mio::unix::EventedFd;
+
+	impl Evented for super::Fd {
+		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+			EventedFd(&self.0).register(poll, token, interest, opts)
+		}
+
+		fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+			EventedFd(&self.0).reregister(poll, token, interest, opts)
+		}
+
+		fn deregister(&self, poll: &Poll) -> io::Result<()> {
+			EventedFd(&self.0).deregister(poll)
+		}
+	}
+}
