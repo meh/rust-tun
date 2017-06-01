@@ -3,7 +3,7 @@ use std::os::unix::io::{RawFd, AsRawFd};
 
 use libc;
 
-pub struct Fd(pub(crate) RawFd);
+pub struct Fd(pub RawFd);
 
 impl Read for Fd {
 	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
