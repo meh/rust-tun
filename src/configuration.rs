@@ -11,65 +11,97 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+use std::net::{Ipv4Addr};
+
 use error::*;
 use device::Device;
 use address::IntoAddress;
+use platform;
 
-pub struct Configuration<T: Device> {
-	inner: Option<T>,
+#[derive(Clone, Default, Debug)]
+pub struct Configuration {
+	pub(crate) name:     Option<String>,
+	pub(crate) platform: platform::Configuration,
+
+	pub(crate) address:     Option<Ipv4Addr>,
+	pub(crate) destination: Option<Ipv4Addr>,
+	pub(crate) broadcast:   Option<Ipv4Addr>,
+	pub(crate) netmask:     Option<Ipv4Addr>,
+	pub(crate) mtu:         Option<i32>,
+	pub(crate) enabled:     bool,
 }
 
-impl<T: Device> Configuration<T> {
-	pub fn new(inner: T) -> Self {
-		Configuration {
-			inner: Some(inner)
-		}
-	}
-
-	pub fn name<S: AsRef<str>>(&mut self, name: S) -> Result<&mut Self> {
-		self.inner.as_mut().unwrap().set_name(name.as_ref())?;
-		Ok(self)
-	}
-
-	pub fn address<A: IntoAddress>(&mut self, value: A) -> Result<&mut Self> {
-		self.inner.as_mut().unwrap().set_address(value.into_address()?)?;
-		Ok(self)
-	}
-
-	pub fn destination<A: IntoAddress>(&mut self, value: A) -> Result<&mut Self> {
-		self.inner.as_mut().unwrap().set_destination(value.into_address()?)?;
-		Ok(self)
-	}
-
-	pub fn broadcast<A: IntoAddress>(&mut self, value: A) -> Result<&mut Self> {
-		self.inner.as_mut().unwrap().set_broadcast(value.into_address()?)?;
-		Ok(self)
-	}
-
-	pub fn netmask<A: IntoAddress>(&mut self, value: A) -> Result<&mut Self> {
-		self.inner.as_mut().unwrap().set_netmask(value.into_address()?)?;
-		Ok(self)
-	}
-
-	pub fn mtu(&mut self, value: i32) -> Result<&mut Self> {
-		self.inner.as_mut().unwrap().set_mtu(value)?;
-		Ok(self)
-	}
-
-	pub fn device<F>(&mut self, f: F) -> Result<&mut Self>
-		where F: FnOnce(&mut T) -> Result<()>
+impl Configuration {
+	pub fn platform<T, F>(&mut self, f: F) -> &mut Self
+		where F: FnOnce(&mut platform::Configuration)
 	{
-		f(self.inner.as_mut().unwrap())?;
-		Ok(self)
+		f(&mut self.platform);
+		self
 	}
 
-	pub fn up(&mut self) -> Result<T> {
-		self.inner.as_mut().unwrap().enabled(true)?;
-		Ok(self.inner.take().unwrap())
+	pub fn name<S: AsRef<str>>(&mut self, name: S) -> &mut Self {
+		self.name = Some(name.as_ref().into());
+		self
 	}
 
-	pub fn down(&mut self) -> Result<T> {
-		self.inner.as_mut().unwrap().enabled(false)?;
-		Ok(self.inner.take().unwrap())
+	pub fn address<A: IntoAddress>(&mut self, value: A) -> &mut Self {
+		self.address = Some(value.into_address().unwrap());
+		self
+	}
+
+	pub fn destination<A: IntoAddress>(&mut self, value: A) -> &mut Self {
+		self.destination = Some(value.into_address().unwrap());
+		self
+	}
+
+	pub fn broadcast<A: IntoAddress>(&mut self, value: A) -> &mut Self {
+		self.broadcast = Some(value.into_address().unwrap());
+		self
+	}
+
+	pub fn netmask<A: IntoAddress>(&mut self, value: A) -> &mut Self {
+		self.netmask = Some(value.into_address().unwrap());
+		self
+	}
+
+	pub fn mtu(&mut self, value: i32) -> &mut Self {
+		self.mtu = Some(value);
+		self
+	}
+
+	pub fn up(&mut self) -> &mut Self {
+		self.enabled = true;
+		self
+	}
+
+	pub fn down(&mut self) -> &mut Self {
+		self.enabled = false;
+		self
+	}
+
+	pub fn apply<T: Device>(&self, dev: &mut T) -> Result<()> {
+		if let Some(ip) = self.address {
+			dev.set_address(ip)?;
+		}
+
+		if let Some(ip) = self.destination {
+			dev.set_address(ip)?;
+		}
+
+		if let Some(ip) = self.broadcast {
+			dev.set_broadcast(ip)?;
+		}
+
+		if let Some(ip) = self.netmask {
+			dev.set_netmask(ip)?;
+		}
+
+		if let Some(mtu) = self.mtu {
+			dev.set_mtu(mtu)?;
+		}
+
+		dev.enabled(self.enabled)?;
+
+		Ok(())
 	}
 }

@@ -25,4 +25,4 @@ mod configuration;
 pub use configuration::Configuration;
 
 pub mod platform;
-pub use platform::{configure, create, next};
+pub use platform::create;

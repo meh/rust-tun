@@ -14,6 +14,7 @@ use error::*;
 use device;
 use platform::posix::{self, SockAddr, Fd};
 use platform::linux::sys::*;
+use configuration::Configuration;
 
 /// A TUN device using the TUN/TAP driver.
 pub struct Device {
@@ -23,11 +24,11 @@ pub struct Device {
 }
 
 impl Device {
-	pub fn allocate(name: Option<&str>) -> Result<Self> {
+	pub fn new(config: &Configuration) -> Result<Self> {
 		unsafe {
-			let dev = match name {
+			let dev = match config.name.as_ref() {
 				Some(name) => {
-					let name = CString::new(name)?;
+					let name = CString::new(name.clone())?;
 
 					if name.as_bytes_with_nul().len() > IFNAMSIZ {
 						return Err(ErrorKind::NameTooLong.into());
@@ -46,10 +47,13 @@ impl Device {
 			}
 
 			let mut req: ifreq = mem::zeroed();
+
 			if let Some(dev) = dev.as_ref() {
 				ptr::copy_nonoverlapping(dev.as_ptr() as *const c_char, req.ifrn.name.as_mut_ptr(), dev.as_bytes().len());
 			}
-			req.ifru.flags = IFF_TUN;
+
+			req.ifru.flags = IFF_TUN |
+				if config.platform.packet_information { 0 } else { IFF_NO_PI };
 
 			if tunsetiff(tun, &mut req as *mut _ as *mut _) < 0 {
 				libc::close(tun);
@@ -61,11 +65,14 @@ impl Device {
 				return Err(io::Error::last_os_error().into());
 			}
 
-			Ok(Device {
+			let mut device = Device {
 				name: CStr::from_ptr(req.ifrn.name.as_ptr()).to_string_lossy().into(),
 				tun:  Fd(tun),
 				ctl:  Fd(ctl),
-			})
+			};
+
+			config.apply(&mut device)?;
+			Ok(device)
 		}
 	}
 

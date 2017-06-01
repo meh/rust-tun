@@ -16,15 +16,9 @@ use std::io::{Read, Write};
 use std::net::Ipv4Addr;
 
 use error::*;
-use configuration::Configuration;
 
 /// A TUN device.
 pub trait Device: Read + Write {
-	/// Configure the device.
-	fn configure(self) -> Configuration<Self> where Self: Sized {
-		Configuration::new(self)
-	}
-
 	/// Get the device name.
 	fn name(&self) -> &str;
 

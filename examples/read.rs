@@ -18,10 +18,10 @@ extern crate tun;
 use tun::Device;
 
 fn main() {
-	let mut dev = tun::configure("fuffa0").unwrap()
+	let mut dev = tun::create(Default::default()
 		.address((10, 0, 0, 1)).unwrap()
-		.netmask((255, 255, 255, 0)).unwrap()
-		.up().unwrap();
+		.netmask((255, 255, 255, 0))
+		.up()).unwrap();
 
 	let mut buf = [0; 4096];
 

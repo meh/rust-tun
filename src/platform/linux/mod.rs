@@ -4,19 +4,21 @@ mod device;
 pub use self::device::Device;
 
 use error::*;
-use configuration::Configuration;
+use configuration::Configuration as C;
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Configuration {
+	pub(crate) packet_information: bool,
+}
+
+impl Configuration {
+	pub fn packet_information(&mut self, value: bool) -> &mut Self {
+		self.packet_information = value;
+		self
+	}
+}
 
 /// Create a TUN device with the given name.
-pub fn create<S: AsRef<str>>(name: S) -> Result<Device> {
-	Device::allocate(Some(name.as_ref()))
-}
-
-/// Create a TUN device with the next available name.
-pub fn next() -> Result<Device> {
-	Device::allocate(None)
-}
-
-pub fn configure<S: AsRef<str>>(name: S) -> Result<Configuration<Device>> {
-	use device::Device;
-	Ok(create(name)?.configure())
+pub fn create(configuration: &C) -> Result<Device> {
+	Device::new(&configuration)
 }
