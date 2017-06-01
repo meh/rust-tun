@@ -32,7 +32,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-	pub fn platform<T, F>(&mut self, f: F) -> &mut Self
+	pub fn platform<F>(&mut self, f: F) -> &mut Self
 		where F: FnOnce(&mut platform::Configuration)
 	{
 		f(&mut self.platform);
