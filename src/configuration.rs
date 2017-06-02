@@ -1,4 +1,5 @@
-//            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE Version 2, December 2004
+//            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+//                    Version 2, December 2004
 //
 // Copyleft (ↄ) meh. <meh@schizofreni.co> | http://meh.schizofreni.co
 //
