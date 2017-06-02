@@ -5,7 +5,10 @@ use std::os::unix::io::{RawFd, AsRawFd};
 use libc;
 use platform::posix::Fd;
 
+/// Read-only end for a file descriptor.
 pub struct Reader(pub(crate) Arc<Fd>);
+
+/// Write-only end for a file descriptor.
 pub struct Writer(pub(crate) Arc<Fd>);
 
 impl Read for Reader {

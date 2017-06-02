@@ -16,7 +16,7 @@ use platform::posix::{self, SockAddr, Fd};
 use platform::linux::sys::*;
 use configuration::Configuration;
 
-/// A TUN device using the TUN/TAP driver.
+/// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
 	name: String,
 	tun:  Fd,
@@ -24,6 +24,7 @@ pub struct Device {
 }
 
 impl Device {
+	/// Create a new `Device` for the given `Configuration`.
 	pub fn new(config: &Configuration) -> Result<Self> {
 		unsafe {
 			let dev = match config.name.as_ref() {
@@ -76,6 +77,7 @@ impl Device {
 		}
 	}
 
+	/// Prepare a new request.
 	unsafe fn request(&self) -> ifreq {
 		let mut req: ifreq = mem::zeroed();
 		ptr::copy_nonoverlapping(self.name.as_ptr() as *const c_char, req.ifrn.name.as_mut_ptr(), self.name.len());

@@ -1,3 +1,5 @@
+//! Platform specific modules.
+
 #[cfg(unix)]
 pub mod posix;
 

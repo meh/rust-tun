@@ -3,6 +3,7 @@ use std::os::unix::io::{RawFd, AsRawFd};
 
 use libc;
 
+/// POSIX file descriptor support for `io` traits and optionally for `mio`.
 pub struct Fd(pub RawFd);
 
 impl Read for Fd {

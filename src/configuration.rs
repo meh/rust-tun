@@ -16,6 +16,7 @@ use std::net::{Ipv4Addr};
 use address::IntoAddress;
 use platform;
 
+/// Configuration builder for a TUN interface.
 #[derive(Clone, Default, Debug)]
 pub struct Configuration {
 	pub(crate) name:     Option<String>,

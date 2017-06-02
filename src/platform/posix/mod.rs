@@ -1,3 +1,5 @@
+//! POSIX compliant support.
+
 mod sockaddr;
 pub use self::sockaddr::SockAddr;
 

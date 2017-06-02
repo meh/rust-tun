@@ -17,7 +17,9 @@ use std::net::{SocketAddr, SocketAddrV4};
 
 use error::*;
 
+/// Helper trait to convert things into IPv4 addresses.
 pub trait IntoAddress {
+	/// Convert the type to an `Ipv4Addr`.
 	fn into_address(&self) -> Result<Ipv4Addr>;
 }
 

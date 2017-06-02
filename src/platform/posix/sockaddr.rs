@@ -8,10 +8,12 @@ use libc::{AF_INET};
 
 use error::*;
 
+/// A wrapper for `sockaddr_in`.
 #[derive(Copy, Clone)]
 pub struct SockAddr(sockaddr_in);
 
 impl SockAddr {
+	/// Create a new `SockAddr` from a generic `sockaddr`.
 	pub fn new(value: &sockaddr) -> Result<Self> {
 		if value.sa_family != AF_INET as c_ushort {
 			return Err(ErrorKind::InvalidAddress.into());
@@ -20,6 +22,7 @@ impl SockAddr {
 		Ok(SockAddr(unsafe { ptr::read(value as *const _ as *const _) }))
 	}
 
+	/// Get a generic pointer to the `SockAddr`.
 	pub unsafe fn as_ptr(&self) -> *const sockaddr {
 		&self.0 as *const _ as *const sockaddr
 	}
