@@ -13,8 +13,6 @@
 
 use std::net::{Ipv4Addr};
 
-use error::*;
-use device::Device;
 use address::IntoAddress;
 use platform;
 
@@ -32,6 +30,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
+	/// Access the platform dependant configuration.
 	pub fn platform<F>(&mut self, f: F) -> &mut Self
 		where F: FnOnce(&mut platform::Configuration)
 	{
@@ -39,69 +38,51 @@ impl Configuration {
 		self
 	}
 
+	/// Set the name.
 	pub fn name<S: AsRef<str>>(&mut self, name: S) -> &mut Self {
 		self.name = Some(name.as_ref().into());
 		self
 	}
 
+	/// Set the address.
 	pub fn address<A: IntoAddress>(&mut self, value: A) -> &mut Self {
 		self.address = Some(value.into_address().unwrap());
 		self
 	}
 
+	/// Set the destination address.
 	pub fn destination<A: IntoAddress>(&mut self, value: A) -> &mut Self {
 		self.destination = Some(value.into_address().unwrap());
 		self
 	}
 
+	/// Set the broadcast address.
 	pub fn broadcast<A: IntoAddress>(&mut self, value: A) -> &mut Self {
 		self.broadcast = Some(value.into_address().unwrap());
 		self
 	}
 
+	/// Set the netmask.
 	pub fn netmask<A: IntoAddress>(&mut self, value: A) -> &mut Self {
 		self.netmask = Some(value.into_address().unwrap());
 		self
 	}
 
+	/// Set the MTU.
 	pub fn mtu(&mut self, value: i32) -> &mut Self {
 		self.mtu = Some(value);
 		self
 	}
 
+	/// Set the interface to be enabled once created.
 	pub fn up(&mut self) -> &mut Self {
 		self.enabled = true;
 		self
 	}
 
+	/// Set the interface to be disabled once created.
 	pub fn down(&mut self) -> &mut Self {
 		self.enabled = false;
 		self
-	}
-
-	pub fn apply<T: Device>(&self, dev: &mut T) -> Result<()> {
-		if let Some(ip) = self.address {
-			dev.set_address(ip)?;
-		}
-
-		if let Some(ip) = self.destination {
-			dev.set_address(ip)?;
-		}
-
-		if let Some(ip) = self.broadcast {
-			dev.set_broadcast(ip)?;
-		}
-
-		if let Some(ip) = self.netmask {
-			dev.set_netmask(ip)?;
-		}
-
-		if let Some(mtu) = self.mtu {
-			dev.set_mtu(mtu)?;
-		}
-
-		dev.enabled(self.enabled)?;
-
-		Ok(())
 	}
 }

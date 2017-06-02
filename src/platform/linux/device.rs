@@ -11,7 +11,7 @@ use libc::{c_char};
 use libc::{AF_INET, SOCK_DGRAM, O_RDWR};
 
 use error::*;
-use device;
+use device::Device as D;
 use platform::posix::{self, SockAddr, Fd};
 use platform::linux::sys::*;
 use configuration::Configuration;
@@ -71,7 +71,7 @@ impl Device {
 				ctl:  Fd(ctl),
 			};
 
-			config.apply(&mut device)?;
+			device.configure(&config)?;
 			Ok(device)
 		}
 	}
@@ -142,7 +142,7 @@ impl Write for Device {
 	}
 }
 
-impl device::Device for Device {
+impl D for Device {
 	fn name(&self) -> &str {
 		&self.name
 	}

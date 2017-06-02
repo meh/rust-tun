@@ -16,9 +16,37 @@ use std::io::{Read, Write};
 use std::net::Ipv4Addr;
 
 use error::*;
+use configuration::Configuration;
 
 /// A TUN device.
 pub trait Device: Read + Write {
+	/// Reconfigure the device.
+	fn configure(&mut self, config: &Configuration) -> Result<()> {
+		if let Some(ip) = config.address {
+			self.set_address(ip)?;
+		}
+
+		if let Some(ip) = config.destination {
+			self.set_address(ip)?;
+		}
+
+		if let Some(ip) = config.broadcast {
+			self.set_broadcast(ip)?;
+		}
+
+		if let Some(ip) = config.netmask {
+			self.set_netmask(ip)?;
+		}
+
+		if let Some(mtu) = config.mtu {
+			self.set_mtu(mtu)?;
+		}
+
+		self.enabled(config.enabled)?;
+
+		Ok(())
+	}
+
 	/// Get the device name.
 	fn name(&self) -> &str;
 
