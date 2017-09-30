@@ -11,7 +11,7 @@ keywords    = ["tun", "network", "tunnel", "bindings"]
 
 [dependencies]
 libc        = "0.2"
-error-chain = "0.10"
+error-chain = "0.11"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ioctl-sys = "0.5"
