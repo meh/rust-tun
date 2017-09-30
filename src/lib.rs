@@ -39,3 +39,7 @@ pub use configuration::Configuration;
 
 pub mod platform;
 pub use platform::create;
+
+pub fn configure() -> Configuration {
+	Configuration::default()
+}
