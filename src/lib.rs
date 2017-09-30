@@ -12,7 +12,6 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-#![feature(untagged_unions)]
 #![recursion_limit = "1024"]
 
 extern crate libc;

@@ -26,6 +26,7 @@ pub const IFF_TUN:   c_short = 0x0001;
 pub const IFF_NO_PI: c_short = 0x1000;
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct ifmap {
 	pub mem_start: c_ulong,
 	pub mem_end:   c_ulong,
@@ -36,6 +37,7 @@ pub struct ifmap {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union ifsu {
 	pub raw_hdlc_proto: *mut c_void,
 	pub cisco:          *mut c_void,
@@ -47,6 +49,7 @@ pub union ifsu {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct if_settings {
 	pub type_: c_uint,
 	pub size:  c_uint,
@@ -54,11 +57,13 @@ pub struct if_settings {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union ifrn {
 	pub name: [c_char; IFNAMSIZ],
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union ifru {
 	pub addr:      sockaddr,
 	pub dstaddr:   sockaddr,
@@ -77,6 +82,7 @@ pub union ifru {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct ifreq {
 	pub ifrn: ifrn,
 	pub ifru: ifru,
