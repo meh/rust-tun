@@ -27,7 +27,7 @@ pub trait Device: Read + Write {
 		}
 
 		if let Some(ip) = config.destination {
-			self.set_address(ip)?;
+			self.set_destination(ip)?;
 		}
 
 		if let Some(ip) = config.broadcast {
