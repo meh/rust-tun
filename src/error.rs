@@ -15,6 +15,7 @@
 error_chain! {
 	errors {
 		NameTooLong
+		InvalidName
 		InvalidAddress
 		InvalidDescriptor
 	}
@@ -22,5 +23,6 @@ error_chain! {
 	foreign_links {
 		Io(::std::io::Error);
 		Nul(::std::ffi::NulError);
+		ParseNum(::std::num::ParseIntError);
 	}
 }

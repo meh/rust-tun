@@ -18,6 +18,7 @@ extern crate tun;
 
 fn main() {
 	let mut config = tun::Configuration::default();
+
 	config.address((10, 0, 0, 1))
 	       .netmask((255, 255, 255, 0))
 	       .up();

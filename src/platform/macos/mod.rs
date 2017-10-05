@@ -12,17 +12,21 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//! Platform specific modules.
+//! macOS specific functionality.
 
-#[cfg(unix)]
-pub mod posix;
+pub mod sys;
 
-#[cfg(target_os = "linux")]
-pub mod linux;
-#[cfg(target_os = "linux")]
-pub use self::linux::{Device, Configuration, create};
+mod device;
+pub use self::device::Device;
 
-#[cfg(target_os = "macos")]
-pub mod macos;
-#[cfg(target_os = "macos")]
-pub use self::macos::{Device, Configuration, create};
+use configuration::Configuration as C;
+use error::*;
+
+/// macOS-only interface configuration.
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Configuration { }
+
+/// Create a TUN device with the given name.
+pub fn create(configuration: &C) -> Result<Device> {
+	Device::new(&configuration)
+}
