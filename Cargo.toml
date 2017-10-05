@@ -13,6 +13,6 @@ keywords    = ["tun", "network", "tunnel", "bindings"]
 libc        = "0.2"
 error-chain = "0.11"
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 ioctl-sys = "0.5"
 mio       = { version = "0.6", optional = true }

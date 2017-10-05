@@ -16,9 +16,13 @@ use std::mem;
 use std::ptr;
 use std::net::{Ipv4Addr};
 
-use libc::{c_ushort, c_uint};
+#[cfg(target_os = "linux")]
+use libc::{c_uint, c_ushort};
+#[cfg(target_os = "macos")]
+use libc::{c_uint, c_uchar};
+
 use libc::{sockaddr, sockaddr_in, in_addr};
-use libc::{AF_INET};
+use libc::AF_INET as _AF_INET;
 
 use error::*;
 
@@ -26,14 +30,25 @@ use error::*;
 #[derive(Copy, Clone)]
 pub struct SockAddr(sockaddr_in);
 
+#[cfg(target_os = "linux")]
+const AF_INET: c_ushort = _AF_INET as c_ushort;
+
+#[cfg(target_os = "macos")]
+const AF_INET: c_uchar = _AF_INET as c_uchar;
+
 impl SockAddr {
 	/// Create a new `SockAddr` from a generic `sockaddr`.
 	pub fn new(value: &sockaddr) -> Result<Self> {
-		if value.sa_family != AF_INET as c_ushort {
+		if value.sa_family != AF_INET {
 			return Err(ErrorKind::InvalidAddress.into());
 		}
 
-		Ok(SockAddr(unsafe { ptr::read(value as *const _ as *const _) }))
+		unsafe { Self::unchecked(value) }
+	}
+
+	///  Create a new `SockAddr` and not check the source.
+	pub unsafe fn unchecked(value: &sockaddr) -> Result<Self> {
+		Ok(SockAddr(ptr::read(value as *const _ as *const _)))
 	}
 
 	/// Get a generic pointer to the `SockAddr`.
@@ -47,7 +62,7 @@ impl From<Ipv4Addr> for SockAddr {
 		let     parts = ip.octets();
 		let mut addr  = unsafe { mem::zeroed::<sockaddr_in>() };
 
-		addr.sin_family = AF_INET as c_ushort;
+		addr.sin_family = AF_INET;
 		addr.sin_port   = 0;
 		addr.sin_addr   = in_addr { s_addr:
 			((parts[3] as c_uint) << 24) |
