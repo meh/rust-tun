@@ -16,6 +16,7 @@ error_chain! {
 	errors {
 		NameTooLong
 		InvalidAddress
+		InvalidDescriptor
 	}
 
 	foreign_links {

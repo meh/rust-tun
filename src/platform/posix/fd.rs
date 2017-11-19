@@ -16,9 +16,20 @@ use std::io::{self, Read, Write};
 use std::os::unix::io::{RawFd, AsRawFd};
 
 use libc;
+use error::*;
 
 /// POSIX file descriptor support for `io` traits and optionally for `mio`.
 pub struct Fd(pub RawFd);
+
+impl Fd {
+	pub fn new(value: RawFd) -> Result<Self> {
+		if value < 0 {
+			return Err(ErrorKind::InvalidDescriptor.into());
+		}
+
+		Ok(Fd(value))
+	}
+}
 
 impl Read for Fd {
 	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {

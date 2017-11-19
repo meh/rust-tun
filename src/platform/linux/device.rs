@@ -40,7 +40,7 @@ pub struct Device {
 impl Device {
 	/// Create a new `Device` for the given `Configuration`.
 	pub fn new(config: &Configuration) -> Result<Self> {
-		unsafe {
+		let mut device = unsafe {
 			let dev = match config.name.as_ref() {
 				Some(name) => {
 					let name = CString::new(name.clone())?;
@@ -56,10 +56,8 @@ impl Device {
 					None
 			};
 
-			let tun = libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR);
-			if tun < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+			let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
+				.map_err(|_| io::Error::last_os_error())?;
 
 			let mut req: ifreq = mem::zeroed();
 
@@ -70,25 +68,23 @@ impl Device {
 			req.ifru.flags = IFF_TUN |
 				if config.platform.packet_information { 0 } else { IFF_NO_PI };
 
-			if tunsetiff(tun, &mut req as *mut _ as *mut _) < 0 {
-				libc::close(tun);
+			if tunsetiff(tun.0, &mut req as *mut _ as *mut _) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}
 
-			let ctl = libc::socket(AF_INET, SOCK_DGRAM, 0);
-			if ctl < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+			let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
+				.map_err(|_| io::Error::last_os_error())?;
 
-			let mut device = Device {
+			Device {
 				name: CStr::from_ptr(req.ifrn.name.as_ptr()).to_string_lossy().into(),
-				tun:  Fd(tun),
-				ctl:  Fd(ctl),
-			};
+				tun:  tun,
+				ctl:  ctl,
+			}
+		};
 
-			device.configure(&config)?;
-			Ok(device)
-		}
+		device.configure(&config)?;
+
+		Ok(device)
 	}
 
 	/// Prepare a new request.
