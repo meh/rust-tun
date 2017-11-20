@@ -41,3 +41,6 @@ impl Configuration {
 pub fn create(configuration: &C) -> Result<Device> {
 	Device::new(&configuration)
 }
+
+#[cfg(test)]
+mod tests;

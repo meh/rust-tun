@@ -18,11 +18,11 @@ extern crate libc;
 #[macro_use]
 extern crate error_chain;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 #[macro_use]
 extern crate ioctl_sys as ioctl;
 
-#[cfg(all(feature = "mio", target_os = "linux"))]
+#[cfg(any(all(feature = "mio", target_os = "linux"), all(feature = "mio", target_os = "macos")))]
 extern crate mio;
 
 mod error;
