@@ -55,3 +55,16 @@ fn main() {
 	}
 }
 ```
+
+Platforms
+=========
+Not every platform is supported.
+
+Linux
+-----
+You will need the `tun` module to be loaded and root is required to create
+interfaces.
+
+macOS
+-----
+It just werks, but you have to set up routing manually.
