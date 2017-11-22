@@ -26,3 +26,29 @@ pub use self::linux::{Device, Configuration, create};
 pub mod macos;
 #[cfg(target_os = "macos")]
 pub use self::macos::{Device, Configuration, create};
+
+#[cfg(test)]
+mod test {
+	use std::net::Ipv4Addr;
+	use configuration::Configuration;
+	use device::Device;
+
+	#[test]
+	fn create() {
+		let dev = super::create(Configuration::default()
+			.name("utun6")
+			.address("192.168.50.1")
+			.netmask("255.255.0.0")
+			.mtu(1400)
+			.up()).unwrap();
+
+		assert_eq!("192.168.50.1".parse::<Ipv4Addr>().unwrap(),
+			dev.address().unwrap());
+
+		assert_eq!("255.255.0.0".parse::<Ipv4Addr>().unwrap(),
+			dev.netmask().unwrap());
+
+		assert_eq!(1400,
+			dev.mtu().unwrap());
+	}
+}
