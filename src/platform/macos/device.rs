@@ -17,13 +17,12 @@ use std::mem;
 use std::ptr;
 use std::ffi::CStr;
 use std::sync::Arc;
-use std::str::FromStr;
 use std::net::Ipv4Addr;
 use std::io::{self, Read, Write};
 use std::os::unix::io::AsRawFd;
 
 use libc;
-use libc::{SOCK_DGRAM, AF_INET, socklen_t, sockaddr, c_void, c_char};
+use libc::{SOCK_DGRAM, AF_INET, socklen_t, sockaddr, c_void, c_char, c_uint};
 
 use error::*;
 use device::Device as D;
