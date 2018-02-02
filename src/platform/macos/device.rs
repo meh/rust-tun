@@ -53,7 +53,7 @@ impl Device {
 		}
 		else {
 			0
-		};
+		} + 1;
 
 		let mut device = unsafe {
 			let tun = Fd::new(libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL))
