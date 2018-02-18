@@ -15,13 +15,13 @@
 use std::io::{Read, Write};
 use std::net::Ipv4Addr;
 
-use error::*;
+use error::Error;
 use configuration::Configuration;
 
 /// A TUN device.
 pub trait Device: Read + Write {
 	/// Reconfigure the device.
-	fn configure(&mut self, config: &Configuration) -> Result<()> {
+	fn configure(&mut self, config: &Configuration) -> Result<(), Error> {
 		if let Some(ip) = config.address {
 			self.set_address(ip)?;
 		}
@@ -51,38 +51,38 @@ pub trait Device: Read + Write {
 	fn name(&self) -> &str;
 
 	/// Set the device name.
-	fn set_name(&mut self, name: &str) -> Result<()>;
+	fn set_name(&mut self, name: &str) -> Result<(), Error>;
 
 	/// Turn on or off the interface.
-	fn enabled(&mut self, value: bool) -> Result<()>;
+	fn enabled(&mut self, value: bool) -> Result<(), Error>;
 
 	/// Get the address.
-	fn address(&self) -> Result<Ipv4Addr>;
+	fn address(&self) -> Result<Ipv4Addr, Error>;
 
 	/// Set the address.
-	fn set_address(&mut self, value: Ipv4Addr) -> Result<()>;
+	fn set_address(&mut self, value: Ipv4Addr) -> Result<(), Error>;
 
 	/// Get the destination address.
-	fn destination(&self) -> Result<Ipv4Addr>;
+	fn destination(&self) -> Result<Ipv4Addr, Error>;
 
 	/// Set the destination address.
-	fn set_destination(&mut self, value: Ipv4Addr) -> Result<()>;
+	fn set_destination(&mut self, value: Ipv4Addr) -> Result<(), Error>;
 
 	/// Get the broadcast address.
-	fn broadcast(&self) -> Result<Ipv4Addr>;
+	fn broadcast(&self) -> Result<Ipv4Addr, Error>;
 
 	/// Set the broadcast address.
-	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()>;
+	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<(), Error>;
 
 	/// Get the netmask.
-	fn netmask(&self) -> Result<Ipv4Addr>;
+	fn netmask(&self) -> Result<Ipv4Addr, Error>;
 
 	/// Set the netmask.
-	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()>;
+	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<(), Error>;
 
 	/// Get the MTU.
-	fn mtu(&self) -> Result<i32>;
+	fn mtu(&self) -> Result<i32, Error>;
 
 	/// Set the MTU.
-	fn set_mtu(&mut self, value: i32) -> Result<()>;
+	fn set_mtu(&mut self, value: i32) -> Result<(), Error>;
 }

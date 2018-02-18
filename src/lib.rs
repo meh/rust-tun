@@ -16,7 +16,7 @@
 
 extern crate libc;
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 #[macro_use]
@@ -26,7 +26,7 @@ extern crate ioctl_sys as ioctl;
 extern crate mio;
 
 mod error;
-pub use error::*;
+pub use error::Error;
 
 mod address;
 pub use address::IntoAddress;
