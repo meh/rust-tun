@@ -19,7 +19,7 @@ pub mod sys;
 mod device;
 pub use self::device::Device;
 
-use error::*;
+use error::Error;
 use configuration::Configuration as C;
 
 /// Linux-only interface configuration.
@@ -38,6 +38,6 @@ impl Configuration {
 }
 
 /// Create a TUN device with the given name.
-pub fn create(configuration: &C) -> Result<Device> {
+pub fn create(configuration: &C) -> Result<Device, Error> {
 	Device::new(&configuration)
 }

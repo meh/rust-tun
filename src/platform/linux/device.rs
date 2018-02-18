@@ -24,7 +24,7 @@ use libc;
 use libc::{c_char};
 use libc::{AF_INET, SOCK_DGRAM, O_RDWR};
 
-use error::*;
+use error::Error;
 use device::Device as D;
 use platform::posix::{self, SockAddr, Fd};
 use platform::linux::sys::*;
@@ -39,7 +39,7 @@ pub struct Device {
 
 impl Device {
 	/// Create a new `Device` for the given `Configuration`.
-	pub fn new(config: &Configuration) -> Result<Self> {
+	pub fn new(config: &Configuration) -> Result<Self, Error> {
 		let mut device = unsafe {
 			let dev = match config.name.as_ref() {
 				Some(name) => {
@@ -96,7 +96,7 @@ impl Device {
 	}
 
 	/// Make the device persistent.
-	pub fn persist(&mut self) -> Result<()> {
+	pub fn persist(&mut self) -> Result<(), Error> {
 		unsafe {
 			if tunsetpersist(self.tun.as_raw_fd(), &1) < 0 {
 				Err(io::Error::last_os_error().into())
@@ -108,7 +108,7 @@ impl Device {
 	}
 
 	/// Set the owner of the device.
-	pub fn user(&mut self, value: i32) -> Result<()> {
+	pub fn user(&mut self, value: i32) -> Result<(), Error> {
 		unsafe {
 			if tunsetowner(self.tun.as_raw_fd(), &value) < 0 {
 				Err(io::Error::last_os_error().into())
@@ -120,7 +120,7 @@ impl Device {
 	}
 
 	/// Set the group of the device.
-	pub fn group(&mut self, value: i32) -> Result<()> {
+	pub fn group(&mut self, value: i32) -> Result<(), Error> {
 		unsafe {
 			if tunsetgroup(self.tun.as_raw_fd(), &value) < 0 {
 				Err(io::Error::last_os_error().into())
@@ -159,7 +159,7 @@ impl D for Device {
 		&self.name
 	}
 
-	fn set_name(&mut self, value: &str) -> Result<()> {
+	fn set_name(&mut self, value: &str) -> Result<(), Error> {
 		unsafe {
 			let name = CString::new(value)?;
 
@@ -180,7 +180,7 @@ impl D for Device {
 		}
 	}
 
-	fn enabled(&mut self, value: bool) -> Result<()> {
+	fn enabled(&mut self, value: bool) -> Result<(), Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -203,7 +203,7 @@ impl D for Device {
 		}
 	}
 
-	fn address(&self) -> Result<Ipv4Addr> {
+	fn address(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -215,7 +215,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_address(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req   = self.request();
 			req.ifru.addr = SockAddr::from(value).into();
@@ -228,7 +228,7 @@ impl D for Device {
 		}
 	}
 
-	fn destination(&self) -> Result<Ipv4Addr> {
+	fn destination(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -240,7 +240,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_destination(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req      = self.request();
 			req.ifru.dstaddr = SockAddr::from(value).into();
@@ -253,7 +253,7 @@ impl D for Device {
 		}
 	}
 
-	fn broadcast(&self) -> Result<Ipv4Addr> {
+	fn broadcast(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -265,7 +265,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req        = self.request();
 			req.ifru.broadaddr = SockAddr::from(value).into();
@@ -278,7 +278,7 @@ impl D for Device {
 		}
 	}
 
-	fn netmask(&self) -> Result<Ipv4Addr> {
+	fn netmask(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -290,7 +290,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req      = self.request();
 			req.ifru.netmask = SockAddr::from(value).into();
@@ -303,7 +303,7 @@ impl D for Device {
 		}
 	}
 
-	fn mtu(&self) -> Result<i32> {
+	fn mtu(&self) -> Result<i32, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -315,7 +315,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_mtu(&mut self, value: i32) -> Result<()> {
+	fn set_mtu(&mut self, value: i32) -> Result<(), Error> {
 		unsafe {
 			let mut req  = self.request();
 			req.ifru.mtu = value;

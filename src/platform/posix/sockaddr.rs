@@ -24,7 +24,7 @@ use libc::{c_uint, c_uchar};
 use libc::{sockaddr, sockaddr_in, in_addr};
 use libc::AF_INET as _AF_INET;
 
-use error::*;
+use error::Error;
 
 /// A wrapper for `sockaddr_in`.
 #[derive(Copy, Clone)]
@@ -38,16 +38,16 @@ const AF_INET: c_uchar = _AF_INET as c_uchar;
 
 impl SockAddr {
 	/// Create a new `SockAddr` from a generic `sockaddr`.
-	pub fn new(value: &sockaddr) -> Result<Self> {
+	pub fn new(value: &sockaddr) -> Result<Self, Error> {
 		if value.sa_family != AF_INET {
-			return Err(ErrorKind::InvalidAddress.into());
+			return Err(Error::InvalidAddress);
 		}
 
 		unsafe { Self::unchecked(value) }
 	}
 
 	///  Create a new `SockAddr` and not check the source.
-	pub unsafe fn unchecked(value: &sockaddr) -> Result<Self> {
+	pub unsafe fn unchecked(value: &sockaddr) -> Result<Self, Error> {
 		Ok(SockAddr(ptr::read(value as *const _ as *const _)))
 	}
 

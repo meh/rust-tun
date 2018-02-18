@@ -24,7 +24,7 @@ use std::os::unix::io::AsRawFd;
 use libc;
 use libc::{SOCK_DGRAM, AF_INET, socklen_t, sockaddr, c_void, c_char, c_uint};
 
-use error::*;
+use error::Error;
 use device::Device as D;
 use platform::macos::sys::*;
 use configuration::Configuration;
@@ -39,14 +39,14 @@ pub struct Device {
 
 impl Device {
 	/// Create a new `Device` for the given `Configuration`.
-	pub fn new(config: &Configuration) -> Result<Self> {
+	pub fn new(config: &Configuration) -> Result<Self, Error> {
 		let id = if let Some(name) = config.name.as_ref() {
 			if name.len() > IFNAMSIZ {
-				return Err(ErrorKind::NameTooLong.into());
+				return Err(Error::NameTooLong);
 			}
 
 			if !name.starts_with("utun") {
-				return Err(ErrorKind::InvalidName.into());
+				return Err(Error::InvalidName);
 			}
 
 			name[4..].parse()?
@@ -118,7 +118,7 @@ impl Device {
 	}
 
 	/// Set the IPv4 alias of the device.
-	pub fn set_alias(&mut self, addr: Ipv4Addr, broadaddr: Ipv4Addr, mask: Ipv4Addr) -> Result<()> {
+	pub fn set_alias(&mut self, addr: Ipv4Addr, broadaddr: Ipv4Addr, mask: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req: ifaliasreq = mem::zeroed();
 			ptr::copy_nonoverlapping(self.name.as_ptr() as *const c_char, req.ifran.as_mut_ptr(), self.name.len());
@@ -164,11 +164,11 @@ impl D for Device {
 	}
 
 	// XXX: Cannot set interface name on Darwin.
-	fn set_name(&mut self, value: &str) -> Result<()> {
-		Err(ErrorKind::InvalidName.into())
+	fn set_name(&mut self, value: &str) -> Result<(), Error> {
+		Err(Error::InvalidName)
 	}
 
-	fn enabled(&mut self, value: bool) -> Result<()> {
+	fn enabled(&mut self, value: bool) -> Result<(), Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -191,7 +191,7 @@ impl D for Device {
 		}
 	}
 
-	fn address(&self) -> Result<Ipv4Addr> {
+	fn address(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -203,7 +203,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_address(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req = self.request();
 			req.ifru.addr = SockAddr::from(value).into();
@@ -216,7 +216,7 @@ impl D for Device {
 		}
 	}
 
-	fn destination(&self) -> Result<Ipv4Addr> {
+	fn destination(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -228,7 +228,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_destination(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req = self.request();
 			req.ifru.dstaddr = SockAddr::from(value).into();
@@ -241,7 +241,7 @@ impl D for Device {
 		}
 	}
 
-	fn broadcast(&self) -> Result<Ipv4Addr> {
+	fn broadcast(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -253,7 +253,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req = self.request();
 			req.ifru.broadaddr = SockAddr::from(value).into();
@@ -266,7 +266,7 @@ impl D for Device {
 		}
 	}
 
-	fn netmask(&self) -> Result<Ipv4Addr> {
+	fn netmask(&self) -> Result<Ipv4Addr, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -278,7 +278,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<(), Error> {
 		unsafe {
 			let mut req = self.request();
 			req.ifru.addr = SockAddr::from(value).into();
@@ -291,7 +291,7 @@ impl D for Device {
 		}
 	}
 
-	fn mtu(&self) -> Result<i32> {
+	fn mtu(&self) -> Result<i32, Error> {
 		unsafe {
 			let mut req = self.request();
 
@@ -303,7 +303,7 @@ impl D for Device {
 		}
 	}
 
-	fn set_mtu(&mut self, value: i32) -> Result<()> {
+	fn set_mtu(&mut self, value: i32) -> Result<(), Error> {
 		unsafe {
 			let mut req = self.request();
 			req.ifru.mtu = value;
