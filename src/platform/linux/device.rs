@@ -15,7 +15,7 @@
 use std::mem;
 use std::ptr;
 use std::io::{self, Read, Write};
-use std::os::unix::io::{RawFd, AsRawFd};
+use std::os::unix::io::{RawFd, AsRawFd, IntoRawFd};
 use std::ffi::{CString, CStr};
 use std::net::{Ipv4Addr};
 use std::sync::Arc;
@@ -332,6 +332,12 @@ impl D for Device {
 impl AsRawFd for Device {
 	fn as_raw_fd(&self) -> RawFd {
 		self.tun.as_raw_fd()
+	}
+}
+
+impl IntoRawFd for Device {
+	fn into_raw_fd(self) -> RawFd {
+		self.tun.into_raw_fd()
 	}
 }
 
