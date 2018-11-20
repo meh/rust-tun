@@ -19,7 +19,7 @@ use std::ffi::CStr;
 use std::sync::Arc;
 use std::net::Ipv4Addr;
 use std::io::{self, Read, Write};
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 use libc;
 use libc::{SOCK_DGRAM, AF_INET, socklen_t, sockaddr, c_void, c_char, c_uint};
@@ -314,6 +314,18 @@ impl D for Device {
 
 			Ok(())
 		}
+	}
+}
+
+impl AsRawFd for Device {
+	fn as_raw_fd(&self) -> RawFd {
+		self.tun.as_raw_fd()
+	}
+}
+
+impl IntoRawFd for Device {
+	fn into_raw_fd(self) -> RawFd {
+		self.tun.into_raw_fd()
 	}
 }
 
