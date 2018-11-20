@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::{self, Read, Write};
-use std::os::unix::io::{RawFd, AsRawFd};
+use std::os::unix::io::{RawFd, AsRawFd, IntoRawFd};
 
 use libc;
 use error::*;
@@ -69,10 +69,20 @@ impl AsRawFd for Fd {
 	}
 }
 
+impl IntoRawFd for Fd {
+	fn into_raw_fd(mut self) -> RawFd {
+		let fd = self.0;
+		self.0 = -1;
+		fd
+	}
+}
+
 impl Drop for Fd {
 	fn drop(&mut self) {
 		unsafe {
-			libc::close(self.0);
+			if self.0 >= 0 {
+				libc::close(self.0);
+			}
 		}
 	}
 }
