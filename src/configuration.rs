@@ -28,7 +28,7 @@ pub struct Configuration {
 	pub(crate) broadcast:   Option<Ipv4Addr>,
 	pub(crate) netmask:     Option<Ipv4Addr>,
 	pub(crate) mtu:         Option<i32>,
-	pub(crate) enabled:     bool,
+	pub(crate) enabled:     Option<bool>,
 }
 
 impl Configuration {
@@ -78,13 +78,13 @@ impl Configuration {
 
 	/// Set the interface to be enabled once created.
 	pub fn up(&mut self) -> &mut Self {
-		self.enabled = true;
+		self.enabled = Some(true);
 		self
 	}
 
 	/// Set the interface to be disabled once created.
 	pub fn down(&mut self) -> &mut Self {
-		self.enabled = false;
+		self.enabled = Some(false);
 		self
 	}
 }
