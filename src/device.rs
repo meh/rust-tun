@@ -42,7 +42,9 @@ pub trait Device: Read + Write {
 			self.set_mtu(mtu)?;
 		}
 
-		self.enabled(config.enabled)?;
+		if let Some(enabled) = config.enabled {
+			self.enabled(enabled)?;
+		}
 
 		Ok(())
 	}
