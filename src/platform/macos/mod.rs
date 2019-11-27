@@ -19,8 +19,8 @@ pub mod sys;
 mod device;
 pub use self::device::Device;
 
-use configuration::Configuration as C;
-use error::*;
+use crate::configuration::Configuration as C;
+use crate::error::*;
 
 /// macOS-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]

@@ -9,10 +9,12 @@ description = "TUN device creation and handling."
 repository  = "https://github.com/meh/rust-tun"
 keywords    = ["tun", "network", "tunnel", "bindings"]
 
+edition = "2018"
+
 [dependencies]
 libc        = "0.2"
-error-chain = "0.11"
+error-chain = "0.12"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 ioctl-sys = "0.5"
-mio       = { version = "0.6", optional = true }
+mio       = { version = "0.6.20", optional = true }

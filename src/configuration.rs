@@ -14,8 +14,8 @@
 
 use std::net::{Ipv4Addr};
 
-use address::IntoAddress;
-use platform;
+use crate::address::IntoAddress;
+use crate::platform;
 
 /// Configuration builder for a TUN interface.
 #[derive(Clone, Default, Debug)]

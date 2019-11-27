@@ -24,11 +24,11 @@ use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use libc;
 use libc::{SOCK_DGRAM, AF_INET, socklen_t, sockaddr, c_void, c_char, c_uint};
 
-use error::*;
-use device::Device as D;
-use platform::macos::sys::*;
-use configuration::Configuration;
-use platform::posix::{self, SockAddr, Fd};
+use crate::error::*;
+use crate::device::Device as D;
+use crate::platform::macos::sys::*;
+use crate::configuration::Configuration;
+use crate::platform::posix::{self, SockAddr, Fd};
 
 /// A TUN device using the TUN macOS driver.
 pub struct Device {

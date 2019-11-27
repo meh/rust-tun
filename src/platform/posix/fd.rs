@@ -16,7 +16,7 @@ use std::io::{self, Read, Write};
 use std::os::unix::io::{RawFd, AsRawFd, IntoRawFd};
 
 use libc;
-use error::*;
+use crate::error::*;
 
 /// POSIX file descriptor support for `io` traits and optionally for `mio`.
 pub struct Fd(pub RawFd);
