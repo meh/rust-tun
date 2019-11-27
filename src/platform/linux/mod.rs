@@ -19,8 +19,8 @@ pub mod sys;
 mod device;
 pub use self::device::Device;
 
-use error::*;
-use configuration::Configuration as C;
+use crate::error::*;
+use crate::configuration::Configuration as C;
 
 /// Linux-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]

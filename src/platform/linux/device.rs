@@ -24,11 +24,11 @@ use libc;
 use libc::{c_char};
 use libc::{AF_INET, SOCK_DGRAM, O_RDWR};
 
-use error::*;
-use device::Device as D;
-use platform::posix::{self, SockAddr, Fd};
-use platform::linux::sys::*;
-use configuration::Configuration;
+use crate::error::*;
+use crate::device::Device as D;
+use crate::platform::posix::{self, SockAddr, Fd};
+use crate::platform::linux::sys::*;
+use crate::configuration::Configuration;
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {

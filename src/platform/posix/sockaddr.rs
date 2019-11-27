@@ -24,7 +24,7 @@ use libc::{c_uint, c_uchar};
 use libc::{sockaddr, sockaddr_in, in_addr};
 use libc::AF_INET as _AF_INET;
 
-use error::*;
+use crate::error::*;
 
 /// A wrapper for `sockaddr_in`.
 #[derive(Copy, Clone)]

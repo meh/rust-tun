@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::os::unix::io::{RawFd, AsRawFd};
 
 use libc;
-use platform::posix::Fd;
+use crate::platform::posix::Fd;
 
 /// Read-only end for a file descriptor.
 pub struct Reader(pub(crate) Arc<Fd>);

@@ -15,8 +15,8 @@
 use std::io::{Read, Write};
 use std::net::Ipv4Addr;
 
-use error::*;
-use configuration::Configuration;
+use crate::error::*;
+use crate::configuration::Configuration;
 
 /// A TUN device.
 pub trait Device: Read + Write {
