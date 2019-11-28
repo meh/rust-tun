@@ -12,25 +12,31 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io::Read;
+use futures::StreamExt;
+use packet::ip::Packet;
 
-fn main() {
+#[tokio::main]
+async fn main() {
 	let mut config = tun::Configuration::default();
 
-	config.address((10, 0, 0, 1))
-	       .netmask((255, 255, 255, 0))
-	       .up();
+	config
+		.address((10, 0, 0, 1))
+		.netmask((255, 255, 255, 0))
+		.up();
 
 	#[cfg(target_os = "linux")]
 	config.platform(|config| {
 		config.packet_information(true);
 	});
 
-	let mut dev = tun::create(&config).unwrap();
-	let mut buf = [0; 4096];
+	let dev = tun::create_as_async(&config).unwrap();
 
-	loop {
-		let amount = dev.read(&mut buf).unwrap();
-		println!("{:?}", &buf[0 .. amount]);
+	let mut stream = dev.into_framed();
+
+	while let Some(packet) = stream.next().await {
+		match packet {
+			Ok(pkt) => println!("pkt: {:#?}", Packet::unchecked(pkt.get_bytes())),
+			Err(err) => panic!("Error: {:?}", err),
+		}
 	}
 }

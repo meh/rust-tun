@@ -30,8 +30,8 @@ pub use self::macos::{Device, Configuration, create};
 #[cfg(test)]
 mod test {
 	use std::net::Ipv4Addr;
-	use configuration::Configuration;
-	use device::Device;
+	use crate::configuration::Configuration;
+	use crate::device::Device;
 
 	#[test]
 	fn create() {

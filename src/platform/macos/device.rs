@@ -140,6 +140,17 @@ impl Device {
 		let fd = Arc::new(self.tun);
 		(posix::Reader(fd.clone()), posix::Writer(fd.clone()))
 	}
+
+	/// Return whether the device has packet information
+	pub fn has_packet_information(&self) -> bool {
+		// on macos this is always the case
+		true
+	}
+
+	#[cfg(feature = "mio")]
+	pub fn set_nonblock(&self) -> io::Result<()> {
+		self.tun.set_nonblock()
+	}
 }
 
 impl Read for Device {
@@ -182,7 +193,7 @@ impl D for Device {
 			else {
 				req.ifru.flags &= !IFF_UP;
 			}
-
+			
 			if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
 			}

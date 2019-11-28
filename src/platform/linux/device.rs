@@ -12,29 +12,29 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::mem;
-use std::ptr;
+use std::ffi::{CStr, CString};
 use std::io::{self, Read, Write};
-use std::os::unix::io::{RawFd, AsRawFd, IntoRawFd};
-use std::ffi::{CString, CStr};
-use std::net::{Ipv4Addr};
-use std::sync::Arc;
+use std::mem;
+use std::net::Ipv4Addr;
+use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
+use std::ptr;
 
 use libc;
-use libc::{c_char};
-use libc::{AF_INET, SOCK_DGRAM, O_RDWR};
+use libc::c_char;
+use libc::{AF_INET, O_RDWR, SOCK_DGRAM};
 
-use crate::error::*;
-use crate::device::Device as D;
-use crate::platform::posix::{self, SockAddr, Fd};
-use crate::platform::linux::sys::*;
 use crate::configuration::Configuration;
+use crate::device::Device as D;
+use crate::error::*;
+use crate::platform::linux::sys::*;
+use crate::platform::posix::{Fd, SockAddr};
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
 	name: String,
-	tun:  Fd,
-	ctl:  Fd,
+	tun: Fd,
+	ctl: Fd,
+	pi_enabled: bool,
 }
 
 impl Device {
@@ -52,8 +52,7 @@ impl Device {
 					Some(name)
 				}
 
-				None =>
-					None
+				None => None,
 			};
 
 			let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
@@ -62,11 +61,19 @@ impl Device {
 			let mut req: ifreq = mem::zeroed();
 
 			if let Some(dev) = dev.as_ref() {
-				ptr::copy_nonoverlapping(dev.as_ptr() as *const c_char, req.ifrn.name.as_mut_ptr(), dev.as_bytes().len());
+				ptr::copy_nonoverlapping(
+					dev.as_ptr() as *const c_char,
+					req.ifrn.name.as_mut_ptr(),
+					dev.as_bytes().len(),
+				);
 			}
 
-			req.ifru.flags = IFF_TUN |
-				if config.platform.packet_information { 0 } else { IFF_NO_PI };
+			req.ifru.flags = IFF_TUN
+				| if config.platform.packet_information {
+					0
+				} else {
+					IFF_NO_PI
+				};
 
 			if tunsetiff(tun.0, &mut req as *mut _ as *mut _) < 0 {
 				return Err(io::Error::last_os_error().into());
@@ -76,9 +83,12 @@ impl Device {
 				.map_err(|_| io::Error::last_os_error())?;
 
 			Device {
-				name: CStr::from_ptr(req.ifrn.name.as_ptr()).to_string_lossy().into(),
-				tun:  tun,
-				ctl:  ctl,
+				name: CStr::from_ptr(req.ifrn.name.as_ptr())
+					.to_string_lossy()
+					.into(),
+				tun: tun,
+				ctl: ctl,
+				pi_enabled: config.platform.packet_information,
 			}
 		};
 
@@ -90,7 +100,11 @@ impl Device {
 	/// Prepare a new request.
 	unsafe fn request(&self) -> ifreq {
 		let mut req: ifreq = mem::zeroed();
-		ptr::copy_nonoverlapping(self.name.as_ptr() as *const c_char, req.ifrn.name.as_mut_ptr(), self.name.len());
+		ptr::copy_nonoverlapping(
+			self.name.as_ptr() as *const c_char,
+			req.ifrn.name.as_mut_ptr(),
+			self.name.len(),
+		);
 
 		req
 	}
@@ -98,10 +112,9 @@ impl Device {
 	/// Make the device persistent.
 	pub fn persist(&mut self) -> Result<()> {
 		unsafe {
-			if tunsetpersist(self.tun.as_raw_fd(), &1) < 0 {
+			if tunsetpersist(self.as_raw_fd(), &1) < 0 {
 				Err(io::Error::last_os_error().into())
-			}
-			else {
+			} else {
 				Ok(())
 			}
 		}
@@ -110,10 +123,9 @@ impl Device {
 	/// Set the owner of the device.
 	pub fn user(&mut self, value: i32) -> Result<()> {
 		unsafe {
-			if tunsetowner(self.tun.as_raw_fd(), &value) < 0 {
+			if tunsetowner(self.as_raw_fd(), &value) < 0 {
 				Err(io::Error::last_os_error().into())
-			}
-			else {
+			} else {
 				Ok(())
 			}
 		}
@@ -122,19 +134,22 @@ impl Device {
 	/// Set the group of the device.
 	pub fn group(&mut self, value: i32) -> Result<()> {
 		unsafe {
-			if tunsetgroup(self.tun.as_raw_fd(), &value) < 0 {
+			if tunsetgroup(self.as_raw_fd(), &value) < 0 {
 				Err(io::Error::last_os_error().into())
-			}
-			else {
+			} else {
 				Ok(())
 			}
 		}
 	}
 
-	/// Split the interface into a `Reader` and `Writer`.
-	pub fn split(self) -> (posix::Reader, posix::Writer) {
-		let fd = Arc::new(self.tun);
-		(posix::Reader(fd.clone()), posix::Writer(fd.clone()))
+	/// Return whether the device has packet information
+	pub fn has_packet_information(&mut self) -> bool {
+		self.pi_enabled
+	}
+
+	#[cfg(feature = "mio")]
+	pub fn set_nonblock(&self) -> io::Result<()> {
+		self.tun.set_nonblock()
 	}
 }
 
@@ -168,7 +183,11 @@ impl D for Device {
 			}
 
 			let mut req = self.request();
-			ptr::copy_nonoverlapping(name.as_ptr() as *const c_char, req.ifru.newname.as_mut_ptr(), value.len());
+			ptr::copy_nonoverlapping(
+				name.as_ptr() as *const c_char,
+				req.ifru.newname.as_mut_ptr(),
+				value.len(),
+			);
 
 			if siocsifname(self.ctl.as_raw_fd(), &req) < 0 {
 				return Err(io::Error::last_os_error().into());
@@ -190,8 +209,7 @@ impl D for Device {
 
 			if value {
 				req.ifru.flags |= IFF_UP | IFF_RUNNING;
-			}
-			else {
+			} else {
 				req.ifru.flags &= !IFF_UP;
 			}
 
@@ -217,7 +235,7 @@ impl D for Device {
 
 	fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
-			let mut req   = self.request();
+			let mut req = self.request();
 			req.ifru.addr = SockAddr::from(value).into();
 
 			if siocsifaddr(self.ctl.as_raw_fd(), &req) < 0 {
@@ -242,7 +260,7 @@ impl D for Device {
 
 	fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
-			let mut req      = self.request();
+			let mut req = self.request();
 			req.ifru.dstaddr = SockAddr::from(value).into();
 
 			if siocsifdstaddr(self.ctl.as_raw_fd(), &req) < 0 {
@@ -267,7 +285,7 @@ impl D for Device {
 
 	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
-			let mut req        = self.request();
+			let mut req = self.request();
 			req.ifru.broadaddr = SockAddr::from(value).into();
 
 			if siocsifbrdaddr(self.ctl.as_raw_fd(), &req) < 0 {
@@ -292,7 +310,7 @@ impl D for Device {
 
 	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
 		unsafe {
-			let mut req      = self.request();
+			let mut req = self.request();
 			req.ifru.netmask = SockAddr::from(value).into();
 
 			if siocsifnetmask(self.ctl.as_raw_fd(), &req) < 0 {
@@ -317,7 +335,7 @@ impl D for Device {
 
 	fn set_mtu(&mut self, value: i32) -> Result<()> {
 		unsafe {
-			let mut req  = self.request();
+			let mut req = self.request();
 			req.ifru.mtu = value;
 
 			if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
@@ -337,22 +355,34 @@ impl AsRawFd for Device {
 
 impl IntoRawFd for Device {
 	fn into_raw_fd(self) -> RawFd {
-		self.tun.into_raw_fd()
+		self.tun.as_raw_fd()
 	}
 }
 
 #[cfg(feature = "mio")]
 mod mio {
-	use std::io;
-	use mio::{Ready, Poll, PollOpt, Token};
 	use mio::event::Evented;
+	use mio::{Poll, PollOpt, Ready, Token};
+	use std::io;
 
 	impl Evented for super::Device {
-		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+		fn register(
+			&self,
+			poll: &Poll,
+			token: Token,
+			interest: Ready,
+			opts: PollOpt,
+		) -> io::Result<()> {
 			self.tun.register(poll, token, interest, opts)
 		}
 
-		fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+		fn reregister(
+			&self,
+			poll: &Poll,
+			token: Token,
+			interest: Ready,
+			opts: PollOpt,
+		) -> io::Result<()> {
 			self.tun.reregister(poll, token, interest, opts)
 		}
 

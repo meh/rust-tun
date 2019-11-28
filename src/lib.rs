@@ -40,6 +40,11 @@ pub use configuration::Configuration;
 pub mod platform;
 pub use platform::create;
 
+#[cfg(all(feature = "async", any(target_os = "linux", target_os = "macos")))]
+pub mod r#async;
+#[cfg(all(feature = "async", any(target_os = "linux", target_os = "macos")))]
+pub use r#async::*;
+
 pub fn configure() -> Configuration {
 	Configuration::default()
 }
