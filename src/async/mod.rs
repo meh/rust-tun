@@ -12,25 +12,21 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io::Read;
+//! Async specific modules.
 
-fn main() {
-	let mut config = tun::Configuration::default();
+use crate::error;
 
-	config.address((10, 0, 0, 1))
-	       .netmask((255, 255, 255, 0))
-	       .up();
+use crate::configuration::Configuration;
+use crate::platform::create;
 
-	#[cfg(target_os = "linux")]
-	config.platform(|config| {
-		config.packet_information(true);
-	});
+mod device;
+pub use self::device::DeviceAsync;
 
-	let mut dev = tun::create(&config).unwrap();
-	let mut buf = [0; 4096];
+mod codec;
+pub use self::codec::{TunPacket, TunPacketCodec};
 
-	loop {
-		let amount = dev.read(&mut buf).unwrap();
-		println!("{:?}", &buf[0 .. amount]);
-	}
+/// Create a TUN device with the given name.
+pub fn create_as_async(configuration: &Configuration) -> Result<DeviceAsync, error::Error> {
+    let device = create(&configuration)?;
+    DeviceAsync::new(device).map_err(|err| err.into())
 }
