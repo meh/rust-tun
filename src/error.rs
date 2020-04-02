@@ -12,17 +12,31 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-error_chain! {
-	errors {
-		NameTooLong
-		InvalidName
-		InvalidAddress
-		InvalidDescriptor
-	}
+use std::{io, ffi, num};
+use thiserror::Error;
 
-	foreign_links {
-		Io(::std::io::Error);
-		Nul(::std::ffi::NulError);
-		ParseNum(::std::num::ParseIntError);
-	}
+#[derive(Error, Debug)]
+pub enum Error {
+	#[error("device name too long")]
+	NameTooLong,
+
+	#[error("invalid device name")]
+	InvalidName,
+
+	#[error("invalid address")]
+	InvalidAddress,
+
+	#[error("invalid file descriptor")]
+	InvalidDescriptor,
+
+	#[error(transparent)]
+	Io(#[from] io::Error),
+
+	#[error(transparent)]
+	Nul(#[from] ffi::NulError),
+
+	#[error(transparent)]
+	ParseNum(#[from] num::ParseIntError),
 }
+
+pub type Result<T> = ::std::result::Result<T, Error>;

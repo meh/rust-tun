@@ -47,7 +47,7 @@ impl IntoAddress for (u8, u8, u8, u8) {
 
 impl IntoAddress for str {
 	fn into_address(&self) -> Result<Ipv4Addr> {
-		self.parse().map_err(|_| ErrorKind::InvalidAddress.into())
+		self.parse().map_err(|_| Error::InvalidAddress)
 	}
 }
 
@@ -88,7 +88,7 @@ impl IntoAddress for IpAddr {
 				Ok(value.clone()),
 
 			IpAddr::V6(_) =>
-				Err(ErrorKind::InvalidAddress.into())
+				Err(Error::InvalidAddress),
 		}
 	}
 }
@@ -118,7 +118,7 @@ impl IntoAddress for SocketAddr {
 				Ok(value.ip().clone()),
 
 			SocketAddr::V6(_) =>
-				Err(ErrorKind::InvalidAddress.into())
+				Err(Error::InvalidAddress),
 		}
 	}
 }

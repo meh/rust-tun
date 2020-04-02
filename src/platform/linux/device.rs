@@ -46,7 +46,7 @@ impl Device {
 					let name = CString::new(name.clone())?;
 
 					if name.as_bytes_with_nul().len() > IFNAMSIZ {
-						return Err(ErrorKind::NameTooLong.into());
+						return Err(Error::NameTooLong);
 					}
 
 					Some(name)
@@ -179,7 +179,7 @@ impl D for Device {
 			let name = CString::new(value)?;
 
 			if name.as_bytes_with_nul().len() > IFNAMSIZ {
-				return Err(ErrorKind::NameTooLong.into());
+				return Err(Error::NameTooLong);
 			}
 
 			let mut req = self.request();

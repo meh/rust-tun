@@ -103,7 +103,7 @@ impl Decoder for TunPacketCodec {
 
 		// if the packet information is enabled we have to ignore the first 4 bytes
 		if self.0 {
-			buf.split_to(4);
+			let _ = buf.split_to(4);
 		}
 
 		let proto = infer_proto(buf.as_ref());
@@ -111,11 +111,10 @@ impl Decoder for TunPacketCodec {
 	}
 }
 
-impl Encoder for TunPacketCodec {
-	type Item = TunPacket;
+impl Encoder<TunPacket> for TunPacketCodec {
 	type Error = io::Error;
 
-	fn encode(&mut self, item: Self::Item, dst: &mut BytesMut) -> Result<(), Self::Error> {
+	fn encode(&mut self, item: TunPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
 		dst.reserve(item.get_bytes().len() + 4);
 		match item {
 			TunPacket(proto, bytes) if self.0 => {

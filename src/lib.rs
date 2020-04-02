@@ -12,33 +12,20 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-#![recursion_limit = "1024"]
-
-extern crate libc;
-#[macro_use]
-extern crate error_chain;
-
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-#[macro_use]
-extern crate ioctl_sys as ioctl;
-
-#[cfg(all(feature = "mio", any(target_os = "linux", target_os = "macos")))]
-extern crate mio;
-
 mod error;
-pub use error::*;
+pub use crate::error::*;
 
 mod address;
-pub use address::IntoAddress;
+pub use crate::address::IntoAddress;
 
 mod device;
-pub use device::Device;
+pub use crate::device::Device;
 
 mod configuration;
-pub use configuration::Configuration;
+pub use crate::configuration::Configuration;
 
 pub mod platform;
-pub use platform::create;
+pub use crate::platform::create;
 
 #[cfg(all(feature = "async", any(target_os = "linux", target_os = "macos")))]
 pub mod r#async;
