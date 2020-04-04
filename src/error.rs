@@ -29,6 +29,9 @@ pub enum Error {
 	#[error("invalid file descriptor")]
 	InvalidDescriptor,
 
+	#[error("unsuported network layer of operation")]
+	UnsupportedLayer,
+
 	#[error(transparent)]
 	Io(#[from] io::Error),
 

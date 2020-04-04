@@ -24,6 +24,7 @@ pub const IFF_UP:      c_short = 0x1;
 pub const IFF_RUNNING: c_short = 0x40;
 
 pub const IFF_TUN:   c_short = 0x0001;
+pub const IFF_TAP:   c_short = 0x0002;
 pub const IFF_NO_PI: c_short = 0x1000;
 
 #[repr(C)]
