@@ -16,6 +16,7 @@
 
 use libc::{c_void, c_char, c_short, c_ushort, c_int, c_uint};
 use libc::{sockaddr};
+use ioctl::*;
 
 pub const IFNAMSIZ: usize = 16;
 
