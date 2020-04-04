@@ -42,11 +42,11 @@ impl Device {
 	pub fn new(config: &Configuration) -> Result<Self> {
 		let id = if let Some(name) = config.name.as_ref() {
 			if name.len() > IFNAMSIZ {
-				return Err(ErrorKind::NameTooLong.into());
+				return Err(Error::NameTooLong);
 			}
 
 			if !name.starts_with("utun") {
-				return Err(ErrorKind::InvalidName.into());
+				return Err(Error::InvalidName);
 			}
 
 			name[4..].parse()?
@@ -56,7 +56,7 @@ impl Device {
 		};
 
 		if config.layer.filter(|l| *l != Layer::L3).is_some() {
-			return Err(ErrorKind::UnsupportedLayer.into());
+			return Err(Error::UnsupportedLayer);
 		}
 
 		let mut device = unsafe {
@@ -180,7 +180,7 @@ impl D for Device {
 
 	// XXX: Cannot set interface name on Darwin.
 	fn set_name(&mut self, value: &str) -> Result<()> {
-		Err(ErrorKind::InvalidName.into())
+		Err(Error::InvalidName)
 	}
 
 	fn enabled(&mut self, value: bool) -> Result<()> {
