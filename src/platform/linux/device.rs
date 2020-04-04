@@ -20,10 +20,10 @@ use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::ptr;
 
 use libc;
-use libc::c_char;
+use libc::{c_char, c_short};
 use libc::{AF_INET, O_RDWR, SOCK_DGRAM};
 
-use crate::configuration::Configuration;
+use crate::configuration::{Configuration, Layer};
 use crate::device::Device as D;
 use crate::error::*;
 use crate::platform::linux::sys::*;
@@ -68,7 +68,9 @@ impl Device {
 				);
 			}
 
-			req.ifru.flags = IFF_TUN
+			let device_type: c_short = config.layer.unwrap_or(Layer::L3).into();
+
+			req.ifru.flags = device_type
 				| if config.platform.packet_information {
 					0
 				} else {
@@ -357,6 +359,15 @@ impl IntoRawFd for Device {
 	fn into_raw_fd(self) -> RawFd {
 		self.tun.as_raw_fd()
 	}
+}
+
+impl Into<c_short> for Layer {
+        fn into(self) -> c_short {
+                match self {
+                        Layer::L2 => IFF_TAP,
+                        Layer::L3 => IFF_TUN,
+                }
+        }
 }
 
 #[cfg(feature = "mio")]

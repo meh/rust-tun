@@ -17,6 +17,17 @@ use std::net::{Ipv4Addr};
 use crate::address::IntoAddress;
 use crate::platform;
 
+/// TUN interface OSI layer of operation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Layer {
+	L2,
+	L3,
+}
+
+impl Default for Layer {
+	fn default() -> Self { Layer::L3 }
+}
+
 /// Configuration builder for a TUN interface.
 #[derive(Clone, Default, Debug)]
 pub struct Configuration {
@@ -29,6 +40,7 @@ pub struct Configuration {
 	pub(crate) netmask:     Option<Ipv4Addr>,
 	pub(crate) mtu:         Option<i32>,
 	pub(crate) enabled:     Option<bool>,
+	pub(crate) layer:       Option<Layer>,
 }
 
 impl Configuration {
@@ -85,6 +97,12 @@ impl Configuration {
 	/// Set the interface to be disabled once created.
 	pub fn down(&mut self) -> &mut Self {
 		self.enabled = Some(false);
+		self
+	}
+
+	/// Set the OSI layer of operation.
+	pub fn layer(&mut self, l: Layer) -> &mut Self {
+		self.layer = Some(l);
 		self
 	}
 }

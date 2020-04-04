@@ -27,7 +27,7 @@ use libc::{SOCK_DGRAM, AF_INET, socklen_t, sockaddr, c_void, c_char, c_uint};
 use crate::error::*;
 use crate::device::Device as D;
 use crate::platform::macos::sys::*;
-use crate::configuration::Configuration;
+use crate::configuration::{Configuration, Layer};
 use crate::platform::posix::{self, SockAddr, Fd};
 
 /// A TUN device using the TUN macOS driver.
@@ -54,6 +54,10 @@ impl Device {
 		else {
 			0
 		};
+
+		if config.layer.filter(|l| *l != Layer::L3).is_some() {
+			return Err(ErrorKind::UnsupportedLayer.into());
+		}
 
 		let mut device = unsafe {
 			let tun = Fd::new(libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL))

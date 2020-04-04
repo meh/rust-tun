@@ -22,7 +22,7 @@ mod device;
 pub use crate::device::Device;
 
 mod configuration;
-pub use crate::configuration::Configuration;
+pub use crate::configuration::{Configuration, Layer};
 
 pub mod platform;
 pub use crate::platform::create;
