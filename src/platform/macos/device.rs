@@ -330,6 +330,14 @@ impl D for Device {
 			Ok(())
 		}
 	}
+
+	fn enable(&mut self) -> Result<()> {
+	      self.enabled(true)
+	}
+
+	fn disable(&mut self) -> Result<()> {
+	      self.enabled(false)
+	}
 }
 
 impl AsRawFd for Device {

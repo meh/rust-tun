@@ -87,4 +87,10 @@ pub trait Device: Read + Write {
 
 	/// Set the MTU.
 	fn set_mtu(&mut self, value: i32) -> Result<()>;
+
+	/// Enable the tun device.
+	fn enable(&mut self) -> Result<()>;
+
+	/// Disable the tun device.
+	fn disable(&mut self) -> Result<()>;
 }
