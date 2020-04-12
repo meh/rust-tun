@@ -33,7 +33,7 @@ use crate::platform::posix::{self, SockAddr, Fd};
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
 	name: String,
-	tun: Fd,
+	queue: Queue,
 	ctl: Fd,
 }
 
@@ -57,6 +57,11 @@ impl Device {
 
 		if config.layer.filter(|l| *l != Layer::L3).is_some() {
 			return Err(Error::UnsupportedLayer);
+		}
+
+		let queues_number = config.queues.unwrap_or(1);
+		if queues_number != 1 {
+			return Err(Error::InvalidQueuesNumber);
 		}
 
 		let mut device = unsafe {
@@ -103,7 +108,7 @@ impl Device {
 
 			Device {
 				name: CStr::from_ptr(name.as_ptr() as *const c_char).to_string_lossy().into(),
-				tun: tun,
+				queue: Queue { tun: tun },
 				ctl: ctl,
 			}
 		};
@@ -141,39 +146,40 @@ impl Device {
 
 	/// Split the interface into a `Reader` and `Writer`.
 	pub fn split(self) -> (posix::Reader, posix::Writer) {
-		let fd = Arc::new(self.tun);
+		let fd = Arc::new(self.queue.tun);
 		(posix::Reader(fd.clone()), posix::Writer(fd.clone()))
 	}
 
 	/// Return whether the device has packet information
 	pub fn has_packet_information(&self) -> bool {
-		// on macos this is always the case
-		true
+                self.queue.has_packet_information()
 	}
 
 	#[cfg(feature = "mio")]
 	pub fn set_nonblock(&self) -> io::Result<()> {
-		self.tun.set_nonblock()
+		self.queue.set_nonblock()
 	}
 }
 
 impl Read for Device {
 	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-		self.tun.read(buf)
+		self.queue.tun.read(buf)
 	}
 }
 
 impl Write for Device {
 	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-		self.tun.write(buf)
+		self.queue.tun.write(buf)
 	}
 
 	fn flush(&mut self) -> io::Result<()> {
-		self.tun.flush()
+		self.queue.tun.flush()
 	}
 }
 
 impl D for Device {
+	type Queue = Queue;
+
 	fn name(&self) -> &str {
 		&self.name
 	}
@@ -330,17 +336,57 @@ impl D for Device {
 			Ok(())
 		}
 	}
+
+	fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
+		if index > 0 {
+			return None
+		}
+
+		Some(&mut self.queue)
+	}
 }
 
 impl AsRawFd for Device {
 	fn as_raw_fd(&self) -> RawFd {
-		self.tun.as_raw_fd()
+		self.queue.tun.as_raw_fd()
 	}
 }
 
 impl IntoRawFd for Device {
 	fn into_raw_fd(self) -> RawFd {
-		self.tun.into_raw_fd()
+		self.queue.tun.into_raw_fd()
+	}
+}
+
+pub struct Queue {
+	tun: Fd,
+}
+
+impl Queue {
+	pub fn has_packet_information(&self) -> bool {
+		// on macos this is always the case
+		true
+	}
+
+	#[cfg(feature = "mio")]
+	pub fn set_nonblock(&self) -> io::Result<()> {
+		self.tun.set_nonblock()
+	}
+}
+
+impl Read for Queue {
+	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+		self.tun.read(buf)
+	}
+}
+
+impl Write for Queue {
+	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+		self.tun.write(buf)
+	}
+
+	fn flush(&mut self) -> io::Result<()> {
+		self.tun.flush()
 	}
 }
 
@@ -351,6 +397,20 @@ mod mio {
 	use mio::event::Evented;
 
 	impl Evented for super::Device {
+		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+			self.queue.register(poll, token, interest, opts)
+		}
+
+		fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+			self.queue.reregister(poll, token, interest, opts)
+		}
+
+		fn deregister(&self, poll: &Poll) -> io::Result<()> {
+			self.queue.deregister(poll)
+		}
+	}
+
+	impl Evented for super::Queue {
 		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
 			self.tun.register(poll, token, interest, opts)
 		}

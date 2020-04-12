@@ -20,6 +20,8 @@ use crate::configuration::Configuration;
 
 /// A TUN device.
 pub trait Device: Read + Write {
+	type Queue: Read + Write;
+
 	/// Reconfigure the device.
 	fn configure(&mut self, config: &Configuration) -> Result<()> {
 		if let Some(ip) = config.address {
@@ -87,4 +89,7 @@ pub trait Device: Read + Write {
 
 	/// Set the MTU.
 	fn set_mtu(&mut self, value: i32) -> Result<()>;
+
+	/// Get a device queue.
+	fn queue(&mut self, index: usize) -> Option<&mut Self::Queue>;
 }

@@ -18,6 +18,7 @@ use std::mem;
 use std::net::Ipv4Addr;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::ptr;
+use std::vec::Vec;
 
 use libc;
 use libc::{c_char, c_short};
@@ -32,9 +33,8 @@ use crate::platform::posix::{Fd, SockAddr};
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
 	name: String,
-	tun: Fd,
+	queues: Vec<Queue>,
 	ctl: Fd,
-	pi_enabled: bool,
 }
 
 impl Device {
@@ -55,8 +55,7 @@ impl Device {
 				None => None,
 			};
 
-			let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
-				.map_err(|_| io::Error::last_os_error())?;
+			let mut queues = Vec::new();
 
 			let mut req: ifreq = mem::zeroed();
 
@@ -70,15 +69,32 @@ impl Device {
 
 			let device_type: c_short = config.layer.unwrap_or(Layer::L3).into();
 
+			let queues_num = config.queues.unwrap_or(1);
+			if queues_num < 1 {
+				return Err(Error::InvalidQueuesNumber);
+			}
+
 			req.ifru.flags = device_type
 				| if config.platform.packet_information {
 					0
 				} else {
 					IFF_NO_PI
+				}
+				| if queues_num > 1 {
+					IFF_MULTI_QUEUE
+				} else {
+					0
 				};
 
-			if tunsetiff(tun.0, &mut req as *mut _ as *mut _) < 0 {
-				return Err(io::Error::last_os_error().into());
+			for _ in 0..queues_num {
+				let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
+					.map_err(|_| io::Error::last_os_error())?;
+
+				if tunsetiff(tun.0, &mut req as *mut _ as *mut _) < 0 {
+					return Err(io::Error::last_os_error().into());
+				}
+
+				queues.push(Queue { tun, pi_enabled: config.platform.packet_information } );
 			}
 
 			let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
@@ -88,9 +104,8 @@ impl Device {
 				name: CStr::from_ptr(req.ifrn.name.as_ptr())
 					.to_string_lossy()
 					.into(),
-				tun: tun,
+				queues: queues,
 				ctl: ctl,
-				pi_enabled: config.platform.packet_information,
 			}
 		};
 
@@ -146,32 +161,34 @@ impl Device {
 
 	/// Return whether the device has packet information
 	pub fn has_packet_information(&mut self) -> bool {
-		self.pi_enabled
+		self.queues[0].has_packet_information()
 	}
 
 	#[cfg(feature = "mio")]
 	pub fn set_nonblock(&self) -> io::Result<()> {
-		self.tun.set_nonblock()
+		self.queues[0].set_nonblock()
 	}
 }
 
 impl Read for Device {
 	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-		self.tun.read(buf)
+		self.queues[0].read(buf)
 	}
 }
 
 impl Write for Device {
 	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-		self.tun.write(buf)
+		self.queues[0].write(buf)
 	}
 
 	fn flush(&mut self) -> io::Result<()> {
-		self.tun.flush()
+		self.queues[0].flush()
 	}
 }
 
 impl D for Device {
+	type Queue = Queue;
+
 	fn name(&self) -> &str {
 		&self.name
 	}
@@ -347,27 +364,75 @@ impl D for Device {
 			Ok(())
 		}
 	}
+
+	fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
+		self.queues.get_mut(index)
+	}
 }
 
 impl AsRawFd for Device {
+	fn as_raw_fd(&self) -> RawFd {
+		self.queues[0].as_raw_fd()
+	}
+}
+
+impl IntoRawFd for Device {
+	fn into_raw_fd(self) -> RawFd {
+		self.queues[0].as_raw_fd()
+	}
+}
+
+pub struct Queue {
+	tun: Fd,
+	pi_enabled: bool,
+}
+
+impl Queue {
+	pub fn has_packet_information(&mut self) -> bool {
+		self.pi_enabled
+	}
+
+	#[cfg(feature = "mio")]
+	pub fn set_nonblock(&self) -> io::Result<()> {
+		self.tun.set_nonblock()
+	}
+}
+
+impl Read for Queue {
+	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+		self.tun.read(buf)
+	}
+}
+
+impl Write for Queue {
+	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+		self.tun.write(buf)
+	}
+
+	fn flush(&mut self) -> io::Result<()> {
+		self.tun.flush()
+	}
+}
+
+impl AsRawFd for Queue {
 	fn as_raw_fd(&self) -> RawFd {
 		self.tun.as_raw_fd()
 	}
 }
 
-impl IntoRawFd for Device {
+impl IntoRawFd for Queue {
 	fn into_raw_fd(self) -> RawFd {
 		self.tun.as_raw_fd()
 	}
 }
 
 impl Into<c_short> for Layer {
-        fn into(self) -> c_short {
-                match self {
-                        Layer::L2 => IFF_TAP,
-                        Layer::L3 => IFF_TUN,
-                }
-        }
+	fn into(self) -> c_short {
+		match self {
+			Layer::L2 => IFF_TAP,
+			Layer::L3 => IFF_TUN,
+		}
+	}
 }
 
 #[cfg(feature = "mio")]
@@ -377,6 +442,32 @@ mod mio {
 	use std::io;
 
 	impl Evented for super::Device {
+		fn register(
+			&self,
+			poll: &Poll,
+			token: Token,
+			interest: Ready,
+			opts: PollOpt,
+		) -> io::Result<()> {
+			self.queues[0].register(poll, token, interest, opts)
+		}
+
+		fn reregister(
+			&self,
+			poll: &Poll,
+			token: Token,
+			interest: Ready,
+			opts: PollOpt,
+		) -> io::Result<()> {
+			self.queues[0].reregister(poll, token, interest, opts)
+		}
+
+		fn deregister(&self, poll: &Poll) -> io::Result<()> {
+			self.queues[0].deregister(poll)
+		}
+	}
+
+	impl Evented for super::Queue {
 		fn register(
 			&self,
 			poll: &Poll,

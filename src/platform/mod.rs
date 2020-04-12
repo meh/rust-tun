@@ -20,12 +20,12 @@ pub mod posix;
 #[cfg(target_os = "linux")]
 pub mod linux;
 #[cfg(target_os = "linux")]
-pub use self::linux::{Device, Configuration, create};
+pub use self::linux::{Device, Queue, Configuration, create};
 
 #[cfg(target_os = "macos")]
 pub mod macos;
 #[cfg(target_os = "macos")]
-pub use self::macos::{Device, Configuration, create};
+pub use self::macos::{Device, Queue, Configuration, create};
 
 #[cfg(test)]
 mod test {

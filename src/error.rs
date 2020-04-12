@@ -32,6 +32,9 @@ pub enum Error {
 	#[error("unsuported network layer of operation")]
 	UnsupportedLayer,
 
+	#[error("invalid queues number")]
+	InvalidQueuesNumber,
+
 	#[error(transparent)]
 	Io(#[from] io::Error),
 
