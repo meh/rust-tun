@@ -17,7 +17,7 @@
 pub mod sys;
 
 mod device;
-pub use self::device::Device;
+pub use self::device::{Device, Queue};
 
 use crate::error::*;
 use crate::configuration::Configuration as C;

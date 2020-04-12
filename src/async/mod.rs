@@ -20,7 +20,7 @@ use crate::configuration::Configuration;
 use crate::platform::create;
 
 mod device;
-pub use self::device::DeviceAsync;
+pub use self::device::{DeviceAsync, QueueAsync};
 
 mod codec;
 pub use self::codec::{TunPacket, TunPacketCodec};

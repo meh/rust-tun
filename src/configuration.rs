@@ -41,6 +41,7 @@ pub struct Configuration {
 	pub(crate) mtu:         Option<i32>,
 	pub(crate) enabled:     Option<bool>,
 	pub(crate) layer:       Option<Layer>,
+	pub(crate) queues:      Option<usize>,
 }
 
 impl Configuration {
@@ -101,8 +102,14 @@ impl Configuration {
 	}
 
 	/// Set the OSI layer of operation.
-	pub fn layer(&mut self, l: Layer) -> &mut Self {
-		self.layer = Some(l);
+	pub fn layer(&mut self, value: Layer) -> &mut Self {
+		self.layer = Some(value);
+		self
+	}
+
+	/// Set the number of queues.
+	pub fn queues(&mut self, value: usize) -> &mut Self {
+		self.queues = Some(value);
 		self
 	}
 }
