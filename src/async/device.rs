@@ -23,15 +23,15 @@ use crate::platform::{Device, Queue};
 use crate::r#async::codec::*;
 
 /// An async TUN device wrapper around a TUN device.
-pub struct DeviceAsync {
+pub struct AsyncDevice {
 	inner: PollEvented<Device>,
 }
 
-impl DeviceAsync {
-	/// Create a new `DeviceAsync` wrapping around a `Device`.
-	pub fn new(device: Device) -> io::Result<DeviceAsync> {
+impl AsyncDevice {
+	/// Create a new `AsyncDevice` wrapping around a `Device`.
+	pub fn new(device: Device) -> io::Result<AsyncDevice> {
 		device.set_nonblock()?;
-		Ok(DeviceAsync {
+		Ok(AsyncDevice {
 			inner: PollEvented::new(device)?,
 		})
 	}
@@ -45,7 +45,7 @@ impl DeviceAsync {
 		self.inner.get_mut()
 	}
 
-	/// Consumes this DeviceAsync and return a Framed object (unified Stream and Sink interface)
+	/// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
 	pub fn into_framed(mut self) -> Framed<Self, TunPacketCodec> {
 		let pi = self.get_mut().has_packet_information();
 		let codec = TunPacketCodec::new(pi);
@@ -53,7 +53,7 @@ impl DeviceAsync {
 	}
 }
 
-impl AsyncRead for DeviceAsync {
+impl AsyncRead for AsyncDevice {
 	fn poll_read(
 		mut self: Pin<&mut Self>,
 		cx: &mut Context<'_>,
@@ -63,7 +63,7 @@ impl AsyncRead for DeviceAsync {
 	}
 }
 
-impl AsyncWrite for DeviceAsync {
+impl AsyncWrite for AsyncDevice {
 	fn poll_write(
 		mut self: Pin<&mut Self>,
 		cx: &mut Context<'_>,
@@ -82,15 +82,15 @@ impl AsyncWrite for DeviceAsync {
 }
 
 /// An async TUN device queue wrapper around a TUN device queue.
-pub struct QueueAsync {
+pub struct AsyncQueue {
 	inner: PollEvented<Queue>,
 }
 
-impl QueueAsync {
-	/// Create a new `QueueAsync` wrapping around a `Queue`.
-	pub fn new(queue: Queue) -> io::Result<QueueAsync> {
+impl AsyncQueue {
+	/// Create a new `AsyncQueue` wrapping around a `Queue`.
+	pub fn new(queue: Queue) -> io::Result<AsyncQueue> {
 		queue.set_nonblock()?;
-		Ok(QueueAsync {
+		Ok(AsyncQueue {
 			inner: PollEvented::new(queue)?,
 		})
 	}
@@ -104,7 +104,7 @@ impl QueueAsync {
 		self.inner.get_mut()
 	}
 
-	/// Consumes this QueueAsync and return a Framed object (unified Stream and Sink interface)
+	/// Consumes this AsyncQueue and return a Framed object (unified Stream and Sink interface)
 	pub fn into_framed(mut self) -> Framed<Self, TunPacketCodec> {
 		let pi = self.get_mut().has_packet_information();
 		let codec = TunPacketCodec::new(pi);
@@ -112,7 +112,7 @@ impl QueueAsync {
 	}
 }
 
-impl AsyncRead for QueueAsync {
+impl AsyncRead for AsyncQueue {
 	fn poll_read(
 		mut self: Pin<&mut Self>,
 		cx: &mut Context<'_>,
@@ -122,7 +122,7 @@ impl AsyncRead for QueueAsync {
 	}
 }
 
-impl AsyncWrite for QueueAsync {
+impl AsyncWrite for AsyncQueue {
 	fn poll_write(
 		mut self: Pin<&mut Self>,
 		cx: &mut Context<'_>,
