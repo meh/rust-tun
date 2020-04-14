@@ -20,13 +20,13 @@ use crate::configuration::Configuration;
 use crate::platform::create;
 
 mod device;
-pub use self::device::{DeviceAsync, QueueAsync};
+pub use self::device::{AsyncDevice, AsyncQueue};
 
 mod codec;
 pub use self::codec::{TunPacket, TunPacketCodec};
 
 /// Create a TUN device with the given name.
-pub fn create_as_async(configuration: &Configuration) -> Result<DeviceAsync, error::Error> {
+pub fn create_as_async(configuration: &Configuration) -> Result<AsyncDevice, error::Error> {
     let device = create(&configuration)?;
-    DeviceAsync::new(device).map_err(|err| err.into())
+    AsyncDevice::new(device).map_err(|err| err.into())
 }
