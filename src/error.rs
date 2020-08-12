@@ -12,37 +12,37 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::{io, ffi, num};
+use std::{ffi, io, num};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-	#[error("device name too long")]
-	NameTooLong,
+    #[error("device name too long")]
+    NameTooLong,
 
-	#[error("invalid device name")]
-	InvalidName,
+    #[error("invalid device name")]
+    InvalidName,
 
-	#[error("invalid address")]
-	InvalidAddress,
+    #[error("invalid address")]
+    InvalidAddress,
 
-	#[error("invalid file descriptor")]
-	InvalidDescriptor,
+    #[error("invalid file descriptor")]
+    InvalidDescriptor,
 
-	#[error("unsuported network layer of operation")]
-	UnsupportedLayer,
+    #[error("unsuported network layer of operation")]
+    UnsupportedLayer,
 
-	#[error("invalid queues number")]
-	InvalidQueuesNumber,
+    #[error("invalid queues number")]
+    InvalidQueuesNumber,
 
-	#[error(transparent)]
-	Io(#[from] io::Error),
+    #[error(transparent)]
+    Io(#[from] io::Error),
 
-	#[error(transparent)]
-	Nul(#[from] ffi::NulError),
+    #[error(transparent)]
+    Nul(#[from] ffi::NulError),
 
-	#[error(transparent)]
-	ParseNum(#[from] num::ParseIntError),
+    #[error(transparent)]
+    ParseNum(#[from] num::ParseIntError),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;

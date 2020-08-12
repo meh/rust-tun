@@ -32,464 +32,463 @@ use crate::platform::posix::{Fd, SockAddr};
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
-	name: String,
-	queues: Vec<Queue>,
-	ctl: Fd,
+    name: String,
+    queues: Vec<Queue>,
+    ctl: Fd,
 }
 
 impl Device {
-	/// Create a new `Device` for the given `Configuration`.
-	pub fn new(config: &Configuration) -> Result<Self> {
-		let mut device = unsafe {
-			let dev = match config.name.as_ref() {
-				Some(name) => {
-					let name = CString::new(name.clone())?;
+    /// Create a new `Device` for the given `Configuration`.
+    pub fn new(config: &Configuration) -> Result<Self> {
+        let mut device = unsafe {
+            let dev = match config.name.as_ref() {
+                Some(name) => {
+                    let name = CString::new(name.clone())?;
 
-					if name.as_bytes_with_nul().len() > IFNAMSIZ {
-						return Err(Error::NameTooLong);
-					}
+                    if name.as_bytes_with_nul().len() > IFNAMSIZ {
+                        return Err(Error::NameTooLong);
+                    }
 
-					Some(name)
-				}
+                    Some(name)
+                }
 
-				None => None,
-			};
+                None => None,
+            };
 
-			let mut queues = Vec::new();
+            let mut queues = Vec::new();
 
-			let mut req: ifreq = mem::zeroed();
+            let mut req: ifreq = mem::zeroed();
 
-			if let Some(dev) = dev.as_ref() {
-				ptr::copy_nonoverlapping(
-					dev.as_ptr() as *const c_char,
-					req.ifrn.name.as_mut_ptr(),
-					dev.as_bytes().len(),
-				);
-			}
+            if let Some(dev) = dev.as_ref() {
+                ptr::copy_nonoverlapping(
+                    dev.as_ptr() as *const c_char,
+                    req.ifrn.name.as_mut_ptr(),
+                    dev.as_bytes().len(),
+                );
+            }
 
-			let device_type: c_short = config.layer.unwrap_or(Layer::L3).into();
+            let device_type: c_short = config.layer.unwrap_or(Layer::L3).into();
 
-			let queues_num = config.queues.unwrap_or(1);
-			if queues_num < 1 {
-				return Err(Error::InvalidQueuesNumber);
-			}
+            let queues_num = config.queues.unwrap_or(1);
+            if queues_num < 1 {
+                return Err(Error::InvalidQueuesNumber);
+            }
 
-			req.ifru.flags = device_type
-				| if config.platform.packet_information {
-					0
-				} else {
-					IFF_NO_PI
-				}
-				| if queues_num > 1 {
-					IFF_MULTI_QUEUE
-				} else {
-					0
-				};
+            req.ifru.flags = device_type
+                | if config.platform.packet_information {
+                    0
+                } else {
+                    IFF_NO_PI
+                }
+                | if queues_num > 1 { IFF_MULTI_QUEUE } else { 0 };
 
-			for _ in 0..queues_num {
-				let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
-					.map_err(|_| io::Error::last_os_error())?;
+            for _ in 0..queues_num {
+                let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
+                    .map_err(|_| io::Error::last_os_error())?;
 
-				if tunsetiff(tun.0, &mut req as *mut _ as *mut _) < 0 {
-					return Err(io::Error::last_os_error().into());
-				}
+                if tunsetiff(tun.0, &mut req as *mut _ as *mut _) < 0 {
+                    return Err(io::Error::last_os_error().into());
+                }
 
-				queues.push(Queue { tun, pi_enabled: config.platform.packet_information } );
-			}
+                queues.push(Queue {
+                    tun,
+                    pi_enabled: config.platform.packet_information,
+                });
+            }
 
-			let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
-				.map_err(|_| io::Error::last_os_error())?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
+                .map_err(|_| io::Error::last_os_error())?;
 
-			Device {
-				name: CStr::from_ptr(req.ifrn.name.as_ptr())
-					.to_string_lossy()
-					.into(),
-				queues: queues,
-				ctl: ctl,
-			}
-		};
+            Device {
+                name: CStr::from_ptr(req.ifrn.name.as_ptr())
+                    .to_string_lossy()
+                    .into(),
+                queues: queues,
+                ctl: ctl,
+            }
+        };
 
-		device.configure(&config)?;
+        device.configure(&config)?;
 
-		Ok(device)
-	}
+        Ok(device)
+    }
 
-	/// Prepare a new request.
-	unsafe fn request(&self) -> ifreq {
-		let mut req: ifreq = mem::zeroed();
-		ptr::copy_nonoverlapping(
-			self.name.as_ptr() as *const c_char,
-			req.ifrn.name.as_mut_ptr(),
-			self.name.len(),
-		);
+    /// Prepare a new request.
+    unsafe fn request(&self) -> ifreq {
+        let mut req: ifreq = mem::zeroed();
+        ptr::copy_nonoverlapping(
+            self.name.as_ptr() as *const c_char,
+            req.ifrn.name.as_mut_ptr(),
+            self.name.len(),
+        );
 
-		req
-	}
+        req
+    }
 
-	/// Make the device persistent.
-	pub fn persist(&mut self) -> Result<()> {
-		unsafe {
-			if tunsetpersist(self.as_raw_fd(), &1) < 0 {
-				Err(io::Error::last_os_error().into())
-			} else {
-				Ok(())
-			}
-		}
-	}
+    /// Make the device persistent.
+    pub fn persist(&mut self) -> Result<()> {
+        unsafe {
+            if tunsetpersist(self.as_raw_fd(), &1) < 0 {
+                Err(io::Error::last_os_error().into())
+            } else {
+                Ok(())
+            }
+        }
+    }
 
-	/// Set the owner of the device.
-	pub fn user(&mut self, value: i32) -> Result<()> {
-		unsafe {
-			if tunsetowner(self.as_raw_fd(), &value) < 0 {
-				Err(io::Error::last_os_error().into())
-			} else {
-				Ok(())
-			}
-		}
-	}
+    /// Set the owner of the device.
+    pub fn user(&mut self, value: i32) -> Result<()> {
+        unsafe {
+            if tunsetowner(self.as_raw_fd(), &value) < 0 {
+                Err(io::Error::last_os_error().into())
+            } else {
+                Ok(())
+            }
+        }
+    }
 
-	/// Set the group of the device.
-	pub fn group(&mut self, value: i32) -> Result<()> {
-		unsafe {
-			if tunsetgroup(self.as_raw_fd(), &value) < 0 {
-				Err(io::Error::last_os_error().into())
-			} else {
-				Ok(())
-			}
-		}
-	}
+    /// Set the group of the device.
+    pub fn group(&mut self, value: i32) -> Result<()> {
+        unsafe {
+            if tunsetgroup(self.as_raw_fd(), &value) < 0 {
+                Err(io::Error::last_os_error().into())
+            } else {
+                Ok(())
+            }
+        }
+    }
 
-	/// Return whether the device has packet information
-	pub fn has_packet_information(&mut self) -> bool {
-		self.queues[0].has_packet_information()
-	}
+    /// Return whether the device has packet information
+    pub fn has_packet_information(&mut self) -> bool {
+        self.queues[0].has_packet_information()
+    }
 
-	#[cfg(feature = "mio")]
-	pub fn set_nonblock(&self) -> io::Result<()> {
-		self.queues[0].set_nonblock()
-	}
+    #[cfg(feature = "mio")]
+    pub fn set_nonblock(&self) -> io::Result<()> {
+        self.queues[0].set_nonblock()
+    }
 }
 
 impl Read for Device {
-	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-		self.queues[0].read(buf)
-	}
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.queues[0].read(buf)
+    }
 }
 
 impl Write for Device {
-	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-		self.queues[0].write(buf)
-	}
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.queues[0].write(buf)
+    }
 
-	fn flush(&mut self) -> io::Result<()> {
-		self.queues[0].flush()
-	}
+    fn flush(&mut self) -> io::Result<()> {
+        self.queues[0].flush()
+    }
 }
 
 impl D for Device {
-	type Queue = Queue;
+    type Queue = Queue;
 
-	fn name(&self) -> &str {
-		&self.name
-	}
+    fn name(&self) -> &str {
+        &self.name
+    }
 
-	fn set_name(&mut self, value: &str) -> Result<()> {
-		unsafe {
-			let name = CString::new(value)?;
+    fn set_name(&mut self, value: &str) -> Result<()> {
+        unsafe {
+            let name = CString::new(value)?;
 
-			if name.as_bytes_with_nul().len() > IFNAMSIZ {
-				return Err(Error::NameTooLong);
-			}
+            if name.as_bytes_with_nul().len() > IFNAMSIZ {
+                return Err(Error::NameTooLong);
+            }
 
-			let mut req = self.request();
-			ptr::copy_nonoverlapping(
-				name.as_ptr() as *const c_char,
-				req.ifru.newname.as_mut_ptr(),
-				value.len(),
-			);
+            let mut req = self.request();
+            ptr::copy_nonoverlapping(
+                name.as_ptr() as *const c_char,
+                req.ifru.newname.as_mut_ptr(),
+                value.len(),
+            );
 
-			if siocsifname(self.ctl.as_raw_fd(), &req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocsifname(self.ctl.as_raw_fd(), &req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			self.name = value.into();
+            self.name = value.into();
 
-			Ok(())
-		}
-	}
+            Ok(())
+        }
+    }
 
-	fn enabled(&mut self, value: bool) -> Result<()> {
-		unsafe {
-			let mut req = self.request();
+    fn enabled(&mut self, value: bool) -> Result<()> {
+        unsafe {
+            let mut req = self.request();
 
-			if siocgifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocgifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			if value {
-				req.ifru.flags |= IFF_UP | IFF_RUNNING;
-			} else {
-				req.ifru.flags &= !IFF_UP;
-			}
+            if value {
+                req.ifru.flags |= IFF_UP | IFF_RUNNING;
+            } else {
+                req.ifru.flags &= !IFF_UP;
+            }
 
-			if siocsifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocsifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(())
-		}
-	}
+            Ok(())
+        }
+    }
 
-	fn address(&self) -> Result<Ipv4Addr> {
-		unsafe {
-			let mut req = self.request();
+    fn address(&self) -> Result<Ipv4Addr> {
+        unsafe {
+            let mut req = self.request();
 
-			if siocgifaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocgifaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			SockAddr::new(&req.ifru.addr).map(Into::into)
-		}
-	}
+            SockAddr::new(&req.ifru.addr).map(Into::into)
+        }
+    }
 
-	fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
-		unsafe {
-			let mut req = self.request();
-			req.ifru.addr = SockAddr::from(value).into();
+    fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+        unsafe {
+            let mut req = self.request();
+            req.ifru.addr = SockAddr::from(value).into();
 
-			if siocsifaddr(self.ctl.as_raw_fd(), &req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocsifaddr(self.ctl.as_raw_fd(), &req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(())
-		}
-	}
+            Ok(())
+        }
+    }
 
-	fn destination(&self) -> Result<Ipv4Addr> {
-		unsafe {
-			let mut req = self.request();
+    fn destination(&self) -> Result<Ipv4Addr> {
+        unsafe {
+            let mut req = self.request();
 
-			if siocgifdstaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocgifdstaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			SockAddr::new(&req.ifru.dstaddr).map(Into::into)
-		}
-	}
+            SockAddr::new(&req.ifru.dstaddr).map(Into::into)
+        }
+    }
 
-	fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
-		unsafe {
-			let mut req = self.request();
-			req.ifru.dstaddr = SockAddr::from(value).into();
+    fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+        unsafe {
+            let mut req = self.request();
+            req.ifru.dstaddr = SockAddr::from(value).into();
 
-			if siocsifdstaddr(self.ctl.as_raw_fd(), &req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocsifdstaddr(self.ctl.as_raw_fd(), &req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(())
-		}
-	}
+            Ok(())
+        }
+    }
 
-	fn broadcast(&self) -> Result<Ipv4Addr> {
-		unsafe {
-			let mut req = self.request();
+    fn broadcast(&self) -> Result<Ipv4Addr> {
+        unsafe {
+            let mut req = self.request();
 
-			if siocgifbrdaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocgifbrdaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			SockAddr::new(&req.ifru.broadaddr).map(Into::into)
-		}
-	}
+            SockAddr::new(&req.ifru.broadaddr).map(Into::into)
+        }
+    }
 
-	fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
-		unsafe {
-			let mut req = self.request();
-			req.ifru.broadaddr = SockAddr::from(value).into();
+    fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+        unsafe {
+            let mut req = self.request();
+            req.ifru.broadaddr = SockAddr::from(value).into();
 
-			if siocsifbrdaddr(self.ctl.as_raw_fd(), &req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocsifbrdaddr(self.ctl.as_raw_fd(), &req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(())
-		}
-	}
+            Ok(())
+        }
+    }
 
-	fn netmask(&self) -> Result<Ipv4Addr> {
-		unsafe {
-			let mut req = self.request();
+    fn netmask(&self) -> Result<Ipv4Addr> {
+        unsafe {
+            let mut req = self.request();
 
-			if siocgifnetmask(self.ctl.as_raw_fd(), &mut req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocgifnetmask(self.ctl.as_raw_fd(), &mut req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			SockAddr::new(&req.ifru.netmask).map(Into::into)
-		}
-	}
+            SockAddr::new(&req.ifru.netmask).map(Into::into)
+        }
+    }
 
-	fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
-		unsafe {
-			let mut req = self.request();
-			req.ifru.netmask = SockAddr::from(value).into();
+    fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+        unsafe {
+            let mut req = self.request();
+            req.ifru.netmask = SockAddr::from(value).into();
 
-			if siocsifnetmask(self.ctl.as_raw_fd(), &req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocsifnetmask(self.ctl.as_raw_fd(), &req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(())
-		}
-	}
+            Ok(())
+        }
+    }
 
-	fn mtu(&self) -> Result<i32> {
-		unsafe {
-			let mut req = self.request();
+    fn mtu(&self) -> Result<i32> {
+        unsafe {
+            let mut req = self.request();
 
-			if siocgifmtu(self.ctl.as_raw_fd(), &mut req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocgifmtu(self.ctl.as_raw_fd(), &mut req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(req.ifru.mtu)
-		}
-	}
+            Ok(req.ifru.mtu)
+        }
+    }
 
-	fn set_mtu(&mut self, value: i32) -> Result<()> {
-		unsafe {
-			let mut req = self.request();
-			req.ifru.mtu = value;
+    fn set_mtu(&mut self, value: i32) -> Result<()> {
+        unsafe {
+            let mut req = self.request();
+            req.ifru.mtu = value;
 
-			if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(())
-		}
-	}
+            Ok(())
+        }
+    }
 
-	fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
-		self.queues.get_mut(index)
-	}
+    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
+        self.queues.get_mut(index)
+    }
 }
 
 impl AsRawFd for Device {
-	fn as_raw_fd(&self) -> RawFd {
-		self.queues[0].as_raw_fd()
-	}
+    fn as_raw_fd(&self) -> RawFd {
+        self.queues[0].as_raw_fd()
+    }
 }
 
 impl IntoRawFd for Device {
-	fn into_raw_fd(self) -> RawFd {
-		self.queues[0].as_raw_fd()
-	}
+    fn into_raw_fd(self) -> RawFd {
+        self.queues[0].as_raw_fd()
+    }
 }
 
 pub struct Queue {
-	tun: Fd,
-	pi_enabled: bool,
+    tun: Fd,
+    pi_enabled: bool,
 }
 
 impl Queue {
-	pub fn has_packet_information(&mut self) -> bool {
-		self.pi_enabled
-	}
+    pub fn has_packet_information(&mut self) -> bool {
+        self.pi_enabled
+    }
 
-	#[cfg(feature = "mio")]
-	pub fn set_nonblock(&self) -> io::Result<()> {
-		self.tun.set_nonblock()
-	}
+    #[cfg(feature = "mio")]
+    pub fn set_nonblock(&self) -> io::Result<()> {
+        self.tun.set_nonblock()
+    }
 }
 
 impl Read for Queue {
-	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-		self.tun.read(buf)
-	}
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.tun.read(buf)
+    }
 }
 
 impl Write for Queue {
-	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-		self.tun.write(buf)
-	}
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.tun.write(buf)
+    }
 
-	fn flush(&mut self) -> io::Result<()> {
-		self.tun.flush()
-	}
+    fn flush(&mut self) -> io::Result<()> {
+        self.tun.flush()
+    }
 }
 
 impl AsRawFd for Queue {
-	fn as_raw_fd(&self) -> RawFd {
-		self.tun.as_raw_fd()
-	}
+    fn as_raw_fd(&self) -> RawFd {
+        self.tun.as_raw_fd()
+    }
 }
 
 impl IntoRawFd for Queue {
-	fn into_raw_fd(self) -> RawFd {
-		self.tun.as_raw_fd()
-	}
+    fn into_raw_fd(self) -> RawFd {
+        self.tun.as_raw_fd()
+    }
 }
 
 impl Into<c_short> for Layer {
-	fn into(self) -> c_short {
-		match self {
-			Layer::L2 => IFF_TAP,
-			Layer::L3 => IFF_TUN,
-		}
-	}
+    fn into(self) -> c_short {
+        match self {
+            Layer::L2 => IFF_TAP,
+            Layer::L3 => IFF_TUN,
+        }
+    }
 }
 
 #[cfg(feature = "mio")]
 mod mio {
-	use mio::event::Evented;
-	use mio::{Poll, PollOpt, Ready, Token};
-	use std::io;
+    use mio::event::Evented;
+    use mio::{Poll, PollOpt, Ready, Token};
+    use std::io;
 
-	impl Evented for super::Device {
-		fn register(
-			&self,
-			poll: &Poll,
-			token: Token,
-			interest: Ready,
-			opts: PollOpt,
-		) -> io::Result<()> {
-			self.queues[0].register(poll, token, interest, opts)
-		}
+    impl Evented for super::Device {
+        fn register(
+            &self,
+            poll: &Poll,
+            token: Token,
+            interest: Ready,
+            opts: PollOpt,
+        ) -> io::Result<()> {
+            self.queues[0].register(poll, token, interest, opts)
+        }
 
-		fn reregister(
-			&self,
-			poll: &Poll,
-			token: Token,
-			interest: Ready,
-			opts: PollOpt,
-		) -> io::Result<()> {
-			self.queues[0].reregister(poll, token, interest, opts)
-		}
+        fn reregister(
+            &self,
+            poll: &Poll,
+            token: Token,
+            interest: Ready,
+            opts: PollOpt,
+        ) -> io::Result<()> {
+            self.queues[0].reregister(poll, token, interest, opts)
+        }
 
-		fn deregister(&self, poll: &Poll) -> io::Result<()> {
-			self.queues[0].deregister(poll)
-		}
-	}
+        fn deregister(&self, poll: &Poll) -> io::Result<()> {
+            self.queues[0].deregister(poll)
+        }
+    }
 
-	impl Evented for super::Queue {
-		fn register(
-			&self,
-			poll: &Poll,
-			token: Token,
-			interest: Ready,
-			opts: PollOpt,
-		) -> io::Result<()> {
-			self.tun.register(poll, token, interest, opts)
-		}
+    impl Evented for super::Queue {
+        fn register(
+            &self,
+            poll: &Poll,
+            token: Token,
+            interest: Ready,
+            opts: PollOpt,
+        ) -> io::Result<()> {
+            self.tun.register(poll, token, interest, opts)
+        }
 
-		fn reregister(
-			&self,
-			poll: &Poll,
-			token: Token,
-			interest: Ready,
-			opts: PollOpt,
-		) -> io::Result<()> {
-			self.tun.reregister(poll, token, interest, opts)
-		}
+        fn reregister(
+            &self,
+            poll: &Poll,
+            token: Token,
+            interest: Ready,
+            opts: PollOpt,
+        ) -> io::Result<()> {
+            self.tun.reregister(poll, token, interest, opts)
+        }
 
-		fn deregister(&self, poll: &Poll) -> io::Result<()> {
-			self.tun.deregister(poll)
-		}
-	}
+        fn deregister(&self, poll: &Poll) -> io::Result<()> {
+            self.tun.deregister(poll)
+        }
+    }
 }
