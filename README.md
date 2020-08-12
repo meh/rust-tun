@@ -1,7 +1,6 @@
 TUN interfaces [![Crates.io](https://img.shields.io/crates/v/tun.svg)](https://crates.io/crates/tun) ![tun](https://docs.rs/tun/badge.svg) ![WTFPL](http://img.shields.io/badge/license-WTFPL-blue.svg)
 ==============
-This crate allows the creation and usage of TUN interfaces, the aim is to make
-this cross-platform but right now it only supports Linux.
+This crate allows the creation and usage of TUN interfaces, the aim is to make this cross-platform.
 
 Usage
 -----
@@ -68,3 +67,40 @@ interfaces.
 macOS
 -----
 It just werks, but you have to set up routing manually.
+
+iOS
+----
+You can pass the file descriptor of the TUN device to `rust-tun` to create the interface.
+
+Here is an example to create the TUN device on iOS and pass the `fd` to `rust-tun`:
+```swift
+// Swift
+class PacketTunnelProvider: NEPacketTunnelProvider {
+    override func startTunnel(options: [String : NSObject]?, completionHandler: @escaping (Error?) -> Void) {
+        let tunnelNetworkSettings = createTunnelSettings() // Configure TUN address, DNS, mtu, routing...
+        setTunnelNetworkSettings(tunnelNetworkSettings) { [weak self] error in
+            let tunFd = self?.packetFlow.value(forKeyPath: "socket.fileDescriptor") as! Int32
+            DispatchQueue.global(qos: .default).async {
+                start_tun(tunFd)
+            }
+            completionHandler(nil)
+        }
+    }
+}
+```
+
+```rust
+#[no_mangle]
+pub extern "C" fn start_tun(fd: std::os::raw::c_int) {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut cfg = tun::Configuration::default();
+        cfg.raw_fd(fd);
+        let mut tun = tun::create_as_async(&cfg).unwrap();
+        let mut framed = tun.into_framed();
+        while let Some(packet) = framed.next().await {
+            ...
+        }
+    });
+}
+```
