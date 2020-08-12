@@ -17,6 +17,12 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("invalid configuration")]
+    InvalidConfig,
+
+    #[error("not implementated")]
+    NotImplemented,
+
     #[error("device name too long")]
     NameTooLong,
 

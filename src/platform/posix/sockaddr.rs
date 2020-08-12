@@ -16,7 +16,7 @@ use std::mem;
 use std::net::Ipv4Addr;
 use std::ptr;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 use libc::{c_uchar, c_uint};
 #[cfg(target_os = "linux")]
 use libc::{c_uint, c_ushort};
@@ -33,7 +33,7 @@ pub struct SockAddr(sockaddr_in);
 #[cfg(target_os = "linux")]
 const AF_INET: c_ushort = _AF_INET as c_ushort;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 const AF_INET: c_uchar = _AF_INET as c_uchar;
 
 impl SockAddr {
