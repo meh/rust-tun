@@ -24,9 +24,9 @@ use crate::error::*;
 
 /// macOS-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
-pub struct Configuration { }
+pub struct Configuration {}
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &C) -> Result<Device> {
-	Device::new(&configuration)
+    Device::new(&configuration)
 }

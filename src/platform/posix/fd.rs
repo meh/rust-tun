@@ -13,106 +13,118 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::{self, Read, Write};
-use std::os::unix::io::{RawFd, AsRawFd, IntoRawFd};
+use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
-use libc::{self, fcntl, F_SETFL, O_NONBLOCK};
 use crate::error::*;
+use libc::{self, fcntl, F_SETFL, O_NONBLOCK};
 
 /// POSIX file descriptor support for `io` traits and optionally for `mio`.
 pub struct Fd(pub RawFd);
 
 impl Fd {
-	pub fn new(value: RawFd) -> Result<Self> {
-		if value < 0 {
-			return Err(Error::InvalidDescriptor);
-		}
+    pub fn new(value: RawFd) -> Result<Self> {
+        if value < 0 {
+            return Err(Error::InvalidDescriptor);
+        }
 
-		Ok(Fd(value))
-	}
+        Ok(Fd(value))
+    }
 
-	/// Enable non-blocking mode
-	pub fn set_nonblock(&self) -> io::Result<()> {
-		match unsafe { fcntl(self.0, F_SETFL, O_NONBLOCK) } {
-			0 => Ok(()),
-			_ => Err(io::Error::last_os_error()),
-		}
-	}
+    /// Enable non-blocking mode
+    pub fn set_nonblock(&self) -> io::Result<()> {
+        match unsafe { fcntl(self.0, F_SETFL, O_NONBLOCK) } {
+            0 => Ok(()),
+            _ => Err(io::Error::last_os_error()),
+        }
+    }
 }
 
 impl Read for Fd {
-	fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-		unsafe {
-			let amount = libc::read(self.0, buf.as_mut_ptr() as *mut _, buf.len());
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        unsafe {
+            let amount = libc::read(self.0, buf.as_mut_ptr() as *mut _, buf.len());
 
-			if amount < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if amount < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(amount as usize)
-		}
-	}
+            Ok(amount as usize)
+        }
+    }
 }
 
 impl Write for Fd {
-	fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-		unsafe {
-			let amount = libc::write(self.0, buf.as_ptr() as *const _, buf.len());
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unsafe {
+            let amount = libc::write(self.0, buf.as_ptr() as *const _, buf.len());
 
-			if amount < 0 {
-				return Err(io::Error::last_os_error().into());
-			}
+            if amount < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
 
-			Ok(amount as usize)
-		}
-	}
+            Ok(amount as usize)
+        }
+    }
 
-	fn flush(&mut self) -> io::Result<()> {
-		Ok(())
-	}
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 impl AsRawFd for Fd {
-	fn as_raw_fd(&self) -> RawFd {
-		self.0
-	}
+    fn as_raw_fd(&self) -> RawFd {
+        self.0
+    }
 }
 
 impl IntoRawFd for Fd {
-	fn into_raw_fd(mut self) -> RawFd {
-		let fd = self.0;
-		self.0 = -1;
-		fd
-	}
+    fn into_raw_fd(mut self) -> RawFd {
+        let fd = self.0;
+        self.0 = -1;
+        fd
+    }
 }
 
 impl Drop for Fd {
-	fn drop(&mut self) {
-		unsafe {
-			if self.0 >= 0 {
-				libc::close(self.0);
-			}
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            if self.0 >= 0 {
+                libc::close(self.0);
+            }
+        }
+    }
 }
 
 #[cfg(feature = "mio")]
 mod mio {
-	use std::io;
-	use mio::{Ready, Poll, PollOpt, Token};
-	use mio::event::Evented;
-	use mio::unix::EventedFd;
+    use mio::event::Evented;
+    use mio::unix::EventedFd;
+    use mio::{Poll, PollOpt, Ready, Token};
+    use std::io;
 
-	impl Evented for super::Fd {
-		fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
-			EventedFd(&self.0).register(poll, token, interest, opts)
-		}
+    impl Evented for super::Fd {
+        fn register(
+            &self,
+            poll: &Poll,
+            token: Token,
+            interest: Ready,
+            opts: PollOpt,
+        ) -> io::Result<()> {
+            EventedFd(&self.0).register(poll, token, interest, opts)
+        }
 
-		fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
-			EventedFd(&self.0).reregister(poll, token, interest, opts)
-		}
+        fn reregister(
+            &self,
+            poll: &Poll,
+            token: Token,
+            interest: Ready,
+            opts: PollOpt,
+        ) -> io::Result<()> {
+            EventedFd(&self.0).reregister(poll, token, interest, opts)
+        }
 
-		fn deregister(&self, poll: &Poll) -> io::Result<()> {
-			EventedFd(&self.0).deregister(poll)
-		}
-	}
+        fn deregister(&self, poll: &Poll) -> io::Result<()> {
+            EventedFd(&self.0).deregister(poll)
+        }
+    }
 }

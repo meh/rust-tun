@@ -33,5 +33,5 @@ pub mod r#async;
 pub use r#async::*;
 
 pub fn configure() -> Configuration {
-	Configuration::default()
+    Configuration::default()
 }

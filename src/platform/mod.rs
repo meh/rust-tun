@@ -20,35 +20,41 @@ pub mod posix;
 #[cfg(target_os = "linux")]
 pub mod linux;
 #[cfg(target_os = "linux")]
-pub use self::linux::{Device, Queue, Configuration, create};
+pub use self::linux::{create, Configuration, Device, Queue};
 
 #[cfg(target_os = "macos")]
 pub mod macos;
 #[cfg(target_os = "macos")]
-pub use self::macos::{Device, Queue, Configuration, create};
+pub use self::macos::{create, Configuration, Device, Queue};
 
 #[cfg(test)]
 mod test {
-	use std::net::Ipv4Addr;
-	use crate::configuration::Configuration;
-	use crate::device::Device;
+    use crate::configuration::Configuration;
+    use crate::device::Device;
+    use std::net::Ipv4Addr;
 
-	#[test]
-	fn create() {
-		let dev = super::create(Configuration::default()
-			.name("utun6")
-			.address("192.168.50.1")
-			.netmask("255.255.0.0")
-			.mtu(1400)
-			.up()).unwrap();
+    #[test]
+    fn create() {
+        let dev = super::create(
+            Configuration::default()
+                .name("utun6")
+                .address("192.168.50.1")
+                .netmask("255.255.0.0")
+                .mtu(1400)
+                .up(),
+        )
+        .unwrap();
 
-		assert_eq!("192.168.50.1".parse::<Ipv4Addr>().unwrap(),
-			dev.address().unwrap());
+        assert_eq!(
+            "192.168.50.1".parse::<Ipv4Addr>().unwrap(),
+            dev.address().unwrap()
+        );
 
-		assert_eq!("255.255.0.0".parse::<Ipv4Addr>().unwrap(),
-			dev.netmask().unwrap());
+        assert_eq!(
+            "255.255.0.0".parse::<Ipv4Addr>().unwrap(),
+            dev.netmask().unwrap()
+        );
 
-		assert_eq!(1400,
-			dev.mtu().unwrap());
-	}
+        assert_eq!(1400, dev.mtu().unwrap());
+    }
 }

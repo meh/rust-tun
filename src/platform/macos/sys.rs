@@ -14,9 +14,9 @@
 
 //! Bindings to internal macOS stuff.
 
-use libc::{c_void, c_char, c_short, c_ushort, c_int, c_uint};
-use libc::{sockaddr};
 use ioctl::*;
+use libc::sockaddr;
+use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void};
 
 pub const IFNAMSIZ: usize = 16;
 
@@ -33,85 +33,85 @@ pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ctl_info {
-	pub ctl_id: c_uint,
-	pub ctl_name: [c_char; 96],
+    pub ctl_id: c_uint,
+    pub ctl_name: [c_char; 96],
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct sockaddr_ctl {
-	pub sc_len: c_char,
-	pub sc_family: c_char,
-	pub ss_sysaddr: c_ushort,
-	pub sc_id: c_uint,
-	pub sc_unit: c_uint,
-	pub sc_reserved: [c_uint; 5],
+    pub sc_len: c_char,
+    pub sc_family: c_char,
+    pub ss_sysaddr: c_ushort,
+    pub sc_id: c_uint,
+    pub sc_unit: c_uint,
+    pub sc_reserved: [c_uint; 5],
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union ifrn {
-	pub name: [c_char; IFNAMSIZ],
+    pub name: [c_char; IFNAMSIZ],
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifdevmtu {
-	pub current: c_int,
-	pub min: c_int,
-	pub max: c_int,
+    pub current: c_int,
+    pub min: c_int,
+    pub max: c_int,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union ifku {
-	pub ptr: *mut c_void,
-	pub value: c_int,
+    pub ptr: *mut c_void,
+    pub value: c_int,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifkpi {
-	pub module_id: c_uint,
-	pub type_: c_uint,
-	pub ifku: ifku,
+    pub module_id: c_uint,
+    pub type_: c_uint,
+    pub ifku: ifku,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union ifru {
-	pub addr: sockaddr,
-	pub dstaddr: sockaddr,
-	pub broadaddr: sockaddr,
+    pub addr: sockaddr,
+    pub dstaddr: sockaddr,
+    pub broadaddr: sockaddr,
 
-	pub flags: c_short,
-	pub metric: c_int,
-	pub mtu: c_int,
-	pub phys: c_int,
-	pub media: c_int,
-	pub intval: c_int,
-	pub data: *mut c_void,
-	pub devmtu: ifdevmtu,
-	pub wake_flags: c_uint,
-	pub route_refcnt: c_uint,
-	pub cap: [c_int; 2],
-	pub functional_type: c_uint,
+    pub flags: c_short,
+    pub metric: c_int,
+    pub mtu: c_int,
+    pub phys: c_int,
+    pub media: c_int,
+    pub intval: c_int,
+    pub data: *mut c_void,
+    pub devmtu: ifdevmtu,
+    pub wake_flags: c_uint,
+    pub route_refcnt: c_uint,
+    pub cap: [c_int; 2],
+    pub functional_type: c_uint,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifreq {
-	pub ifrn: ifrn,
-	pub ifru: ifru,
+    pub ifrn: ifrn,
+    pub ifru: ifru,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifaliasreq {
-	pub ifran: [c_char; IFNAMSIZ],
-	pub addr: sockaddr,
-	pub broadaddr: sockaddr,
-	pub mask: sockaddr,
+    pub ifran: [c_char; IFNAMSIZ],
+    pub addr: sockaddr,
+    pub broadaddr: sockaddr,
+    pub mask: sockaddr,
 }
 
 ioctl!(readwrite ctliocginfo with 'N', 3; ctl_info);
