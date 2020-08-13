@@ -99,14 +99,6 @@ impl Decoder for TunPacketCodec {
             return Ok(None);
         }
 
-        if self.0 {
-            // ignore malformed packet
-            if buf.len() <= 4 {
-                let _ = buf.split_to(buf.len());
-                return Ok(None);
-            }
-        }
-
         let mut buf = buf.split_to(buf.len());
 
         // if the packet information is enabled we have to ignore the first 4 bytes
