@@ -19,6 +19,7 @@ use core::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, PollEvented};
 use tokio_util::codec::Framed;
 
+use crate::device::Device as D;
 use crate::platform::{Device, Queue};
 use crate::r#async::codec::*;
 
@@ -48,7 +49,7 @@ impl AsyncDevice {
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(mut self) -> Framed<Self, TunPacketCodec> {
         let pi = self.get_mut().has_packet_information();
-        let codec = TunPacketCodec::new(pi);
+        let codec = TunPacketCodec::new(pi, self.inner.get_ref().mtu().unwrap_or(1504));
         Framed::new(self, codec)
     }
 }
@@ -107,7 +108,7 @@ impl AsyncQueue {
     /// Consumes this AsyncQueue and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(mut self) -> Framed<Self, TunPacketCodec> {
         let pi = self.get_mut().has_packet_information();
-        let codec = TunPacketCodec::new(pi);
+        let codec = TunPacketCodec::new(pi, 1504);
         Framed::new(self, codec)
     }
 }

@@ -80,13 +80,13 @@ impl TunPacket {
 }
 
 /// A TunPacket Encoder/Decoder.
-pub struct TunPacketCodec(bool);
+pub struct TunPacketCodec(bool, i32);
 
 impl TunPacketCodec {
     /// Create a new `TunPacketCodec` specifying whether the underlying
     ///  tunnel Device has enabled the packet information header.
-    pub fn new(pi: bool) -> TunPacketCodec {
-        TunPacketCodec(pi)
+    pub fn new(pi: bool, mtu: i32) -> TunPacketCodec {
+        TunPacketCodec(pi, mtu)
     }
 }
 
@@ -99,15 +99,22 @@ impl Decoder for TunPacketCodec {
             return Ok(None);
         }
 
-        let mut buf = buf.split_to(buf.len());
+        let mut pkt = buf.split_to(buf.len());
+
+        // reserve enough space for the next packet
+        if self.0 {
+            buf.reserve(self.1 as usize + 4);
+        } else {
+            buf.reserve(self.1 as usize);
+        }
 
         // if the packet information is enabled we have to ignore the first 4 bytes
         if self.0 {
-            let _ = buf.split_to(4);
+            let _ = pkt.split_to(4);
         }
 
-        let proto = infer_proto(buf.as_ref());
-        Ok(Some(TunPacket(proto, buf.freeze())))
+        let proto = infer_proto(pkt.as_ref());
+        Ok(Some(TunPacket(proto, pkt.freeze())))
     }
 }
 
