@@ -64,12 +64,26 @@ impl From<Ipv4Addr> for SockAddr {
 
         addr.sin_family = AF_INET;
         addr.sin_port = 0;
-        addr.sin_addr = in_addr {
-            s_addr: ((parts[3] as c_uint) << 24)
-                | ((parts[2] as c_uint) << 16)
-                | ((parts[1] as c_uint) << 8)
-                | (parts[0] as c_uint),
-        };
+
+        #[cfg(not(any(target_arch = "mips", target_arch = "mips64")))]
+        {
+            addr.sin_addr = in_addr {
+                s_addr: ((parts[3] as c_uint) << 24)
+                    | ((parts[2] as c_uint) << 16)
+                    | ((parts[1] as c_uint) << 8)
+                    | (parts[0] as c_uint),
+            };
+        }
+
+        #[cfg(any(target_arch = "mips", target_arch = "mips64"))]
+        {
+            addr.sin_addr = in_addr {
+                s_addr: (parts[0] as c_uint) << 24
+                    | ((parts[1] as c_uint) << 16)
+                    | ((parts[2] as c_uint) << 8)
+                    | (parts[3] as c_uint),
+            };
+        }
 
         SockAddr(addr)
     }
@@ -79,12 +93,25 @@ impl Into<Ipv4Addr> for SockAddr {
     fn into(self) -> Ipv4Addr {
         let ip = self.0.sin_addr.s_addr;
 
-        Ipv4Addr::new(
-            ((ip) & 0xff) as u8,
-            ((ip >> 8) & 0xff) as u8,
-            ((ip >> 16) & 0xff) as u8,
-            ((ip >> 24) & 0xff) as u8,
-        )
+        #[cfg(not(any(target_arch = "mips", target_arch = "mips64")))]
+        {
+            Ipv4Addr::new(
+                ((ip) & 0xff) as u8,
+                ((ip >> 8) & 0xff) as u8,
+                ((ip >> 16) & 0xff) as u8,
+                ((ip >> 24) & 0xff) as u8,
+            )
+        }
+
+        #[cfg(any(target_arch = "mips", target_arch = "mips64"))]
+        {
+            Ipv4Addr::new(
+                ((ip >> 24) & 0xff) as u8,
+                ((ip >> 16) & 0xff) as u8,
+                ((ip >> 8) & 0xff) as u8,
+                ((ip) & 0xff) as u8,
+            )
+        }
     }
 }
 
