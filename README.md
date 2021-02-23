@@ -17,11 +17,11 @@ Next, add this to your crate root:
 extern crate tun;
 ```
 
-If you want to use the TUN interface with mio/tokio, you need to enable the `mio` feature:
+If you want to use the TUN interface with mio/tokio, you need to enable the `async` feature:
 
 ```toml
 [dependencies]
-tun = { version = "0.3", features = ["mio"] }
+tun = { version = "0.3", features = ["async"] }
 ```
 
 Example
