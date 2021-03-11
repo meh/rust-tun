@@ -160,8 +160,8 @@ pub struct Queue {
 
 impl Queue {
     pub fn has_packet_information(&self) -> bool {
-        // on ios this is always the case
-        true
+        // on Android this is always the case
+        false
     }
 
     #[cfg(feature = "mio")]
