@@ -18,7 +18,7 @@ use std::ptr;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use libc::{c_uchar, c_uint};
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use libc::{c_uint, c_ushort};
 
 use libc::AF_INET as _AF_INET;
@@ -30,7 +30,7 @@ use crate::error::*;
 #[derive(Copy, Clone)]
 pub struct SockAddr(sockaddr_in);
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 const AF_INET: c_ushort = _AF_INET as c_ushort;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
