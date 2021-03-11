@@ -32,6 +32,11 @@ pub mod ios;
 #[cfg(target_os = "ios")]
 pub use self::ios::{create, Configuration, Device, Queue};
 
+#[cfg(target_os = "android")]
+pub mod android;
+#[cfg(target_os = "android")]
+pub use self::android::{create, Configuration, Device, Queue};
+
 #[cfg(test)]
 mod test {
     use crate::configuration::Configuration;
