@@ -13,10 +13,13 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io;
+use std::io::{Read, Write};
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncWrite, PollEvented};
+use futures_core::ready;
+use tokio::io::unix::AsyncFd;
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
 use crate::device::Device as D;
@@ -25,7 +28,7 @@ use crate::r#async::codec::*;
 
 /// An async TUN device wrapper around a TUN device.
 pub struct AsyncDevice {
-    inner: PollEvented<Device>,
+    inner: AsyncFd<Device>,
 }
 
 impl AsyncDevice {
@@ -33,7 +36,7 @@ impl AsyncDevice {
     pub fn new(device: Device) -> io::Result<AsyncDevice> {
         device.set_nonblock()?;
         Ok(AsyncDevice {
-            inner: PollEvented::new(device)?,
+            inner: AsyncFd::new(device)?,
         })
     }
     /// Returns a shared reference to the underlying Device object
@@ -58,9 +61,16 @@ impl AsyncRead for AsyncDevice {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
-        Pin::new(&mut self.inner).poll_read(cx, buf)
+        buf: &mut ReadBuf,
+    ) -> Poll<io::Result<()>> {
+        loop {
+            let mut guard = ready!(self.inner.poll_read_ready_mut(cx))?;
+            let rbuf = buf.initialize_unfilled();
+            match guard.try_io(|inner| inner.get_mut().read(rbuf)) {
+                Ok(res) => return Poll::Ready(res.map(|n| buf.advance(n))),
+                Err(_wb) => continue,
+            }
+        }
     }
 }
 
@@ -70,21 +80,33 @@ impl AsyncWrite for AsyncDevice {
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        Pin::new(&mut self.inner).poll_write(cx, buf)
+        loop {
+            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
+            match guard.try_io(|inner| inner.get_mut().write(buf)) {
+                Ok(res) => return Poll::Ready(res),
+                Err(_wb) => continue,
+            }
+        }
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.inner).poll_flush(cx)
+        loop {
+            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
+            match guard.try_io(|inner| inner.get_mut().flush()) {
+                Ok(res) => return Poll::Ready(res),
+                Err(_wb) => continue,
+            }
+        }
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.inner).poll_shutdown(cx)
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
     }
 }
 
 /// An async TUN device queue wrapper around a TUN device queue.
 pub struct AsyncQueue {
-    inner: PollEvented<Queue>,
+    inner: AsyncFd<Queue>,
 }
 
 impl AsyncQueue {
@@ -92,7 +114,7 @@ impl AsyncQueue {
     pub fn new(queue: Queue) -> io::Result<AsyncQueue> {
         queue.set_nonblock()?;
         Ok(AsyncQueue {
-            inner: PollEvented::new(queue)?,
+            inner: AsyncFd::new(queue)?,
         })
     }
     /// Returns a shared reference to the underlying Queue object
@@ -117,9 +139,16 @@ impl AsyncRead for AsyncQueue {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
-        Pin::new(&mut self.inner).poll_read(cx, buf)
+        buf: &mut ReadBuf,
+    ) -> Poll<io::Result<()>> {
+        loop {
+            let mut guard = ready!(self.inner.poll_read_ready_mut(cx))?;
+            let rbuf = buf.initialize_unfilled();
+            match guard.try_io(|inner| inner.get_mut().read(rbuf)) {
+                Ok(res) => return Poll::Ready(res.map(|n| buf.advance(n))),
+                Err(_wb) => continue,
+            }
+        }
     }
 }
 
@@ -129,14 +158,26 @@ impl AsyncWrite for AsyncQueue {
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        Pin::new(&mut self.inner).poll_write(cx, buf)
+        loop {
+            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
+            match guard.try_io(|inner| inner.get_mut().write(buf)) {
+                Ok(res) => return Poll::Ready(res),
+                Err(_wb) => continue,
+            }
+        }
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.inner).poll_flush(cx)
+        loop {
+            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
+            match guard.try_io(|inner| inner.get_mut().flush()) {
+                Ok(res) => return Poll::Ready(res),
+                Err(_wb) => continue,
+            }
+        }
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.inner).poll_shutdown(cx)
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
     }
 }

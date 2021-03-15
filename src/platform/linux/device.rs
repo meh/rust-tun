@@ -163,7 +163,7 @@ impl Device {
         self.queues[0].has_packet_information()
     }
 
-    #[cfg(feature = "mio")]
+    #[cfg(feature = "async")]
     pub fn set_nonblock(&self) -> io::Result<()> {
         self.queues[0].set_nonblock()
     }
@@ -391,7 +391,7 @@ impl Queue {
         self.pi_enabled
     }
 
-    #[cfg(feature = "mio")]
+    #[cfg(feature = "async")]
     pub fn set_nonblock(&self) -> io::Result<()> {
         self.tun.set_nonblock()
     }
@@ -430,65 +430,6 @@ impl Into<c_short> for Layer {
         match self {
             Layer::L2 => IFF_TAP,
             Layer::L3 => IFF_TUN,
-        }
-    }
-}
-
-#[cfg(feature = "mio")]
-mod mio {
-    use mio::event::Evented;
-    use mio::{Poll, PollOpt, Ready, Token};
-    use std::io;
-
-    impl Evented for super::Device {
-        fn register(
-            &self,
-            poll: &Poll,
-            token: Token,
-            interest: Ready,
-            opts: PollOpt,
-        ) -> io::Result<()> {
-            self.queues[0].register(poll, token, interest, opts)
-        }
-
-        fn reregister(
-            &self,
-            poll: &Poll,
-            token: Token,
-            interest: Ready,
-            opts: PollOpt,
-        ) -> io::Result<()> {
-            self.queues[0].reregister(poll, token, interest, opts)
-        }
-
-        fn deregister(&self, poll: &Poll) -> io::Result<()> {
-            self.queues[0].deregister(poll)
-        }
-    }
-
-    impl Evented for super::Queue {
-        fn register(
-            &self,
-            poll: &Poll,
-            token: Token,
-            interest: Ready,
-            opts: PollOpt,
-        ) -> io::Result<()> {
-            self.tun.register(poll, token, interest, opts)
-        }
-
-        fn reregister(
-            &self,
-            poll: &Poll,
-            token: Token,
-            interest: Ready,
-            opts: PollOpt,
-        ) -> io::Result<()> {
-            self.tun.reregister(poll, token, interest, opts)
-        }
-
-        fn deregister(&self, poll: &Poll) -> io::Result<()> {
-            self.tun.deregister(poll)
         }
     }
 }

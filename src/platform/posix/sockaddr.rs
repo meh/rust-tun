@@ -17,9 +17,9 @@ use std::net::Ipv4Addr;
 use std::ptr;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-use libc::{c_uchar, c_uint};
+use libc::c_uchar;
 #[cfg(any(target_os = "linux", target_os = "android"))]
-use libc::{c_uint, c_ushort};
+use libc::c_ushort;
 
 use libc::AF_INET as _AF_INET;
 use libc::{in_addr, sockaddr, sockaddr_in};
@@ -64,7 +64,9 @@ impl From<Ipv4Addr> for SockAddr {
 
         addr.sin_family = AF_INET;
         addr.sin_port = 0;
-        addr.sin_addr = in_addr { s_addr: u32::from_ne_bytes(octets) };
+        addr.sin_addr = in_addr {
+            s_addr: u32::from_ne_bytes(octets),
+        };
 
         SockAddr(addr)
     }
