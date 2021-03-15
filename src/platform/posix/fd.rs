@@ -18,7 +18,7 @@ use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use crate::error::*;
 use libc::{self, fcntl, F_SETFL, O_NONBLOCK};
 
-/// POSIX file descriptor support for `io` traits and optionally for `mio`.
+/// POSIX file descriptor support for `io` traits.
 pub struct Fd(pub RawFd);
 
 impl Fd {
@@ -91,40 +91,6 @@ impl Drop for Fd {
             if self.0 >= 0 {
                 libc::close(self.0);
             }
-        }
-    }
-}
-
-#[cfg(feature = "mio")]
-mod mio {
-    use mio::event::Evented;
-    use mio::unix::EventedFd;
-    use mio::{Poll, PollOpt, Ready, Token};
-    use std::io;
-
-    impl Evented for super::Fd {
-        fn register(
-            &self,
-            poll: &Poll,
-            token: Token,
-            interest: Ready,
-            opts: PollOpt,
-        ) -> io::Result<()> {
-            EventedFd(&self.0).register(poll, token, interest, opts)
-        }
-
-        fn reregister(
-            &self,
-            poll: &Poll,
-            token: Token,
-            interest: Ready,
-            opts: PollOpt,
-        ) -> io::Result<()> {
-            EventedFd(&self.0).reregister(poll, token, interest, opts)
-        }
-
-        fn deregister(&self, poll: &Poll) -> io::Result<()> {
-            EventedFd(&self.0).deregister(poll)
         }
     }
 }
