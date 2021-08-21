@@ -186,6 +186,10 @@ impl Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.queue.tun.read(buf)
     }
+
+    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+        self.queue.tun.read_vectored(bufs)
+    }
 }
 
 impl Write for Device {
@@ -195,6 +199,10 @@ impl Write for Device {
 
     fn flush(&mut self) -> io::Result<()> {
         self.queue.tun.flush()
+    }
+
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+        self.queue.tun.write_vectored(bufs)
     }
 }
 
@@ -410,6 +418,10 @@ impl Read for Queue {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.tun.read(buf)
     }
+
+    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+        self.tun.read_vectored(bufs)
+    }
 }
 
 impl Write for Queue {
@@ -419,5 +431,9 @@ impl Write for Queue {
 
     fn flush(&mut self) -> io::Result<()> {
         self.tun.flush()
+    }
+
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+        self.tun.write_vectored(bufs)
     }
 }
