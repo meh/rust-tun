@@ -17,7 +17,7 @@ use std::mem;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 use crate::error::*;
-use libc::{self, fcntl, F_SETFL, O_NONBLOCK};
+use libc::{self, fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
 
 /// POSIX file descriptor support for `io` traits.
 pub struct Fd(pub RawFd);
@@ -33,7 +33,7 @@ impl Fd {
 
     /// Enable non-blocking mode
     pub fn set_nonblock(&self) -> io::Result<()> {
-        match unsafe { fcntl(self.0, F_SETFL, O_NONBLOCK) } {
+        match unsafe { fcntl(self.0, F_SETFL, fcntl(self.0, F_GETFL) | O_NONBLOCK) } {
             0 => Ok(()),
             _ => Err(io::Error::last_os_error()),
         }

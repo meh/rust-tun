@@ -56,7 +56,7 @@ impl Device {
         self.queue.has_packet_information()
     }
 
-    #[cfg(feature = "async")]
+    /// Set non-blocking mode
     pub fn set_nonblock(&self) -> io::Result<()> {
         self.queue.set_nonblock()
     }
@@ -172,7 +172,6 @@ impl Queue {
         true
     }
 
-    #[cfg(feature = "async")]
     pub fn set_nonblock(&self) -> io::Result<()> {
         self.tun.set_nonblock()
     }
