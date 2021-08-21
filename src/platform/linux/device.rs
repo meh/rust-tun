@@ -376,8 +376,10 @@ impl AsRawFd for Device {
 }
 
 impl IntoRawFd for Device {
-    fn into_raw_fd(self) -> RawFd {
-        self.queues[0].as_raw_fd()
+    fn into_raw_fd(mut self) -> RawFd {
+        // It is Ok to swap the first queue with the last one, because the self will be dropped afterwards
+        let queue = self.queues.swap_remove(0);
+        queue.into_raw_fd()
     }
 }
 
