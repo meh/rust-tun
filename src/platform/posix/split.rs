@@ -13,6 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::{self, Read, Write};
+use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::Arc;
 
@@ -37,6 +38,23 @@ impl Read for Reader {
             Ok(amount as usize)
         }
     }
+
+    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+        unsafe {
+            let mut msg: libc::msghdr = mem::zeroed();
+            // msg.msg_name: NULL
+            // msg.msg_namelen: 0
+            msg.msg_iov = bufs.as_mut_ptr().cast();
+            msg.msg_iovlen = bufs.len().min(libc::c_int::MAX as usize) as _;
+
+            let n = libc::recvmsg(self.0.as_raw_fd(), &mut msg, 0);
+            if n < 0 {
+                return Err(io::Error::last_os_error());
+            }
+
+            Ok(n as usize)
+        }
+    }
 }
 
 impl Write for Writer {
@@ -54,6 +72,23 @@ impl Write for Writer {
 
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
+    }
+
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+        unsafe {
+            let mut msg: libc::msghdr = mem::zeroed();
+            // msg.msg_name = NULL
+            // msg.msg_namelen = 0
+            msg.msg_iov = bufs.as_ptr() as *mut _;
+            msg.msg_iovlen = bufs.len().min(libc::c_int::MAX as usize) as _;
+
+            let n = libc::sendmsg(self.0.as_raw_fd(), &msg, 0);
+            if n < 0 {
+                return Err(io::Error::last_os_error());
+            }
+
+            Ok(n as usize)
+        }
     }
 }
 
