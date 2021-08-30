@@ -16,7 +16,7 @@
     devShell = pkgs.mkShell {
       buildInputs = with pkgs; with llvmPackages; [
         # For building.
-        clang rust.latest.toolchain pkg-config openssl libsodium libclang.lib
+        clang rust.stable.toolchain pkg-config openssl libsodium libclang.lib
       ];
 
       LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
