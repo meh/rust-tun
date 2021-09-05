@@ -18,6 +18,7 @@ use std::mem;
 use std::net::Ipv4Addr;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::ptr;
+use std::sync::Arc;
 use std::vec::Vec;
 
 use libc;
@@ -28,7 +29,7 @@ use crate::configuration::{Configuration, Layer};
 use crate::device::Device as D;
 use crate::error::*;
 use crate::platform::linux::sys::*;
-use crate::platform::posix::{Fd, SockAddr};
+use crate::platform::posix::{self, Fd, SockAddr};
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
@@ -156,6 +157,12 @@ impl Device {
                 Ok(())
             }
         }
+    }
+
+    /// Split the interface into a `Reader` and `Writer`.
+    pub fn split(mut self) -> (posix::Reader, posix::Writer) {
+        let fd = Arc::new(self.queues.swap_remove(0).tun);
+        (posix::Reader(fd.clone()), posix::Writer(fd.clone()))
     }
 
     /// Return whether the device has packet information
