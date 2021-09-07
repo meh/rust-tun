@@ -27,6 +27,11 @@ pub mod macos;
 #[cfg(target_os = "macos")]
 pub use self::macos::{create, Configuration, Device, Queue};
 
+#[cfg(target_os = "openbsd")]
+pub mod openbsd;
+#[cfg(target_os = "openbsd")]
+pub use self::openbsd::{create, Configuration, Device, Queue};
+
 #[cfg(target_os = "ios")]
 pub mod ios;
 #[cfg(target_os = "ios")]

@@ -32,6 +32,7 @@ pub use crate::platform::create;
     any(
         target_os = "linux",
         target_os = "macos",
+        target_os = "openbsd",
         target_os = "ios",
         target_os = "android"
     )
@@ -42,6 +43,7 @@ pub mod r#async;
     any(
         target_os = "linux",
         target_os = "macos",
+        target_os = "openbsd",
         target_os = "ios",
         target_os = "android"
     )

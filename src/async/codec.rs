@@ -40,7 +40,7 @@ impl PacketProtocol {
         }
     }
 
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    #[cfg(any(target_os = "macos", target_os = "openbsd", target_os = "ios"))]
     fn into_pi_field(&self) -> Result<u16, io::Error> {
         match self {
             PacketProtocol::IPv4 => Ok(libc::PF_INET as u16),
