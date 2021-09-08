@@ -13,7 +13,6 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::{self, Read, Write};
-use std::mem;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 use crate::error::*;
@@ -53,9 +52,12 @@ impl Read for Fd {
         }
     }
 
+    // Under OpenBSD the tun device is not a socket and thus can't be
+    // used with a recvmsg.
+    #[cfg(not(any(target_os = "openbsd")))]
     fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
         unsafe {
-            let mut msg: libc::msghdr = mem::zeroed();
+            let mut msg: libc::msghdr = std::mem::zeroed();
             // msg.msg_name: NULL
             // msg.msg_namelen: 0
             msg.msg_iov = bufs.as_mut_ptr().cast();
@@ -88,9 +90,12 @@ impl Write for Fd {
         Ok(())
     }
 
+    // Under OpenBSD the tun device is not a socket and thus can't be
+    // used with a sendmsg.
+    #[cfg(not(any(target_os = "openbsd")))]
     fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
         unsafe {
-            let mut msg: libc::msghdr = mem::zeroed();
+            let mut msg: libc::msghdr = std::mem::zeroed();
             // msg.msg_name = NULL
             // msg.msg_namelen = 0
             msg.msg_iov = bufs.as_ptr() as *mut _;

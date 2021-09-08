@@ -68,6 +68,13 @@ impl From<Ipv4Addr> for SockAddr {
             s_addr: u32::from_ne_bytes(octets),
         };
 
+        // OpenBSD explicitly checks for this sin_len field and will
+        // fail if it is not provided properly.
+        #[cfg(target_os = "openbsd")]
+        {
+            addr.sin_len = mem::size_of::<sockaddr_in>() as u8;
+        }
+
         SockAddr(addr)
     }
 }

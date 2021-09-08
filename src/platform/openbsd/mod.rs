@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//! macOS specific functionality.
+//! OpenBSD specific functionality.
 
 pub mod sys;
 
@@ -22,7 +22,7 @@ pub use self::device::{Device, Queue};
 use crate::configuration::Configuration as C;
 use crate::error::*;
 
-/// macOS-only interface configuration.
+/// OpenBSD-only interface configuration. (empty)
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Configuration {}
 
