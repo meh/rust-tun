@@ -55,13 +55,10 @@ impl Read for Fd {
 
     fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
         unsafe {
-            let mut msg: libc::msghdr = mem::zeroed();
-            // msg.msg_name: NULL
-            // msg.msg_namelen: 0
-            msg.msg_iov = bufs.as_mut_ptr().cast();
-            msg.msg_iovlen = bufs.len().min(libc::c_int::MAX as usize) as _;
+            let iov = bufs.as_ptr().cast();
+            let iovcnt = bufs.len().min(libc::c_int::MAX as usize) as _;
 
-            let n = libc::recvmsg(self.0, &mut msg, 0);
+            let n = libc::readv(self.0, iov, iovcnt);
             if n < 0 {
                 return Err(io::Error::last_os_error());
             }
@@ -90,13 +87,10 @@ impl Write for Fd {
 
     fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
         unsafe {
-            let mut msg: libc::msghdr = mem::zeroed();
-            // msg.msg_name = NULL
-            // msg.msg_namelen = 0
-            msg.msg_iov = bufs.as_ptr() as *mut _;
-            msg.msg_iovlen = bufs.len().min(libc::c_int::MAX as usize) as _;
+            let iov = bufs.as_ptr().cast();
+            let iovcnt = bufs.len().min(libc::c_int::MAX as usize) as _;
 
-            let n = libc::sendmsg(self.0, &msg, 0);
+            let n = libc::writev(self.0, iov, iovcnt);
             if n < 0 {
                 return Err(io::Error::last_os_error());
             }
