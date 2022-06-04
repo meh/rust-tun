@@ -14,7 +14,7 @@ keywords = ["tun", "network", "tunnel", "bindings"]
 libc = "0.2"
 thiserror = "1"
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "ios"))'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "ios", target_os = "android"))'.dependencies]
 tokio = { version = "1", features = ["net", "macros"], optional = true }
 tokio-util = { version = "0.6", features = ["codec"], optional = true }
 bytes = { version = "1", optional = true }
