@@ -28,7 +28,7 @@ enum PacketProtocol {
 
 // Note: the protocol in the packet information header is platform dependent.
 impl PacketProtocol {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn into_pi_field(&self) -> Result<u16, io::Error> {
         match self {
             PacketProtocol::IPv4 => Ok(libc::ETH_P_IP as u16),
