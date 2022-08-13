@@ -77,6 +77,10 @@ impl TunPacket {
     pub fn get_bytes(&self) -> &[u8] {
         &self.1
     }
+
+    pub fn into_bytes(self) -> Bytes {
+        self.1
+    }
 }
 
 /// A TunPacket Encoder/Decoder.
