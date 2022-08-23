@@ -108,7 +108,7 @@ impl Device {
             }
         };
 
-        device.configure(&config)?;
+        device.configure(config)?;
 
         Ok(device)
     }
@@ -239,7 +239,7 @@ impl D for Device {
                 req.ifru.flags &= !IFF_UP;
             }
 
-            if siocsifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
