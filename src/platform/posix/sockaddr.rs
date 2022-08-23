@@ -46,11 +46,13 @@ impl SockAddr {
         unsafe { Self::unchecked(value) }
     }
 
+    /// # Safety
     ///  Create a new `SockAddr` and not check the source.
     pub unsafe fn unchecked(value: &sockaddr) -> Result<Self> {
         Ok(SockAddr(ptr::read(value as *const _ as *const _)))
     }
 
+    /// # Safety
     /// Get a generic pointer to the `SockAddr`.
     pub unsafe fn as_ptr(&self) -> *const sockaddr {
         &self.0 as *const _ as *const sockaddr
@@ -72,23 +74,23 @@ impl From<Ipv4Addr> for SockAddr {
     }
 }
 
-impl Into<Ipv4Addr> for SockAddr {
-    fn into(self) -> Ipv4Addr {
-        let ip = self.0.sin_addr.s_addr;
+impl From<SockAddr> for Ipv4Addr {
+    fn from(addr: SockAddr) -> Ipv4Addr {
+        let ip = addr.0.sin_addr.s_addr;
         let [a, b, c, d] = ip.to_ne_bytes();
 
         Ipv4Addr::new(a, b, c, d)
     }
 }
 
-impl Into<sockaddr> for SockAddr {
-    fn into(self) -> sockaddr {
-        unsafe { mem::transmute(self.0) }
+impl From<SockAddr> for sockaddr {
+    fn from(addr: SockAddr) -> sockaddr {
+        unsafe { mem::transmute(addr.0) }
     }
 }
 
-impl Into<sockaddr_in> for SockAddr {
-    fn into(self) -> sockaddr_in {
-        self.0
+impl From<SockAddr> for sockaddr_in {
+    fn from(addr: SockAddr) -> sockaddr_in {
+        addr.0
     }
 }

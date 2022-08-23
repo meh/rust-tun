@@ -13,7 +13,6 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::{self, Read, Write};
-use std::mem;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 use crate::error::*;
@@ -46,7 +45,7 @@ impl Read for Fd {
             let amount = libc::read(self.0, buf.as_mut_ptr() as *mut _, buf.len());
 
             if amount < 0 {
-                return Err(io::Error::last_os_error().into());
+                return Err(io::Error::last_os_error());
             }
 
             Ok(amount as usize)
@@ -74,7 +73,7 @@ impl Write for Fd {
             let amount = libc::write(self.0, buf.as_ptr() as *const _, buf.len());
 
             if amount < 0 {
-                return Err(io::Error::last_os_error().into());
+                return Err(io::Error::last_os_error());
             }
 
             Ok(amount as usize)

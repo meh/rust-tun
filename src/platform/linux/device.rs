@@ -103,8 +103,8 @@ impl Device {
                 name: CStr::from_ptr(req.ifrn.name.as_ptr())
                     .to_string_lossy()
                     .into(),
-                queues: queues,
-                ctl: ctl,
+                queues,
+                ctl,
             }
         };
 
@@ -442,9 +442,9 @@ impl IntoRawFd for Queue {
     }
 }
 
-impl Into<c_short> for Layer {
-    fn into(self) -> c_short {
-        match self {
+impl From<Layer> for c_short {
+    fn from(layer: Layer) -> Self {
+        match layer {
             Layer::L2 => IFF_TAP,
             Layer::L3 => IFF_TUN,
         }
