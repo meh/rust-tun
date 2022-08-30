@@ -32,7 +32,7 @@ impl Read for Reader {
             let amount = libc::read(self.0.as_raw_fd(), buf.as_mut_ptr() as *mut _, buf.len());
 
             if amount < 0 {
-                return Err(io::Error::last_os_error().into());
+                return Err(io::Error::last_os_error());
             }
 
             Ok(amount as usize)
@@ -63,7 +63,7 @@ impl Write for Writer {
             let amount = libc::write(self.0.as_raw_fd(), buf.as_ptr() as *const _, buf.len());
 
             if amount < 0 {
-                return Err(io::Error::last_os_error().into());
+                return Err(io::Error::last_os_error());
             }
 
             Ok(amount as usize)

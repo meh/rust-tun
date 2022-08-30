@@ -18,6 +18,7 @@ use std::net::{SocketAddr, SocketAddrV4};
 use crate::error::*;
 
 /// Helper trait to convert things into IPv4 addresses.
+#[allow(clippy::wrong_self_convention)]
 pub trait IntoAddress {
     /// Convert the type to an `Ipv4Addr`.
     fn into_address(&self) -> Result<Ipv4Addr>;
@@ -72,7 +73,7 @@ impl<'a> IntoAddress for &'a String {
 
 impl IntoAddress for Ipv4Addr {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        Ok(self.clone())
+        Ok(*self)
     }
 }
 
@@ -85,7 +86,7 @@ impl<'a> IntoAddress for &'a Ipv4Addr {
 impl IntoAddress for IpAddr {
     fn into_address(&self) -> Result<Ipv4Addr> {
         match *self {
-            IpAddr::V4(ref value) => Ok(value.clone()),
+            IpAddr::V4(ref value) => Ok(*value),
 
             IpAddr::V6(_) => Err(Error::InvalidAddress),
         }
@@ -100,7 +101,7 @@ impl<'a> IntoAddress for &'a IpAddr {
 
 impl IntoAddress for SocketAddrV4 {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        Ok(self.ip().clone())
+        Ok(*self.ip())
     }
 }
 
@@ -113,7 +114,7 @@ impl<'a> IntoAddress for &'a SocketAddrV4 {
 impl IntoAddress for SocketAddr {
     fn into_address(&self) -> Result<Ipv4Addr> {
         match *self {
-            SocketAddr::V4(ref value) => Ok(value.ip().clone()),
+            SocketAddr::V4(ref value) => Ok(*value.ip()),
 
             SocketAddr::V6(_) => Err(Error::InvalidAddress),
         }

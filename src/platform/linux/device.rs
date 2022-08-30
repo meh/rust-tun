@@ -103,12 +103,12 @@ impl Device {
                 name: CStr::from_ptr(req.ifrn.name.as_ptr())
                     .to_string_lossy()
                     .into(),
-                queues: queues,
-                ctl: ctl,
+                queues,
+                ctl,
             }
         };
 
-        device.configure(&config)?;
+        device.configure(config)?;
 
         Ok(device)
     }
@@ -239,7 +239,7 @@ impl D for Device {
                 req.ifru.flags &= !IFF_UP;
             }
 
-            if siocsifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -442,9 +442,9 @@ impl IntoRawFd for Queue {
     }
 }
 
-impl Into<c_short> for Layer {
-    fn into(self) -> c_short {
-        match self {
+impl From<Layer> for c_short {
+    fn from(layer: Layer) -> Self {
+        match layer {
             Layer::L2 => IFF_TAP,
             Layer::L3 => IFF_TUN,
         }
