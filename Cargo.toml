@@ -1,6 +1,6 @@
 [package]
 name = "tun"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2018"
 
 authors = ["meh. <meh@schizofreni.co>"]
