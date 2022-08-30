@@ -438,7 +438,7 @@ impl AsRawFd for Queue {
 
 impl IntoRawFd for Queue {
     fn into_raw_fd(self) -> RawFd {
-        self.tun.as_raw_fd()
+        self.tun.into_raw_fd()
     }
 }
 
