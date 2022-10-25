@@ -46,6 +46,7 @@ pub struct Configuration {
     pub(crate) layer: Option<Layer>,
     pub(crate) queues: Option<usize>,
     pub(crate) raw_fd: Option<RawFd>,
+    pub(crate) raw_fd_auto_close: Option<bool>,
 }
 
 impl Configuration {
@@ -119,8 +120,9 @@ impl Configuration {
     }
 
     /// Set the raw fd.
-    pub fn raw_fd(&mut self, fd: RawFd) -> &mut Self {
+    pub fn raw_fd(&mut self, fd: RawFd, auto_close: bool) -> &mut Self {
         self.raw_fd = Some(fd);
+        self.raw_fd_auto_close = Some(auto_close);
         self
     }
 }
