@@ -35,8 +35,9 @@ impl Device {
             Some(raw_fd) => raw_fd,
             _ => return Err(Error::InvalidConfig),
         };
+        let auto_close = config.raw_fd_auto_close.unwrap_or(true);
         let mut device = unsafe {
-            let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+            let tun = Fd::new_with_auto(fd, auto_close).map_err(|_| io::Error::last_os_error())?;
 
             Device {
                 queue: Queue { tun: tun },
