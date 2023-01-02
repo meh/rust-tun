@@ -121,12 +121,12 @@ impl Device {
                 name: CStr::from_ptr(name.as_ptr() as *const c_char)
                     .to_string_lossy()
                     .into(),
-                queue: Queue { tun: tun },
-                ctl: ctl,
+                queue: Queue { tun },
+                ctl,
             }
         };
 
-        device.configure(&config)?;
+        device.configure(config)?;
 
         Ok(device)
     }
@@ -168,7 +168,7 @@ impl Device {
     /// Split the interface into a `Reader` and `Writer`.
     pub fn split(self) -> (posix::Reader, posix::Writer) {
         let fd = Arc::new(self.queue.tun);
-        (posix::Reader(fd.clone()), posix::Writer(fd.clone()))
+        (posix::Reader(fd.clone()), posix::Writer(fd))
     }
 
     /// Return whether the device has packet information
