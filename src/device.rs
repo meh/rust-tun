@@ -90,6 +90,12 @@ pub trait Device: Read + Write {
     /// Set the MTU.
     fn set_mtu(&mut self, value: i32) -> Result<()>;
 
-    /// Get a device queue.
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue>;
+    /// Get a mutable reference to the device queue.
+    fn queue_mut(&mut self, index: usize) -> Option<&mut Self::Queue>;
+
+    /// Get a reference to the device queue.
+    fn queue(&self, index: usize) -> Option<&Self::Queue>;
+
+    /// Transforms this device into queues.
+    fn queues(self) -> Vec<Self::Queue>;
 }

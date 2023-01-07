@@ -55,6 +55,16 @@ impl AsyncDevice {
         let codec = TunPacketCodec::new(pi, self.inner.get_ref().mtu().unwrap_or(1504));
         Framed::new(self, codec)
     }
+
+    /// Transforms this device into async queues
+    pub fn queues(self) -> io::Result<Vec<AsyncQueue>> {
+        self.inner
+            .into_inner()
+            .queues()
+            .into_iter()
+            .map(AsyncQueue::new)
+            .collect()
+    }
 }
 
 impl AsyncRead for AsyncDevice {
@@ -146,6 +156,34 @@ impl AsyncQueue {
     /// Returns a mutable reference to the underlying Queue object
     pub fn get_mut(&mut self) -> &mut Queue {
         self.inner.get_mut()
+    }
+
+    /// Sends the given buffer through this queue
+    ///
+    /// It can be accessed concurrently
+    pub async fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        loop {
+            let mut guard = self.inner.writable().await?;
+
+            match guard.try_io(|inner| unsafe { inner.get_ref().tun.send(buf) }) {
+                Ok(res) => return res,
+                Err(_) => continue,
+            }
+        }
+    }
+
+    /// Receives data from this queue to the given buffer
+    ///
+    /// It can be accessed concurrently
+    pub async fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        loop {
+            let mut guard = self.inner.readable().await?;
+
+            match guard.try_io(|inner| unsafe { inner.get_ref().tun.recv(buf) }) {
+                Ok(res) => return res,
+                Err(_) => continue,
+            }
+        }
     }
 
     /// Consumes this AsyncQueue and return a Framed object (unified Stream and Sink interface)

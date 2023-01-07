@@ -365,12 +365,24 @@ impl D for Device {
         }
     }
 
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
+    fn queue_mut(&mut self, index: usize) -> Option<&mut Self::Queue> {
         if index > 0 {
             return None;
         }
 
         Some(&mut self.queue)
+    }
+
+    fn queue(&self, index: usize) -> Option<&Self::Queue> {
+        if index > 0 {
+            return None;
+        }
+
+        Some(&self.queue)
+    }
+
+    fn queues(self) -> Vec<Self::Queue> {
+        vec![self.queue]
     }
 }
 
@@ -387,7 +399,7 @@ impl IntoRawFd for Device {
 }
 
 pub struct Queue {
-    tun: Fd,
+    pub tun: Fd,
 }
 
 impl Queue {
