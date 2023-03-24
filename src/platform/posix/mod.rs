@@ -22,3 +22,5 @@ pub use self::fd::Fd;
 
 mod split;
 pub use self::split::{Reader, Writer};
+
+mod rtentry;
