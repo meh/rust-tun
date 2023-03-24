@@ -17,6 +17,7 @@ use std::net::Ipv4Addr;
 
 use crate::configuration::Configuration;
 use crate::error::*;
+use crate::route::RouteEntry;
 
 /// A TUN device.
 pub trait Device: Read + Write {
@@ -46,6 +47,10 @@ pub trait Device: Read + Write {
 
         if let Some(enabled) = config.enabled {
             self.enabled(enabled)?;
+        }
+
+        if let Some(routes) = config.routes.as_ref() {
+            self.set_routes(routes)?;
         }
 
         Ok(())
@@ -89,6 +94,9 @@ pub trait Device: Read + Write {
 
     /// Set the MTU.
     fn set_mtu(&mut self, value: i32) -> Result<()>;
+
+    /// Set routes
+    fn set_routes(&mut self, routes: &Vec<RouteEntry>) -> Result<()>;
 
     /// Get a device queue.
     fn queue(&mut self, index: usize) -> Option<&mut Self::Queue>;

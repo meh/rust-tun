@@ -27,6 +27,8 @@ pub use crate::configuration::{Configuration, Layer};
 pub mod platform;
 pub use crate::platform::create;
 
+pub mod route;
+
 #[cfg(all(
     feature = "async",
     any(
@@ -37,6 +39,7 @@ pub use crate::platform::create;
     )
 ))]
 pub mod r#async;
+
 #[cfg(all(
     feature = "async",
     any(

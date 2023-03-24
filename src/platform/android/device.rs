@@ -141,6 +141,10 @@ impl D for Device {
         Ok(())
     }
 
+    fn set_routes(&mut self, routes: &Vec<RouteEntry>) -> Result<()> {
+        unimplemented!("android routes coming soon...");
+    }
+
     fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
         if index > 0 {
             return None;

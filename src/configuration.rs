@@ -17,6 +17,7 @@ use std::os::unix::io::RawFd;
 
 use crate::address::IntoAddress;
 use crate::platform;
+use crate::route::RouteEntry;
 
 /// TUN interface OSI layer of operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -46,6 +47,7 @@ pub struct Configuration {
     pub(crate) layer: Option<Layer>,
     pub(crate) queues: Option<usize>,
     pub(crate) raw_fd: Option<RawFd>,
+    pub(crate) routes: Option<Vec<RouteEntry>>
 }
 
 impl Configuration {
@@ -123,4 +125,16 @@ impl Configuration {
         self.raw_fd = Some(fd);
         self
     }
+
+    /// Add a route to the configuration
+    pub fn add_route(&mut self, route: RouteEntry) -> &mut Self {
+        if self.routes.is_none() {
+            self.routes = Some(Vec::new());
+        }
+
+        self.routes.as_mut().unwrap().push(route);
+
+        self
+    }
+
 }
