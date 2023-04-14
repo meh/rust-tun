@@ -126,7 +126,7 @@ impl Device {
             }
         };
 
-        device.configure(&config)?;
+        device.configure(config)?;
         device.set_alias(
             config.address.unwrap_or(Ipv4Addr::new(10, 0, 0, 1)),
             config.destination.unwrap_or(Ipv4Addr::new(10, 0, 0, 255)),
