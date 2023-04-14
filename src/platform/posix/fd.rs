@@ -67,6 +67,38 @@ impl Read for Fd {
     }
 }
 
+impl Fd {
+    /// # Safety
+    ///
+    /// Concurrent writes can cause unexpected results.
+    pub unsafe fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        unsafe {
+            let amount = libc::write(self.0, buf.as_ptr() as *const _, buf.len());
+
+            if amount < 0 {
+                return Err(io::Error::last_os_error());
+            }
+
+            Ok(amount as usize)
+        }
+    }
+
+    /// # Safety
+    ///
+    /// Concurrent reads can cause unexpected results.
+    pub unsafe fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        unsafe {
+            let amount = libc::read(self.0, buf.as_mut_ptr() as *mut _, buf.len());
+
+            if amount < 0 {
+                return Err(io::Error::last_os_error());
+            }
+
+            Ok(amount as usize)
+        }
+    }
+}
+
 impl Write for Fd {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         unsafe {

@@ -55,16 +55,27 @@ impl AsyncDevice {
         let codec = TunPacketCodec::new(pi, self.inner.get_ref().mtu().unwrap_or(1504));
         Framed::new(self, codec)
     }
+
+    /// Transforms this device into async queues
+    pub fn queues(self) -> io::Result<Vec<AsyncQueue>> {
+        self.inner
+            .into_inner()
+            .queues()
+            .into_iter()
+            .map(AsyncQueue::new)
+            .collect()
+    }
 }
 
 impl AsyncRead for AsyncDevice {
     fn poll_read(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf,
     ) -> Poll<io::Result<()>> {
+        let this = self.get_mut();
         loop {
-            let mut guard = ready!(self.inner.poll_read_ready_mut(cx))?;
+            let mut guard = ready!(this.inner.poll_read_ready_mut(cx))?;
             let rbuf = buf.initialize_unfilled();
             match guard.try_io(|inner| inner.get_mut().read(rbuf)) {
                 Ok(res) => return Poll::Ready(res.map(|n| buf.advance(n))),
@@ -76,12 +87,13 @@ impl AsyncRead for AsyncDevice {
 
 impl AsyncWrite for AsyncDevice {
     fn poll_write(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
+        let this = self.get_mut();
         loop {
-            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
+            let mut guard = ready!(this.inner.poll_write_ready_mut(cx))?;
             match guard.try_io(|inner| inner.get_mut().write(buf)) {
                 Ok(res) => return Poll::Ready(res),
                 Err(_wb) => continue,
@@ -104,12 +116,13 @@ impl AsyncWrite for AsyncDevice {
     }
 
     fn poll_write_vectored(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         bufs: &[IoSlice<'_>],
     ) -> Poll<Result<usize, io::Error>> {
+        let this = self.get_mut();
         loop {
-            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
+            let mut guard = ready!(this.inner.poll_write_ready_mut(cx))?;
             match guard.try_io(|inner| inner.get_mut().write_vectored(bufs)) {
                 Ok(res) => return Poll::Ready(res),
                 Err(_wb) => continue,
@@ -145,6 +158,34 @@ impl AsyncQueue {
         self.inner.get_mut()
     }
 
+    /// Sends the given buffer through this queue
+    ///
+    /// It can be accessed concurrently
+    pub async fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        loop {
+            let mut guard = self.inner.writable().await?;
+
+            match guard.try_io(|inner| unsafe { inner.get_ref().tun.send(buf) }) {
+                Ok(res) => return res,
+                Err(_) => continue,
+            }
+        }
+    }
+
+    /// Receives data from this queue to the given buffer
+    ///
+    /// It can be accessed concurrently
+    pub async fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        loop {
+            let mut guard = self.inner.readable().await?;
+
+            match guard.try_io(|inner| unsafe { inner.get_ref().tun.recv(buf) }) {
+                Ok(res) => return res,
+                Err(_) => continue,
+            }
+        }
+    }
+
     /// Consumes this AsyncQueue and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(mut self) -> Framed<Self, TunPacketCodec> {
         let pi = self.get_mut().has_packet_information();
@@ -155,12 +196,13 @@ impl AsyncQueue {
 
 impl AsyncRead for AsyncQueue {
     fn poll_read(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf,
     ) -> Poll<io::Result<()>> {
+        let this = self.get_mut();
         loop {
-            let mut guard = ready!(self.inner.poll_read_ready_mut(cx))?;
+            let mut guard = ready!(this.inner.poll_read_ready_mut(cx))?;
             let rbuf = buf.initialize_unfilled();
             match guard.try_io(|inner| inner.get_mut().read(rbuf)) {
                 Ok(res) => return Poll::Ready(res.map(|n| buf.advance(n))),
@@ -172,12 +214,13 @@ impl AsyncRead for AsyncQueue {
 
 impl AsyncWrite for AsyncQueue {
     fn poll_write(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
+        let this = self.get_mut();
         loop {
-            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
+            let mut guard = ready!(this.inner.poll_write_ready_mut(cx))?;
             match guard.try_io(|inner| inner.get_mut().write(buf)) {
                 Ok(res) => return Poll::Ready(res),
                 Err(_wb) => continue,

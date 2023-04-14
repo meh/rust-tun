@@ -121,12 +121,12 @@ impl Device {
                 name: CStr::from_ptr(name.as_ptr() as *const c_char)
                     .to_string_lossy()
                     .into(),
-                queue: Queue { tun: tun },
-                ctl: ctl,
+                queue: Queue { tun },
+                ctl,
             }
         };
 
-        device.configure(&config)?;
+        device.configure(config)?;
         device.set_alias(
             config.address.unwrap_or(Ipv4Addr::new(10, 0, 0, 1)),
             config.destination.unwrap_or(Ipv4Addr::new(10, 0, 0, 255)),
@@ -173,7 +173,7 @@ impl Device {
     /// Split the interface into a `Reader` and `Writer`.
     pub fn split(self) -> (posix::Reader, posix::Writer) {
         let fd = Arc::new(self.queue.tun);
-        (posix::Reader(fd.clone()), posix::Writer(fd.clone()))
+        (posix::Reader(fd.clone()), posix::Writer(fd))
     }
 
     /// Return whether the device has packet information
@@ -370,12 +370,24 @@ impl D for Device {
         }
     }
 
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
+    fn queue_mut(&mut self, index: usize) -> Option<&mut Self::Queue> {
         if index > 0 {
             return None;
         }
 
         Some(&mut self.queue)
+    }
+
+    fn queue(&self, index: usize) -> Option<&Self::Queue> {
+        if index > 0 {
+            return None;
+        }
+
+        Some(&self.queue)
+    }
+
+    fn queues(self) -> Vec<Self::Queue> {
+        vec![self.queue]
     }
 }
 
@@ -392,7 +404,7 @@ impl IntoRawFd for Device {
 }
 
 pub struct Queue {
-    tun: Fd,
+    pub tun: Fd,
 }
 
 impl Queue {

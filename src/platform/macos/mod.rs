@@ -28,5 +28,5 @@ pub struct Configuration {}
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &C) -> Result<Device> {
-    Device::new(&configuration)
+    Device::new(configuration)
 }

@@ -19,16 +19,11 @@ use crate::address::IntoAddress;
 use crate::platform;
 
 /// TUN interface OSI layer of operation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Default)]
 pub enum Layer {
     L2,
+    #[default]
     L3,
-}
-
-impl Default for Layer {
-    fn default() -> Self {
-        Layer::L3
-    }
 }
 
 /// Configuration builder for a TUN interface.
