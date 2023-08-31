@@ -87,7 +87,7 @@ impl Device {
                 sc_len: mem::size_of::<sockaddr_ctl>() as _,
                 sc_family: AF_SYSTEM,
                 ss_sysaddr: AF_SYS_CONTROL,
-                sc_unit: id as c_uint,
+                sc_unit: id + 1 as c_uint,
                 sc_reserved: [0; 5],
             };
 
