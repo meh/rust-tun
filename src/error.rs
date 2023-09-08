@@ -13,9 +13,8 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::{ffi, io, num};
-use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("invalid configuration")]
     InvalidConfig,
@@ -49,6 +48,10 @@ pub enum Error {
 
     #[error(transparent)]
     ParseNum(#[from] num::ParseIntError),
+
+    #[cfg(target_os = "windows")]
+    #[error(transparent)]
+    WintunError(#[from] wintun::Error),
 }
 
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T, E = Error> = ::std::result::Result<T, E>;

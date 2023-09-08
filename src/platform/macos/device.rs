@@ -121,12 +121,12 @@ impl Device {
                 name: CStr::from_ptr(name.as_ptr() as *const c_char)
                     .to_string_lossy()
                     .into(),
-                queue: Queue { tun: tun },
-                ctl: ctl,
+                queue: Queue { tun },
+                ctl,
             }
         };
 
-        device.configure(&config)?;
+        device.configure(config)?;
         device.set_alias(
             config.address.unwrap_or(Ipv4Addr::new(10, 0, 0, 1)),
             config.destination.unwrap_or(Ipv4Addr::new(10, 0, 0, 255)),
@@ -137,6 +137,7 @@ impl Device {
     }
 
     /// Prepare a new request.
+    /// # Safety
     pub unsafe fn request(&self) -> ifreq {
         let mut req: ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
@@ -214,8 +215,8 @@ impl Write for Device {
 impl D for Device {
     type Queue = Queue;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> Result<String> {
+        Ok(self.name.clone())
     }
 
     // XXX: Cannot set interface name on Darwin.

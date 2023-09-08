@@ -30,6 +30,7 @@ pub const SYSPROTO_CONTROL: c_int = 2;
 pub const UTUN_OPT_IFNAME: c_int = 2;
 pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
+#[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ctl_info {
@@ -37,6 +38,7 @@ pub struct ctl_info {
     pub ctl_name: [c_char; 96],
 }
 
+#[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct sockaddr_ctl {
@@ -54,6 +56,7 @@ pub union ifrn {
     pub name: [c_char; IFNAMSIZ],
 }
 
+#[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifdevmtu {
@@ -69,6 +72,7 @@ pub union ifku {
     pub value: c_int,
 }
 
+#[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifkpi {
@@ -98,6 +102,7 @@ pub union ifru {
     pub functional_type: c_uint,
 }
 
+#[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifreq {
@@ -105,6 +110,7 @@ pub struct ifreq {
     pub ifru: ifru,
 }
 
+#[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifaliasreq {

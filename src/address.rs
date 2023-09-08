@@ -61,13 +61,13 @@ impl<'a> IntoAddress for &'a str {
 
 impl IntoAddress for String {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        (&**self).into_address()
+        (**self).into_address()
     }
 }
 
 impl<'a> IntoAddress for &'a String {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        (&**self).into_address()
+        (**self).into_address()
     }
 }
 
@@ -79,7 +79,7 @@ impl IntoAddress for Ipv4Addr {
 
 impl<'a> IntoAddress for &'a Ipv4Addr {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        (&**self).into_address()
+        (**self).into_address()
     }
 }
 
@@ -95,7 +95,7 @@ impl IntoAddress for IpAddr {
 
 impl<'a> IntoAddress for &'a IpAddr {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        (&**self).into_address()
+        (**self).into_address()
     }
 }
 
@@ -107,7 +107,7 @@ impl IntoAddress for SocketAddrV4 {
 
 impl<'a> IntoAddress for &'a SocketAddrV4 {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        (&**self).into_address()
+        (**self).into_address()
     }
 }
 
@@ -123,6 +123,6 @@ impl IntoAddress for SocketAddr {
 
 impl<'a> IntoAddress for &'a SocketAddr {
     fn into_address(&self) -> Result<Ipv4Addr> {
-        (&**self).into_address()
+        (**self).into_address()
     }
 }

@@ -52,7 +52,7 @@ pub trait Device: Read + Write {
     }
 
     /// Get the device name.
-    fn name(&self) -> &str;
+    fn name(&self) -> Result<String>;
 
     /// Set the device name.
     fn set_name(&mut self, name: &str) -> Result<()>;

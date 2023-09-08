@@ -203,8 +203,8 @@ impl Write for Device {
 impl D for Device {
     type Queue = Queue;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> Result<String> {
+        Ok(self.name.clone())
     }
 
     fn set_name(&mut self, value: &str) -> Result<()> {
