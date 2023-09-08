@@ -89,8 +89,8 @@ impl Write for Device {
 impl D for Device {
     type Queue = Queue;
 
-    fn name(&self) -> &str {
-        return "";
+    fn name(&self) -> Result<String> {
+        Ok("".to_string())
     }
 
     fn set_name(&mut self, value: &str) -> Result<()> {

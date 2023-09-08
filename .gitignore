@@ -1,3 +1,5 @@
+.vscode/
+.VSCodeCounter/
 target/
 **/*.rs.bk
 Cargo.lock

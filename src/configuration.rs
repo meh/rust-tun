@@ -13,22 +13,20 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::net::Ipv4Addr;
+#[cfg(unix)]
 use std::os::unix::io::RawFd;
+#[cfg(windows)]
+use std::os::windows::raw::HANDLE;
 
 use crate::address::IntoAddress;
 use crate::platform;
 
 /// TUN interface OSI layer of operation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
 pub enum Layer {
     L2,
+    #[default]
     L3,
-}
-
-impl Default for Layer {
-    fn default() -> Self {
-        Layer::L3
-    }
 }
 
 /// Configuration builder for a TUN interface.
@@ -45,7 +43,12 @@ pub struct Configuration {
     pub(crate) enabled: Option<bool>,
     pub(crate) layer: Option<Layer>,
     pub(crate) queues: Option<usize>,
+    #[cfg(unix)]
     pub(crate) raw_fd: Option<RawFd>,
+    #[cfg(not(unix))]
+    pub(crate) raw_fd: Option<i32>,
+    #[cfg(windows)]
+    pub(crate) raw_handle: Option<HANDLE>,
 }
 
 impl Configuration {
@@ -119,8 +122,19 @@ impl Configuration {
     }
 
     /// Set the raw fd.
+    #[cfg(unix)]
     pub fn raw_fd(&mut self, fd: RawFd) -> &mut Self {
         self.raw_fd = Some(fd);
+        self
+    }
+    #[cfg(not(unix))]
+    pub fn raw_fd(&mut self, fd: i32) -> &mut Self {
+        self.raw_fd = Some(fd);
+        self
+    }
+    #[cfg(windows)]
+    pub fn raw_handle(&mut self, handle: HANDLE) -> &mut Self {
+        self.raw_handle = Some(handle);
         self
     }
 }

@@ -66,7 +66,7 @@ interfaces.
 
 macOS
 -----
-It just werks, but you have to set up routing manually.
+It just works, but you have to set up routing manually.
 
 iOS
 ----
@@ -104,3 +104,8 @@ pub extern "C" fn start_tun(fd: std::os::raw::c_int) {
     });
 }
 ```
+
+Windows
+-----
+You need to copy the [wintun.dll](https://wintun.net/) file which matches your architecture to 
+the same directory as your executable and run you program as administrator.

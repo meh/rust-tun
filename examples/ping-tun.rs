@@ -17,7 +17,7 @@ use packet::{builder::Builder, icmp, ip, Packet};
 use tun::{self, Configuration, TunPacket};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Configuration::default();
 
     config
@@ -30,49 +30,41 @@ async fn main() {
         config.packet_information(true);
     });
 
-    let dev = tun::create_as_async(&config).unwrap();
+    #[cfg(target_os = "windows")]
+    config.platform(|config| {
+        config.initialize();
+    });
+
+    let dev = tun::create_as_async(&config)?;
 
     let mut framed = dev.into_framed();
 
     while let Some(packet) = framed.next().await {
-        match packet {
-            Ok(pkt) => match ip::Packet::new(pkt.get_bytes()) {
-                Ok(ip::Packet::V4(pkt)) => match icmp::Packet::new(pkt.payload()) {
-                    Ok(icmp) => match icmp.echo() {
-                        Ok(icmp) => {
-                            let reply = ip::v4::Builder::default()
-                                .id(0x42)
-                                .unwrap()
-                                .ttl(64)
-                                .unwrap()
-                                .source(pkt.destination())
-                                .unwrap()
-                                .destination(pkt.source())
-                                .unwrap()
-                                .icmp()
-                                .unwrap()
-                                .echo()
-                                .unwrap()
-                                .reply()
-                                .unwrap()
-                                .identifier(icmp.identifier())
-                                .unwrap()
-                                .sequence(icmp.sequence())
-                                .unwrap()
-                                .payload(icmp.payload())
-                                .unwrap()
-                                .build()
-                                .unwrap();
-                            framed.send(TunPacket::new(reply)).await.unwrap();
-                        }
-                        _ => {}
-                    },
-                    _ => {}
-                },
-                Err(err) => println!("Received an invalid packet: {:?}", err),
-                _ => {}
-            },
-            Err(err) => panic!("Error: {:?}", err),
+        let pkt = packet?;
+        match ip::Packet::new(pkt.get_bytes()) {
+            Ok(ip::Packet::V4(pkt)) => {
+                if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
+                    if let Ok(icmp) = icmp.echo() {
+                        println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                        let reply = ip::v4::Builder::default()
+                            .id(0x42)?
+                            .ttl(64)?
+                            .source(pkt.destination())?
+                            .destination(pkt.source())?
+                            .icmp()?
+                            .echo()?
+                            .reply()?
+                            .identifier(icmp.identifier())?
+                            .sequence(icmp.sequence())?
+                            .payload(icmp.payload())?
+                            .build()?;
+                        framed.send(TunPacket::new(reply)).await?;
+                    }
+                }
+            }
+            Err(err) => println!("Received an invalid packet: {:?}", err),
+            _ => {}
         }
     }
+    Ok(())
 }
