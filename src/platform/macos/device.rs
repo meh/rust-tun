@@ -49,7 +49,7 @@ impl Device {
                 return Err(Error::InvalidName);
             }
 
-            name[4..].parse()?
+            name[4..].parse()? + 1
         } else {
             0
         };
