@@ -49,9 +49,9 @@ impl Device {
                 return Err(Error::InvalidName);
             }
 
-            name[4..].parse()? + 1
+            name[4..].parse::<u32>()? + 1u32
         } else {
-            0
+            0u32
         };
 
         if config.layer.filter(|l| *l != Layer::L3).is_some() {
