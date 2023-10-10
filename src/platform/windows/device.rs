@@ -45,7 +45,7 @@ impl Device {
 
         let address = config.address.unwrap_or(Ipv4Addr::new(10, 1, 0, 2));
         let mask = config.netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 0));
-        let gateway = config.destination.map_or(None, |a| Some(IpAddr::V4(a)));
+        let gateway = config.destination.map(IpAddr::from);
         adapter.set_network_addresses_tuple(IpAddr::V4(address), IpAddr::V4(mask), gateway)?;
         let mtu = config.mtu.unwrap_or(1500) as usize;
 
