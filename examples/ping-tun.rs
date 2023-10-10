@@ -21,8 +21,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Configuration::default();
 
     config
-        .address((10, 0, 0, 1))
+        .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
+        .destination((10, 0, 0, 1))
         .up();
 
     #[cfg(target_os = "linux")]

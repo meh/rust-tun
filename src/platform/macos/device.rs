@@ -13,22 +13,28 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 #![allow(unused_variables)]
 
-use std::ffi::CStr;
-use std::io::{self, Read, Write};
-use std::mem;
-use std::net::Ipv4Addr;
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::ptr;
-use std::sync::Arc;
-
-use libc;
-use libc::{c_char, c_uint, c_void, sockaddr, socklen_t, AF_INET, SOCK_DGRAM};
-
-use crate::configuration::{Configuration, Layer};
-use crate::device::Device as D;
-use crate::error::*;
-use crate::platform::macos::sys::*;
-use crate::platform::posix::{self, Fd, SockAddr};
+use crate::{
+    configuration::{Configuration, Layer},
+    device::Device as D,
+    error::*,
+    platform::{
+        macos::sys::*,
+        posix::{self, Fd, SockAddr},
+    },
+};
+use libc::{
+    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, IFF_RUNNING, IFF_UP,
+    IFNAMSIZ, SOCK_DGRAM,
+};
+use std::{
+    ffi::CStr,
+    io::{self, Read, Write},
+    mem,
+    net::Ipv4Addr,
+    os::unix::io::{AsRawFd, IntoRawFd, RawFd},
+    ptr,
+    sync::Arc,
+};
 
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
@@ -233,9 +239,9 @@ impl D for Device {
             }
 
             if value {
-                req.ifru.flags |= IFF_UP | IFF_RUNNING;
+                req.ifru.flags |= (IFF_UP | IFF_RUNNING) as c_short;
             } else {
-                req.ifru.flags &= !IFF_UP;
+                req.ifru.flags &= !(IFF_UP as c_short);
             }
 
             if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {

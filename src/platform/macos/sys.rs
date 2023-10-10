@@ -15,13 +15,7 @@
 //! Bindings to internal macOS stuff.
 
 use ioctl::*;
-use libc::sockaddr;
-use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void};
-
-pub const IFNAMSIZ: usize = 16;
-
-pub const IFF_UP: c_short = 0x1;
-pub const IFF_RUNNING: c_short = 0x40;
+use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void, sockaddr, IFNAMSIZ};
 
 pub const AF_SYS_CONTROL: c_ushort = 2;
 pub const AF_SYSTEM: c_char = 32;
