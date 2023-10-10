@@ -49,7 +49,7 @@ impl Device {
                 return Err(Error::InvalidName);
             }
 
-            name[4..].parse::<u32>()? + 1u32
+            name[4..].parse::<u32>()?  + 1u32
         } else {
             0u32
         };

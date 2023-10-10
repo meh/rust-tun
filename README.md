@@ -8,7 +8,7 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun = "0.5"
+tun = "0.6.1"
 ```
 
 Next, add this to your crate root:
@@ -21,7 +21,7 @@ If you want to use the TUN interface with mio/tokio, you need to enable the `asy
 
 ```toml
 [dependencies]
-tun = { version = "0.5", features = ["async"] }
+tun = { version = "0.6.1", features = ["async"] }
 ```
 
 Example
@@ -66,7 +66,8 @@ interfaces.
 
 macOS
 -----
-It just works, but you have to set up routing manually.
+It just works, but you have to set up routing manually. For example:
+> sudo route -n add -net 10.0.0.0/24 10.0.0.1
 
 iOS
 ----
