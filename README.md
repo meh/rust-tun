@@ -8,7 +8,7 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun = "0.6.1"
+tun = "0.6"
 ```
 
 Next, add this to your crate root:
@@ -21,7 +21,7 @@ If you want to use the TUN interface with mio/tokio, you need to enable the `asy
 
 ```toml
 [dependencies]
-tun = { version = "0.6.1", features = ["async"] }
+tun = { version = "0.6", features = ["async"] }
 ```
 
 Example
