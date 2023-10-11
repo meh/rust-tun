@@ -103,16 +103,12 @@ impl Device {
                 });
             }
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
-                .map_err(|_| io::Error::last_os_error())?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
 
-            Device {
-                name: CStr::from_ptr(req.ifr_name.as_ptr())
-                    .to_string_lossy()
-                    .into(),
-                queues,
-                ctl,
-            }
+            let name = CStr::from_ptr(req.ifr_name.as_ptr())
+                .to_string_lossy()
+                .to_string();
+            Device { name, queues, ctl }
         };
 
         device.configure(config)?;

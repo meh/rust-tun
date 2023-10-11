@@ -26,4 +26,4 @@ jobs:
     - name: clippy
       run: cargo clippy --all-targets --all-features -- -D warnings
     - name: Build
-      run: cargo build --verbose --examples --tests --all-features
+      run: cargo build --verbose --examples --tests --all-features --features="async tokio/rt-multi-thread"
