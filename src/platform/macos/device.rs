@@ -23,8 +23,8 @@ use crate::{
     },
 };
 use libc::{
-    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, IFF_RUNNING, IFF_UP,
-    IFNAMSIZ, SOCK_DGRAM,
+    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_SYSTEM, AF_SYS_CONTROL,
+    IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL, UTUN_OPT_IFNAME,
 };
 use std::{
     ffi::CStr,
@@ -70,8 +70,7 @@ impl Device {
         }
 
         let mut device = unsafe {
-            let tun = Fd::new(libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL))
-                .map_err(|_| io::Error::last_os_error())?;
+            let tun = Fd::new(libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL))?;
 
             let mut info = ctl_info {
                 ctl_id: 0,
@@ -91,37 +90,27 @@ impl Device {
             let addr = sockaddr_ctl {
                 sc_id: info.ctl_id,
                 sc_len: mem::size_of::<sockaddr_ctl>() as _,
-                sc_family: AF_SYSTEM,
-                ss_sysaddr: AF_SYS_CONTROL,
+                sc_family: AF_SYSTEM as _,
+                ss_sysaddr: AF_SYS_CONTROL as _,
                 sc_unit: id as c_uint,
                 sc_reserved: [0; 5],
             };
 
-            if libc::connect(
-                tun.0,
-                &addr as *const sockaddr_ctl as *const sockaddr,
-                mem::size_of_val(&addr) as socklen_t,
-            ) < 0
-            {
+            let address = &addr as *const sockaddr_ctl as *const sockaddr;
+            if libc::connect(tun.0, address, mem::size_of_val(&addr) as socklen_t) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
             let mut name = [0u8; 64];
             let mut name_len: socklen_t = 64;
 
-            if libc::getsockopt(
-                tun.0,
-                SYSPROTO_CONTROL,
-                UTUN_OPT_IFNAME,
-                &mut name as *mut _ as *mut c_void,
-                &mut name_len as *mut socklen_t,
-            ) < 0
-            {
+            let optval = &mut name as *mut _ as *mut c_void;
+            let optlen = &mut name_len as *mut socklen_t;
+            if libc::getsockopt(tun.0, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, optval, optlen) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
-                .map_err(|_| io::Error::last_os_error())?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
 
             Device {
                 name: CStr::from_ptr(name.as_ptr() as *const c_char)
