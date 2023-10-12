@@ -12,26 +12,28 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::ffi::{CStr, CString};
-use std::io::{self, Read, Write};
-use std::mem;
-use std::net::Ipv4Addr;
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::ptr;
-use std::sync::Arc;
-use std::vec::Vec;
-
 use libc::{
-    self, ifreq, IFF_MULTI_QUEUE, IFF_NO_PI, IFF_RUNNING, IFF_TAP, IFF_TUN, IFF_UP, IFNAMSIZ,
+    self, c_char, c_short, ifreq, AF_INET, IFF_MULTI_QUEUE, IFF_NO_PI, IFF_RUNNING, IFF_TAP,
+    IFF_TUN, IFF_UP, IFNAMSIZ, O_RDWR, SOCK_DGRAM,
 };
-use libc::{c_char, c_short};
-use libc::{AF_INET, O_RDWR, SOCK_DGRAM};
+use std::{
+    ffi::{CStr, CString},
+    io::{self, Read, Write},
+    mem,
+    net::Ipv4Addr,
+    os::unix::io::{AsRawFd, IntoRawFd, RawFd},
+    ptr,
+    sync::Arc,
+    vec::Vec,
+};
 
-use crate::configuration::{Configuration, Layer};
-use crate::device::Device as D;
-use crate::error::*;
-use crate::platform::linux::sys::*;
-use crate::platform::posix::{self, Fd, SockAddr};
+use crate::{
+    configuration::{Configuration, Layer},
+    device::Device as D,
+    error::*,
+    platform::linux::sys::*,
+    platform::posix::{self, Fd, SockAddr},
+};
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
@@ -77,17 +79,12 @@ impl Device {
                 return Err(Error::InvalidQueuesNumber);
             }
 
+            let iff_no_pi = IFF_NO_PI as c_short;
+            let iff_multi_queue = IFF_MULTI_QUEUE as c_short;
+            let packet_information = config.platform.packet_information;
             req.ifr_ifru.ifru_flags = device_type
-                | if config.platform.packet_information {
-                    0_i16
-                } else {
-                    IFF_NO_PI as c_short
-                }
-                | if queues_num > 1 {
-                    IFF_MULTI_QUEUE as c_short
-                } else {
-                    0_i16
-                };
+                | if packet_information { 0 } else { iff_no_pi }
+                | if queues_num > 1 { iff_multi_queue } else { 0 };
 
             for _ in 0..queues_num {
                 let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
