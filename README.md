@@ -66,7 +66,9 @@ interfaces.
 
 macOS
 -----
-It just works, but you have to set up routing manually.
+It just works, but you have to set up routing manually. For example:
+> sudo route -n add -net 10.0.0.0/24 10.0.0.1
+
 
 iOS
 ----
