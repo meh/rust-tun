@@ -15,19 +15,8 @@
 //! Bindings to internal macOS stuff.
 
 use ioctl::*;
-use libc::sockaddr;
-use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void};
+use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void, sockaddr, IFNAMSIZ};
 
-pub const IFNAMSIZ: usize = 16;
-
-pub const IFF_UP: c_short = 0x1;
-pub const IFF_RUNNING: c_short = 0x40;
-
-pub const AF_SYS_CONTROL: c_ushort = 2;
-pub const AF_SYSTEM: c_char = 32;
-pub const PF_SYSTEM: c_int = AF_SYSTEM as c_int;
-pub const SYSPROTO_CONTROL: c_int = 2;
-pub const UTUN_OPT_IFNAME: c_int = 2;
 pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
 #[allow(non_camel_case_types)]
