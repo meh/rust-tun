@@ -39,7 +39,7 @@ impl Device {
             let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
 
             Device {
-                queue: Queue { tun: tun },
+                queue: Queue { tun },
             }
         };
         Ok(device)

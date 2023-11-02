@@ -37,20 +37,19 @@ impl Device {
     pub fn new(config: &Configuration) -> Result<Self> {
         let wintun = unsafe { wintun::load()? };
         let tun_name = config.name.as_deref().unwrap_or("wintun");
+        let guid = Some(9099482345783245345345_u128);
         let adapter = match wintun::Adapter::open(&wintun, tun_name) {
             Ok(a) => a,
-            Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, None)?,
+            Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, guid)?,
         };
 
         let address = config.address.unwrap_or(Ipv4Addr::new(10, 1, 0, 2));
         let mask = config.netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 0));
-        let gateway = config.destination.map_or(None, |a| Some(IpAddr::V4(a)));
+        let gateway = config.destination.map(IpAddr::from);
         adapter.set_network_addresses_tuple(IpAddr::V4(address), IpAddr::V4(mask), gateway)?;
         let mtu = config.mtu.unwrap_or(1500) as usize;
 
-        let session = adapter
-            .start_session(wintun::MAX_RING_CAPACITY)
-            .map_err(|_e| Error::InvalidConfig)?;
+        let session = adapter.start_session(wintun::MAX_RING_CAPACITY)?;
 
         let mut device = Device {
             queue: Queue {
@@ -229,11 +228,15 @@ impl Queue {
                 let waker = cx.waker().clone();
                 let cached = self.cached.clone();
                 thread::spawn(move || {
-                    if let Ok(mut cached) = cached.lock() {
-                        match reader_session.receive_blocking() {
-                            Ok(packet) => cached.extend_from_slice(packet.bytes()),
-                            Err(e) => log::error!("receive_blocking error: {:?}", e),
+                    match reader_session.receive_blocking() {
+                        Ok(packet) => {
+                            if let Ok(mut cached) = cached.lock() {
+                                cached.extend_from_slice(packet.bytes());
+                            } else {
+                                log::error!("cached lock error in wintun reciever thread, packet will be dropped");
+                            }
                         }
+                        Err(e) => log::error!("receive_blocking error: {:?}", e),
                     }
                     waker.wake()
                 });
