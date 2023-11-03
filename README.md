@@ -2,6 +2,10 @@ TUN interfaces [![Crates.io](https://img.shields.io/crates/v/tun.svg)](https://c
 ==============
 This crate allows the creation and usage of TUN interfaces, the aim is to make this cross-platform.
 
+Requirements
+-----
+- nightly rust
+
 Usage
 -----
 First, add the following to your `Cargo.toml`:
