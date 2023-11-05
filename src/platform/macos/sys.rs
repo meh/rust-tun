@@ -15,7 +15,7 @@
 //! Bindings to internal macOS stuff.
 
 use ioctl::*;
-use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void, sockaddr, IFNAMSIZ};
+use libc::{c_char, c_uint, ifreq, sockaddr, IFNAMSIZ};
 
 pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
@@ -25,78 +25,6 @@ pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 pub struct ctl_info {
     pub ctl_id: c_uint,
     pub ctl_name: [c_char; 96],
-}
-
-#[allow(non_camel_case_types)]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct sockaddr_ctl {
-    pub sc_len: c_char,
-    pub sc_family: c_char,
-    pub ss_sysaddr: c_ushort,
-    pub sc_id: c_uint,
-    pub sc_unit: c_uint,
-    pub sc_reserved: [c_uint; 5],
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union ifrn {
-    pub name: [c_char; IFNAMSIZ],
-}
-
-#[allow(non_camel_case_types)]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct ifdevmtu {
-    pub current: c_int,
-    pub min: c_int,
-    pub max: c_int,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union ifku {
-    pub ptr: *mut c_void,
-    pub value: c_int,
-}
-
-#[allow(non_camel_case_types)]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct ifkpi {
-    pub module_id: c_uint,
-    pub type_: c_uint,
-    pub ifku: ifku,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union ifru {
-    pub addr: sockaddr,
-    pub dstaddr: sockaddr,
-    pub broadaddr: sockaddr,
-
-    pub flags: c_short,
-    pub metric: c_int,
-    pub mtu: c_int,
-    pub phys: c_int,
-    pub media: c_int,
-    pub intval: c_int,
-    pub data: *mut c_void,
-    pub devmtu: ifdevmtu,
-    pub wake_flags: c_uint,
-    pub route_refcnt: c_uint,
-    pub cap: [c_int; 2],
-    pub functional_type: c_uint,
-}
-
-#[allow(non_camel_case_types)]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct ifreq {
-    pub ifrn: ifrn,
-    pub ifru: ifru,
 }
 
 #[allow(non_camel_case_types)]

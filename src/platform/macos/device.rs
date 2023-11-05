@@ -87,16 +87,16 @@ impl Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            let addr = sockaddr_ctl {
+            let addr = libc::sockaddr_ctl {
                 sc_id: info.ctl_id,
-                sc_len: mem::size_of::<sockaddr_ctl>() as _,
+                sc_len: mem::size_of::<libc::sockaddr_ctl>() as _,
                 sc_family: AF_SYSTEM as _,
                 ss_sysaddr: AF_SYS_CONTROL as _,
                 sc_unit: id as c_uint,
                 sc_reserved: [0; 5],
             };
 
-            let address = &addr as *const sockaddr_ctl as *const sockaddr;
+            let address = &addr as *const libc::sockaddr_ctl as *const sockaddr;
             if libc::connect(tun.0, address, mem::size_of_val(&addr) as socklen_t) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
@@ -133,11 +133,11 @@ impl Device {
 
     /// Prepare a new request.
     /// # Safety
-    pub unsafe fn request(&self) -> ifreq {
-        let mut req: ifreq = mem::zeroed();
+    pub unsafe fn request(&self) -> libc::ifreq {
+        let mut req: libc::ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
             self.name.as_ptr() as *const c_char,
-            req.ifrn.name.as_mut_ptr(),
+            req.ifr_name.as_mut_ptr(),
             self.name.len(),
         );
 
@@ -228,9 +228,9 @@ impl D for Device {
             }
 
             if value {
-                req.ifru.flags |= (IFF_UP | IFF_RUNNING) as c_short;
+                req.ifr_ifru.ifru_flags |= (IFF_UP | IFF_RUNNING) as c_short;
             } else {
-                req.ifru.flags &= !(IFF_UP as c_short);
+                req.ifr_ifru.ifru_flags &= !(IFF_UP as c_short);
             }
 
             if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {
@@ -249,14 +249,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifru.addr).map(Into::into)
+            SockAddr::new(&req.ifr_ifru.ifru_addr).map(Into::into)
         }
     }
 
     fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.addr = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
 
             if siocsifaddr(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -274,14 +274,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifru.dstaddr).map(Into::into)
+            SockAddr::new(&req.ifr_ifru.ifru_dstaddr).map(Into::into)
         }
     }
 
     fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.dstaddr = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_dstaddr = SockAddr::from(value).into();
 
             if siocsifdstaddr(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -299,14 +299,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifru.broadaddr).map(Into::into)
+            SockAddr::new(&req.ifr_ifru.ifru_broadaddr).map(Into::into)
         }
     }
 
     fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.broadaddr = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_broadaddr = SockAddr::from(value).into();
 
             if siocsifbrdaddr(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -324,14 +324,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::unchecked(&req.ifru.addr).map(Into::into)
+            SockAddr::unchecked(&req.ifr_ifru.ifru_addr).map(Into::into)
         }
     }
 
     fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.addr = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
 
             if siocsifnetmask(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -349,14 +349,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            Ok(req.ifru.mtu)
+            Ok(req.ifr_ifru.ifru_mtu)
         }
     }
 
     fn set_mtu(&mut self, value: i32) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.mtu = value;
+            req.ifr_ifru.ifru_mtu = value;
 
             if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
