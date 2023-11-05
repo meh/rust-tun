@@ -19,8 +19,9 @@ use bytes::{BufMut, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
 /// A packet protocol IP version
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Default)]
 enum PacketProtocol {
+    #[default]
     IPv4,
     IPv6,
     Other(u8),
@@ -29,27 +30,32 @@ enum PacketProtocol {
 // Note: the protocol in the packet information header is platform dependent.
 impl PacketProtocol {
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    fn into_pi_field(&self) -> Result<u16, io::Error> {
+    fn into_pi_field(self) -> Result<u16, io::Error> {
         match self {
             PacketProtocol::IPv4 => Ok(libc::ETH_P_IP as u16),
             PacketProtocol::IPv6 => Ok(libc::ETH_P_IPV6 as u16),
             PacketProtocol::Other(_) => Err(io::Error::new(
                 io::ErrorKind::Other,
-                "neither an IPv4 or IPv6 packet",
+                "neither an IPv4 nor IPv6 packet",
             )),
         }
     }
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
-    fn into_pi_field(&self) -> Result<u16, io::Error> {
+    fn into_pi_field(self) -> Result<u16, io::Error> {
         match self {
             PacketProtocol::IPv4 => Ok(libc::PF_INET as u16),
             PacketProtocol::IPv6 => Ok(libc::PF_INET6 as u16),
             PacketProtocol::Other(_) => Err(io::Error::new(
                 io::ErrorKind::Other,
-                "neither an IPv4 or IPv6 packet",
+                "neither an IPv4 nor IPv6 packet",
             )),
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn into_pi_field(self) -> Result<u16, io::Error> {
+        unimplemented!()
     }
 }
 
@@ -134,10 +140,9 @@ impl Encoder<TunPacket> for TunPacketCodec {
                 let mut buf = Vec::<u8>::with_capacity(4);
 
                 // flags is always 0
-                buf.write_u16::<NativeEndian>(0).unwrap();
+                buf.write_u16::<NativeEndian>(0)?;
                 // write the protocol as network byte order
-                buf.write_u16::<NetworkEndian>(proto.into_pi_field()?)
-                    .unwrap();
+                buf.write_u16::<NetworkEndian>(proto.into_pi_field()?)?;
 
                 dst.put_slice(&buf);
                 dst.put(bytes);

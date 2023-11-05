@@ -12,23 +12,28 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::ffi::{CStr, CString};
-use std::io::{self, Read, Write};
-use std::mem;
-use std::net::Ipv4Addr;
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::ptr;
-use std::vec::Vec;
+use libc::{
+    self, c_char, c_short, ifreq, AF_INET, IFF_MULTI_QUEUE, IFF_NO_PI, IFF_RUNNING, IFF_TAP,
+    IFF_TUN, IFF_UP, IFNAMSIZ, O_RDWR, SOCK_DGRAM,
+};
+use std::{
+    ffi::{CStr, CString},
+    io::{self, Read, Write},
+    mem,
+    net::Ipv4Addr,
+    os::unix::io::{AsRawFd, IntoRawFd, RawFd},
+    ptr,
+    sync::Arc,
+    vec::Vec,
+};
 
-use libc;
-use libc::{c_char, c_short};
-use libc::{AF_INET, O_RDWR, SOCK_DGRAM};
-
-use crate::configuration::{Configuration, Layer};
-use crate::device::Device as D;
-use crate::error::*;
-use crate::platform::linux::sys::*;
-use crate::platform::posix::{Fd, SockAddr};
+use crate::{
+    configuration::{Configuration, Layer},
+    device::Device as D,
+    error::*,
+    platform::linux::sys::*,
+    platform::posix::{self, Fd, SockAddr},
+};
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
@@ -62,7 +67,7 @@ impl Device {
             if let Some(dev) = dev.as_ref() {
                 ptr::copy_nonoverlapping(
                     dev.as_ptr() as *const c_char,
-                    req.ifrn.name.as_mut_ptr(),
+                    req.ifr_name.as_mut_ptr(),
                     dev.as_bytes().len(),
                 );
             }
@@ -74,13 +79,12 @@ impl Device {
                 return Err(Error::InvalidQueuesNumber);
             }
 
-            req.ifru.flags = device_type
-                | if config.platform.packet_information {
-                    0
-                } else {
-                    IFF_NO_PI
-                }
-                | if queues_num > 1 { IFF_MULTI_QUEUE } else { 0 };
+            let iff_no_pi = IFF_NO_PI as c_short;
+            let iff_multi_queue = IFF_MULTI_QUEUE as c_short;
+            let packet_information = config.platform.packet_information;
+            req.ifr_ifru.ifru_flags = device_type
+                | if packet_information { 0 } else { iff_no_pi }
+                | if queues_num > 1 { iff_multi_queue } else { 0 };
 
             for _ in 0..queues_num {
                 let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
@@ -96,16 +100,12 @@ impl Device {
                 });
             }
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
-                .map_err(|_| io::Error::last_os_error())?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
 
-            Device {
-                name: CStr::from_ptr(req.ifrn.name.as_ptr())
-                    .to_string_lossy()
-                    .into(),
-                queues,
-                ctl,
-            }
+            let name = CStr::from_ptr(req.ifr_name.as_ptr())
+                .to_string_lossy()
+                .to_string();
+            Device { name, queues, ctl }
         };
 
         device.configure(config)?;
@@ -118,7 +118,7 @@ impl Device {
         let mut req: ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
             self.name.as_ptr() as *const c_char,
-            req.ifrn.name.as_mut_ptr(),
+            req.ifr_name.as_mut_ptr(),
             self.name.len(),
         );
 
@@ -163,6 +163,12 @@ impl Device {
         self.queues[0].has_packet_information()
     }
 
+    /// Split the interface into a `Reader` and `Writer`.
+    pub fn split(mut self) -> (posix::Reader, posix::Writer) {
+        let fd = Arc::new(self.queues.swap_remove(0).tun);
+        (posix::Reader(fd.clone()), posix::Writer(fd.clone()))
+    }
+
     /// Set non-blocking mode
     pub fn set_nonblock(&self) -> io::Result<()> {
         self.queues[0].set_nonblock()
@@ -196,8 +202,8 @@ impl Write for Device {
 impl D for Device {
     type Queue = Queue;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> Result<String> {
+        Ok(self.name.clone())
     }
 
     fn set_name(&mut self, value: &str) -> Result<()> {
@@ -211,7 +217,7 @@ impl D for Device {
             let mut req = self.request();
             ptr::copy_nonoverlapping(
                 name.as_ptr() as *const c_char,
-                req.ifru.newname.as_mut_ptr(),
+                req.ifr_ifru.ifru_newname.as_mut_ptr(),
                 value.len(),
             );
 
@@ -234,9 +240,9 @@ impl D for Device {
             }
 
             if value {
-                req.ifru.flags |= IFF_UP | IFF_RUNNING;
+                req.ifr_ifru.ifru_flags |= (IFF_UP | IFF_RUNNING) as c_short;
             } else {
-                req.ifru.flags &= !IFF_UP;
+                req.ifr_ifru.ifru_flags &= !(IFF_UP as c_short);
             }
 
             if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {
@@ -255,14 +261,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifru.addr).map(Into::into)
+            SockAddr::new(&req.ifr_ifru.ifru_addr).map(Into::into)
         }
     }
 
     fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.addr = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
 
             if siocsifaddr(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -280,14 +286,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifru.dstaddr).map(Into::into)
+            SockAddr::new(&req.ifr_ifru.ifru_dstaddr).map(Into::into)
         }
     }
 
     fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.dstaddr = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_dstaddr = SockAddr::from(value).into();
 
             if siocsifdstaddr(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -305,14 +311,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifru.broadaddr).map(Into::into)
+            SockAddr::new(&req.ifr_ifru.ifru_broadaddr).map(Into::into)
         }
     }
 
     fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.broadaddr = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_broadaddr = SockAddr::from(value).into();
 
             if siocsifbrdaddr(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -330,14 +336,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifru.netmask).map(Into::into)
+            SockAddr::new(&req.ifr_ifru.ifru_netmask).map(Into::into)
         }
     }
 
     fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.netmask = SockAddr::from(value).into();
+            req.ifr_ifru.ifru_netmask = SockAddr::from(value).into();
 
             if siocsifnetmask(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -355,14 +361,14 @@ impl D for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            Ok(req.ifru.mtu)
+            Ok(req.ifr_ifru.ifru_mtu)
         }
     }
 
     fn set_mtu(&mut self, value: i32) -> Result<()> {
         unsafe {
             let mut req = self.request();
-            req.ifru.mtu = value;
+            req.ifr_ifru.ifru_mtu = value;
 
             if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -445,8 +451,8 @@ impl IntoRawFd for Queue {
 impl From<Layer> for c_short {
     fn from(layer: Layer) -> Self {
         match layer {
-            Layer::L2 => IFF_TAP,
-            Layer::L3 => IFF_TUN,
+            Layer::L2 => IFF_TAP as c_short,
+            Layer::L3 => IFF_TUN as c_short,
         }
     }
 }

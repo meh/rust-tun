@@ -12,19 +12,24 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//! macOS specific functionality.
-
-pub mod sys;
+//! Windows specific functionality.
 
 mod device;
-pub use self::device::{Device, Queue};
+
+pub use device::{Device, Queue};
 
 use crate::configuration::Configuration as C;
 use crate::error::*;
 
-/// macOS-only interface configuration.
+/// Windows-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Configuration {}
+
+impl Configuration {
+    pub fn initialize(&mut self) {
+        log::trace!("Windows configuration initialize");
+    }
+}
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &C) -> Result<Device> {
