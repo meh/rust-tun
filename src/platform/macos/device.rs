@@ -13,22 +13,28 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 #![allow(unused_variables)]
 
-use std::ffi::CStr;
-use std::io::{self, Read, Write};
-use std::mem;
-use std::net::Ipv4Addr;
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::ptr;
-use std::sync::Arc;
-
-use libc;
-use libc::{c_char, c_uint, c_void, sockaddr, socklen_t, AF_INET, SOCK_DGRAM};
-
-use crate::configuration::{Configuration, Layer};
-use crate::device::Device as D;
-use crate::error::*;
-use crate::platform::macos::sys::*;
-use crate::platform::posix::{self, Fd, SockAddr};
+use crate::{
+    configuration::{Configuration, Layer},
+    device::Device as D,
+    error::*,
+    platform::{
+        macos::sys::*,
+        posix::{self, Fd, SockAddr},
+    },
+};
+use libc::{
+    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_SYSTEM, AF_SYS_CONTROL,
+    IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL, UTUN_OPT_IFNAME,
+};
+use std::{
+    ffi::CStr,
+    io::{self, Read, Write},
+    mem,
+    net::Ipv4Addr,
+    os::unix::io::{AsRawFd, IntoRawFd, RawFd},
+    ptr,
+    sync::Arc,
+};
 
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
@@ -64,8 +70,7 @@ impl Device {
         }
 
         let mut device = unsafe {
-            let tun = Fd::new(libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL))
-                .map_err(|_| io::Error::last_os_error())?;
+            let tun = Fd::new(libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL))?;
 
             let mut info = ctl_info {
                 ctl_id: 0,
@@ -85,37 +90,27 @@ impl Device {
             let addr = sockaddr_ctl {
                 sc_id: info.ctl_id,
                 sc_len: mem::size_of::<sockaddr_ctl>() as _,
-                sc_family: AF_SYSTEM,
-                ss_sysaddr: AF_SYS_CONTROL,
+                sc_family: AF_SYSTEM as _,
+                ss_sysaddr: AF_SYS_CONTROL as _,
                 sc_unit: id as c_uint,
                 sc_reserved: [0; 5],
             };
 
-            if libc::connect(
-                tun.0,
-                &addr as *const sockaddr_ctl as *const sockaddr,
-                mem::size_of_val(&addr) as socklen_t,
-            ) < 0
-            {
+            let address = &addr as *const sockaddr_ctl as *const sockaddr;
+            if libc::connect(tun.0, address, mem::size_of_val(&addr) as socklen_t) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
             let mut name = [0u8; 64];
             let mut name_len: socklen_t = 64;
 
-            if libc::getsockopt(
-                tun.0,
-                SYSPROTO_CONTROL,
-                UTUN_OPT_IFNAME,
-                &mut name as *mut _ as *mut c_void,
-                &mut name_len as *mut socklen_t,
-            ) < 0
-            {
+            let optval = &mut name as *mut _ as *mut c_void;
+            let optlen = &mut name_len as *mut socklen_t;
+            if libc::getsockopt(tun.0, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, optval, optlen) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))
-                .map_err(|_| io::Error::last_os_error())?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
 
             Device {
                 name: CStr::from_ptr(name.as_ptr() as *const c_char)
@@ -233,9 +228,9 @@ impl D for Device {
             }
 
             if value {
-                req.ifru.flags |= IFF_UP | IFF_RUNNING;
+                req.ifru.flags |= (IFF_UP | IFF_RUNNING) as c_short;
             } else {
-                req.ifru.flags &= !IFF_UP;
+                req.ifru.flags &= !(IFF_UP as c_short);
             }
 
             if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {
