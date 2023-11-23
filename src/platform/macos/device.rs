@@ -38,14 +38,24 @@ use std::{
 
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
-    name: String,
+    name: Option<String>,
     queue: Queue,
-    ctl: Fd,
+    ctl: Option<Fd>,
 }
 
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
+        if let Some(fd) = config.raw_fd {
+            let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+            let device = Device {
+                name: None,
+                queue: Queue { tun },
+                ctl: None,
+            };
+            return Ok(device);
+        }
+
         let id = if let Some(name) = config.name.as_ref() {
             if name.len() > IFNAMSIZ {
                 return Err(Error::NameTooLong);
@@ -55,9 +65,9 @@ impl Device {
                 return Err(Error::InvalidName);
             }
 
-            name[4..].parse::<u32>()? + 1u32
+            name[4..].parse::<u32>()? + 1_u32
         } else {
-            0u32
+            0_u32
         };
 
         if config.layer.filter(|l| *l != Layer::L3).is_some() {
@@ -110,12 +120,14 @@ impl Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
+            let ctl = Some(Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?);
 
             Device {
-                name: CStr::from_ptr(name.as_ptr() as *const c_char)
-                    .to_string_lossy()
-                    .into(),
+                name: Some(
+                    CStr::from_ptr(name.as_ptr() as *const c_char)
+                        .to_string_lossy()
+                        .into(),
+                ),
                 queue: Queue { tun },
                 ctl,
             }
@@ -133,32 +145,35 @@ impl Device {
 
     /// Prepare a new request.
     /// # Safety
-    pub unsafe fn request(&self) -> libc::ifreq {
+    pub unsafe fn request(&self) -> Result<libc::ifreq> {
+        let name = self.name.as_ref().ok_or(Error::InvalidConfig)?;
         let mut req: libc::ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
-            self.name.as_ptr() as *const c_char,
+            name.as_ptr() as *const c_char,
             req.ifr_name.as_mut_ptr(),
-            self.name.len(),
+            name.len(),
         );
 
-        req
+        Ok(req)
     }
 
     /// Set the IPv4 alias of the device.
     pub fn set_alias(&mut self, addr: Ipv4Addr, broadaddr: Ipv4Addr, mask: Ipv4Addr) -> Result<()> {
+        let name = self.name.as_ref().ok_or(Error::InvalidConfig)?;
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
             let mut req: ifaliasreq = mem::zeroed();
             ptr::copy_nonoverlapping(
-                self.name.as_ptr() as *const c_char,
+                name.as_ptr() as *const c_char,
                 req.ifran.as_mut_ptr(),
-                self.name.len(),
+                name.len(),
             );
 
             req.addr = SockAddr::from(addr).into();
             req.broadaddr = SockAddr::from(broadaddr).into();
             req.mask = SockAddr::from(mask).into();
 
-            if siocaifaddr(self.ctl.as_raw_fd(), &req) < 0 {
+            if siocaifaddr(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -211,7 +226,7 @@ impl D for Device {
     type Queue = Queue;
 
     fn name(&self) -> Result<String> {
-        Ok(self.name.clone())
+        self.name.as_ref().cloned().ok_or(Error::InvalidConfig)
     }
 
     // XXX: Cannot set interface name on Darwin.
@@ -220,10 +235,11 @@ impl D for Device {
     }
 
     fn enabled(&mut self, value: bool) -> Result<()> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
 
-            if siocgifflags(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocgifflags(ctl.as_raw_fd(), &mut req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -233,7 +249,7 @@ impl D for Device {
                 req.ifr_ifru.ifru_flags &= !(IFF_UP as c_short);
             }
 
-            if siocsifflags(self.ctl.as_raw_fd(), &req) < 0 {
+            if siocsifflags(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -242,10 +258,11 @@ impl D for Device {
     }
 
     fn address(&self) -> Result<Ipv4Addr> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
 
-            if siocgifaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocgifaddr(ctl.as_raw_fd(), &mut req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -254,11 +271,12 @@ impl D for Device {
     }
 
     fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
             req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
 
-            if siocsifaddr(self.ctl.as_raw_fd(), &req) < 0 {
+            if siocsifaddr(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -267,10 +285,11 @@ impl D for Device {
     }
 
     fn destination(&self) -> Result<Ipv4Addr> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
 
-            if siocgifdstaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocgifdstaddr(ctl.as_raw_fd(), &mut req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -279,11 +298,12 @@ impl D for Device {
     }
 
     fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
             req.ifr_ifru.ifru_dstaddr = SockAddr::from(value).into();
 
-            if siocsifdstaddr(self.ctl.as_raw_fd(), &req) < 0 {
+            if siocsifdstaddr(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -292,10 +312,11 @@ impl D for Device {
     }
 
     fn broadcast(&self) -> Result<Ipv4Addr> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
 
-            if siocgifbrdaddr(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocgifbrdaddr(ctl.as_raw_fd(), &mut req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -304,11 +325,12 @@ impl D for Device {
     }
 
     fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
             req.ifr_ifru.ifru_broadaddr = SockAddr::from(value).into();
 
-            if siocsifbrdaddr(self.ctl.as_raw_fd(), &req) < 0 {
+            if siocsifbrdaddr(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -317,10 +339,11 @@ impl D for Device {
     }
 
     fn netmask(&self) -> Result<Ipv4Addr> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
 
-            if siocgifnetmask(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocgifnetmask(ctl.as_raw_fd(), &mut req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -329,11 +352,12 @@ impl D for Device {
     }
 
     fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
             req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
 
-            if siocsifnetmask(self.ctl.as_raw_fd(), &req) < 0 {
+            if siocsifnetmask(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -342,10 +366,11 @@ impl D for Device {
     }
 
     fn mtu(&self) -> Result<i32> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
 
-            if siocgifmtu(self.ctl.as_raw_fd(), &mut req) < 0 {
+            if siocgifmtu(ctl.as_raw_fd(), &mut req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -354,11 +379,12 @@ impl D for Device {
     }
 
     fn set_mtu(&mut self, value: i32) -> Result<()> {
+        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
-            let mut req = self.request();
+            let mut req = self.request()?;
             req.ifr_ifru.ifru_mtu = value;
 
-            if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
+            if siocsifmtu(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
