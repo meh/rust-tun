@@ -14,11 +14,7 @@
 
 use std::io::{self, Read, Write};
 use std::net::{IpAddr, Ipv4Addr};
-use std::pin::Pin;
-use std::sync::{Arc, Mutex};
-use std::task::{Context, Poll};
-use std::thread;
-use std::vec::Vec;
+use std::sync::Arc;
 
 use wintun::Session;
 
@@ -28,7 +24,7 @@ use crate::error::*;
 
 /// A TUN device using the wintun driver.
 pub struct Device {
-    queue: Queue,
+    pub(crate) queue: Queue,
     mtu: usize,
 }
 
@@ -54,7 +50,6 @@ impl Device {
         let mut device = Device {
             queue: Queue {
                 session: Arc::new(session),
-                cached: Arc::new(Mutex::new(Vec::with_capacity(mtu))),
             },
             mtu,
         };
@@ -63,14 +58,6 @@ impl Device {
         device.configure(config)?;
 
         Ok(device)
-    }
-
-    pub fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
-        Pin::new(&mut self.queue).poll_read(cx, buf)
     }
 }
 
@@ -183,7 +170,6 @@ impl D for Device {
 
     fn set_mtu(&mut self, value: i32) -> Result<()> {
         self.mtu = value as usize;
-        self.queue.cached = Arc::new(Mutex::new(Vec::with_capacity(self.mtu)));
         Ok(())
     }
 
@@ -194,70 +180,11 @@ impl D for Device {
 
 pub struct Queue {
     session: Arc<Session>,
-    cached: Arc<Mutex<Vec<u8>>>,
 }
 
 impl Queue {
-    pub fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        mut buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
-        {
-            let mut cached = self
-                .cached
-                .lock()
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
-            if cached.len() > 0 {
-                let res = match io::copy(&mut cached.as_slice(), &mut buf) {
-                    Ok(n) => Poll::Ready(Ok(n as usize)),
-                    Err(e) => Poll::Ready(Err(e)),
-                };
-                cached.clear();
-                return res;
-            }
-        }
-        let reader_session = self.session.clone();
-        match reader_session.try_receive() {
-            Err(e) => Poll::Ready(Err(io::Error::new(io::ErrorKind::Other, e))),
-            Ok(Some(packet)) => match io::copy(&mut packet.bytes(), &mut buf) {
-                Ok(n) => Poll::Ready(Ok(n as usize)),
-                Err(e) => Poll::Ready(Err(e)),
-            },
-            Ok(None) => {
-                let waker = cx.waker().clone();
-                let cached = self.cached.clone();
-                thread::spawn(move || {
-                    match reader_session.receive_blocking() {
-                        Ok(packet) => {
-                            if let Ok(mut cached) = cached.lock() {
-                                cached.extend_from_slice(packet.bytes());
-                            } else {
-                                log::error!("cached lock error in wintun reciever thread, packet will be dropped");
-                            }
-                        }
-                        Err(e) => log::error!("receive_blocking error: {:?}", e),
-                    }
-                    waker.wake()
-                });
-                Poll::Pending
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    fn try_read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
-        let reader_session = self.session.clone();
-        match reader_session.try_receive() {
-            Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
-            Ok(op) => match op {
-                None => Ok(0),
-                Some(packet) => match io::copy(&mut packet.bytes(), &mut buf) {
-                    Ok(s) => Ok(s as usize),
-                    Err(e) => Err(e),
-                },
-            },
-        }
+    pub fn get_session(&self) -> Arc<Session> {
+        self.session.clone()
     }
 }
 
