@@ -58,8 +58,8 @@ impl AsyncRead for AsyncDevice {
     ) -> Poll<io::Result<()>> {
         let rbuf = buf.initialize_unfilled();
         match Pin::new(&mut self.inner).poll_read(cx, rbuf) {
-            Poll::Ready(Ok(n)) => {
-                buf.advance(n);
+            Poll::Ready(Ok(size)) => {
+                buf.advance(size);
                 Poll::Ready(Ok(()))
             }
             Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
@@ -126,10 +126,7 @@ impl AsyncRead for AsyncQueue {
     ) -> Poll<io::Result<()>> {
         let rbuf = buf.initialize_unfilled();
         match Pin::new(&mut self.inner).poll_read(cx, rbuf) {
-            Poll::Ready(Ok(n)) => {
-                buf.advance(n);
-                Poll::Ready(Ok(()))
-            }
+            Poll::Ready(Ok(_)) => Poll::Ready(Ok(())),
             Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
             Poll::Pending => Poll::Pending,
         }
