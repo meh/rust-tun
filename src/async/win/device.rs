@@ -21,7 +21,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
 use crate::device::Device as D;
-use crate::platform::{Device, Queue};
+use crate::platform::Device;
 use crate::r#async::codec::*;
 
 pub struct AsyncDevice {
@@ -56,10 +56,9 @@ impl AsyncRead for AsyncDevice {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        let rbuf = buf.initialize_unfilled();
-        match Pin::new(&mut self.inner).poll_read(cx, rbuf) {
-            Poll::Ready(Ok(n)) => {
-                buf.advance(n);
+        //let rbuf = buf.initialize_unfilled();
+        match Pin::new(&mut self.inner).poll_read(cx, buf) {
+            Poll::Ready(Ok(_)) => {
                 Poll::Ready(Ok(()))
             }
             Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
@@ -92,67 +91,69 @@ impl AsyncWrite for AsyncDevice {
     }
 }
 
-pub struct AsyncQueue {
-    inner: Queue,
-}
+pub struct AsyncQueue;
 
-impl AsyncQueue {
-    /// Create a new `AsyncQueue` wrapping around a `Queue`.
-    pub fn new(queue: Queue) -> io::Result<AsyncQueue> {
-        Ok(AsyncQueue { inner: queue })
-    }
-    /// Returns a shared reference to the underlying Queue object
-    pub fn get_ref(&self) -> &Queue {
-        &self.inner
-    }
+// pub struct AsyncQueue {
+//     inner: Queue,
+// }
 
-    /// Returns a mutable reference to the underlying Queue object
-    pub fn get_mut(&mut self) -> &mut Queue {
-        &mut self.inner
-    }
+// impl AsyncQueue {
+//     /// Create a new `AsyncQueue` wrapping around a `Queue`.
+//     pub fn new(queue: Queue) -> io::Result<AsyncQueue> {
+//         Ok(AsyncQueue { inner: queue })
+//     }
+//     /// Returns a shared reference to the underlying Queue object
+//     pub fn get_ref(&self) -> &Queue {
+//         &self.inner
+//     }
 
-    /// Consumes this AsyncQueue and return a Framed object (unified Stream and Sink interface)
-    pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
-        let codec = TunPacketCodec::new(false, 1512);
-        Framed::new(self, codec)
-    }
-}
+//     /// Returns a mutable reference to the underlying Queue object
+//     pub fn get_mut(&mut self) -> &mut Queue {
+//         &mut self.inner
+//     }
 
-impl AsyncRead for AsyncQueue {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
-        let rbuf = buf.initialize_unfilled();
-        match Pin::new(&mut self.inner).poll_read(cx, rbuf) {
-            Poll::Ready(Ok(n)) => {
-                buf.advance(n);
-                Poll::Ready(Ok(()))
-            }
-            Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
+//     /// Consumes this AsyncQueue and return a Framed object (unified Stream and Sink interface)
+//     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
+//         let codec = TunPacketCodec::new(false, 1512);
+//         Framed::new(self, codec)
+//     }
+// }
 
-impl AsyncWrite for AsyncQueue {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize, Error>> {
-        match self.inner.write(buf) {
-            Ok(n) => Poll::Ready(Ok(n)),
-            Err(e) => Poll::Ready(Err(e)),
-        }
-    }
+// impl AsyncRead for AsyncQueue {
+//     fn poll_read(
+//         mut self: Pin<&mut Self>,
+//         cx: &mut Context<'_>,
+//         buf: &mut ReadBuf<'_>,
+//     ) -> Poll<io::Result<()>> {
+//         let rbuf = buf.initialize_unfilled();
+//         match Pin::new(&mut self.inner).poll_read(cx, rbuf) {
+//             Poll::Ready(Ok(n)) => {
+//                 buf.advance(n);
+//                 Poll::Ready(Ok(()))
+//             }
+//             Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
+//             Poll::Pending => Poll::Pending,
+//         }
+//     }
+// }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        Poll::Ready(Ok(()))
-    }
+// impl AsyncWrite for AsyncQueue {
+//     fn poll_write(
+//         mut self: Pin<&mut Self>,
+//         _cx: &mut Context<'_>,
+//         buf: &[u8],
+//     ) -> Poll<Result<usize, Error>> {
+//         match self.inner.write(buf) {
+//             Ok(n) => Poll::Ready(Ok(n)),
+//             Err(e) => Poll::Ready(Err(e)),
+//         }
+//     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        Poll::Ready(Ok(()))
-    }
-}
+//     fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+//         Poll::Ready(Ok(()))
+//     }
+
+//     fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+//         Poll::Ready(Ok(()))
+//     }
+// }

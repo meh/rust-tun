@@ -3,3 +3,5 @@
 target/
 **/*.rs.bk
 Cargo.lock
+.cargo/
+wintun.dll
