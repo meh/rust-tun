@@ -43,6 +43,7 @@ fn main() {
 	#[cfg(target_os = "linux")]
 	config.platform(|config| {
 		config.packet_information(true);
+		config.apply_settings(true);
 	});
 
 	let mut dev = tun::create(&config).unwrap();

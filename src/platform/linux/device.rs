@@ -108,7 +108,9 @@ impl Device {
             Device { name, queues, ctl }
         };
 
-        device.configure(config)?;
+        if config.platform.apply_settings {
+            device.configure(config)?;
+        }
 
         Ok(device)
     }
