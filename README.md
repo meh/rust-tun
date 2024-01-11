@@ -1,5 +1,9 @@
-TUN interfaces [![Crates.io](https://img.shields.io/crates/v/tun.svg)](https://crates.io/crates/tun) ![tun](https://docs.rs/tun/badge.svg) ![WTFPL](http://img.shields.io/badge/license-WTFPL-blue.svg)
+TUN interfaces 
 ==============
+[![Crates.io](https://img.shields.io/crates/v/tun.svg)](https://crates.io/crates/tun)
+![tun](https://docs.rs/tun/badge.svg)
+![WTFPL](http://img.shields.io/badge/license-WTFPL-blue.svg)
+
 This crate allows the creation and usage of TUN interfaces, the aim is to make this cross-platform.
 
 Usage
@@ -8,7 +12,7 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun = "0.6.1"
+tun = "0.6"
 ```
 
 Next, add this to your crate root:
@@ -21,7 +25,7 @@ If you want to use the TUN interface with mio/tokio, you need to enable the `asy
 
 ```toml
 [dependencies]
-tun = { version = "0.6.1", features = ["async"] }
+tun = { version = "0.6", features = ["async"] }
 ```
 
 Example
@@ -58,7 +62,7 @@ fn main() {
 
 Platforms
 =========
-Not every platform is supported.
+Recently, `tun` supports Linux, Android, macOS, iOS and Windows.
 
 Linux
 -----

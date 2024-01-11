@@ -14,7 +14,6 @@
 
 use std::io;
 
-use byteorder::{NativeEndian, NetworkEndian, WriteBytesExt};
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
@@ -54,6 +53,7 @@ impl PacketProtocol {
     }
 
     #[cfg(target_os = "windows")]
+    #[allow(dead_code)]
     fn into_pi_field(self) -> Result<u16, io::Error> {
         unimplemented!()
     }
@@ -132,19 +132,24 @@ impl Encoder<TunPacket> for TunPacketCodec {
     type Error = io::Error;
 
     fn encode(&mut self, item: TunPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        dst.reserve(item.get_bytes().len() + 4);
+        dst.reserve(item.get_bytes().len() + if self.0 { 4 } else { 0 });
         match item {
-            TunPacket(proto, bytes) if self.0 => {
-                // build the packet information header comprising of 2 u16
-                // fields: flags and protocol.
-                let mut buf = Vec::<u8>::with_capacity(4);
+            TunPacket(_proto, bytes) if self.0 => {
+                #[cfg(unix)]
+                {
+                    use byteorder::{NativeEndian, NetworkEndian, WriteBytesExt};
 
-                // flags is always 0
-                buf.write_u16::<NativeEndian>(0)?;
-                // write the protocol as network byte order
-                buf.write_u16::<NetworkEndian>(proto.into_pi_field()?)?;
+                    // build the packet information header comprising of 2 u16
+                    // fields: flags and protocol.
+                    let mut buf = Vec::<u8>::with_capacity(4);
 
-                dst.put_slice(&buf);
+                    // flags is always 0
+                    buf.write_u16::<NativeEndian>(0)?;
+                    // write the protocol as network byte order
+                    buf.write_u16::<NetworkEndian>(_proto.into_pi_field()?)?;
+
+                    dst.put_slice(&buf);
+                }
                 dst.put(bytes);
             }
             TunPacket(_, bytes) => dst.put(bytes),

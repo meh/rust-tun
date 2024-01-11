@@ -54,4 +54,13 @@ pub enum Error {
     WintunError(#[from] wintun::Error),
 }
 
+impl From<Error> for io::Error {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::Io(err) => err,
+            _ => io::Error::new(io::ErrorKind::Other, value),
+        }
+    }
+}
+
 pub type Result<T, E = Error> = ::std::result::Result<T, E>;
