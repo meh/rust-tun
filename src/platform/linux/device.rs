@@ -96,7 +96,7 @@ impl Device {
 
                 queues.push(Queue {
                     tun,
-                    pi_enabled: config.platform.packet_information,
+                    packet_information: config.platform.packet_information,
                 });
             }
 
@@ -401,12 +401,12 @@ impl IntoRawFd for Device {
 
 pub struct Queue {
     tun: Fd,
-    pi_enabled: bool,
+    packet_information: bool,
 }
 
 impl Queue {
     pub fn has_packet_information(&mut self) -> bool {
-        self.pi_enabled
+        self.packet_information
     }
 
     pub fn set_nonblock(&self) -> io::Result<()> {
