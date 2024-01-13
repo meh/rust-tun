@@ -17,7 +17,7 @@ use packet::ip::Packet;
 
 #[tokio::main]
 async fn main() {
-    let mut config = tun::Configuration::default();
+    let mut config = tun2::Configuration::default();
 
     config
         .address((10, 0, 0, 1))
@@ -30,7 +30,7 @@ async fn main() {
         config.apply_settings(true);
     });
 
-    let dev = tun::create_as_async(&config).unwrap();
+    let dev = tun2::create_as_async(&config).unwrap();
 
     let mut stream = dev.into_framed();
 

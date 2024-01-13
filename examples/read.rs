@@ -15,7 +15,7 @@
 use std::io::Read;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut config = tun::Configuration::default();
+    let mut config = tun2::Configuration::default();
 
     config
         .address((10, 0, 0, 9))
@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.apply_settings(true);
     });
 
-    let mut dev = tun::create(&config)?;
+    let mut dev = tun2::create(&config)?;
     let mut buf = [0; 4096];
 
     loop {

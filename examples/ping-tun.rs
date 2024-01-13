@@ -14,7 +14,7 @@
 
 use futures::{SinkExt, StreamExt};
 use packet::{builder::Builder, icmp, ip, Packet};
-use tun::{self, Configuration, TunPacket};
+use tun2::{self, Configuration, TunPacket};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.initialize(Some(9099482345783245345345_u128));
     });
 
-    let dev = tun::create_as_async(&config)?;
+    let dev = tun2::create_as_async(&config)?;
 
     let mut framed = dev.into_framed();
 

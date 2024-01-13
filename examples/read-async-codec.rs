@@ -41,14 +41,14 @@ impl Decoder for IPPacketCodec {
 
 #[tokio::main]
 async fn main() {
-    let mut config = tun::Configuration::default();
+    let mut config = tun2::Configuration::default();
 
     config
         .address((10, 0, 0, 1))
         .netmask((255, 255, 255, 0))
         .up();
 
-    let dev = tun::create_as_async(&config).unwrap();
+    let dev = tun2::create_as_async(&config).unwrap();
 
     let mut stream = FramedRead::new(dev, IPPacketCodec);
 
