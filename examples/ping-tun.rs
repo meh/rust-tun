@@ -29,11 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "linux")]
     config.platform(|config| {
         config.packet_information(true);
+        config.apply_settings(true);
     });
 
     #[cfg(target_os = "windows")]
     config.platform(|config| {
-        config.initialize();
+        config.initialize(Some(9099482345783245345345_u128));
     });
 
     let dev = tun::create_as_async(&config)?;

@@ -15,7 +15,7 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use std::io;
-use std::io::{Error, Write};
+use std::io::Error;
 
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
@@ -26,12 +26,17 @@ use crate::r#async::codec::*;
 
 pub struct AsyncDevice {
     inner: Device,
+    session: WinSession,
 }
 
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
     pub fn new(device: Device) -> io::Result<AsyncDevice> {
-        Ok(AsyncDevice { inner: device })
+        let session = WinSession::new(device.queue.get_session())?;
+        Ok(AsyncDevice {
+            inner: device,
+            session,
+        })
     }
     /// Returns a shared reference to the underlying Device object
     pub fn get_ref(&self) -> &Device {
@@ -56,50 +61,41 @@ impl AsyncRead for AsyncDevice {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        let rbuf = buf.initialize_unfilled();
-        match Pin::new(&mut self.inner).poll_read(cx, rbuf) {
-            Poll::Ready(Ok(n)) => {
-                buf.advance(n);
-                Poll::Ready(Ok(()))
-            }
-            Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
-            Poll::Pending => Poll::Pending,
-        }
+        Pin::new(&mut self.session).poll_read(cx, buf)
     }
 }
 
 impl AsyncWrite for AsyncDevice {
     fn poll_write(
         mut self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
+        cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<Result<usize, Error>> {
-        match self.inner.write(buf) {
-            Ok(n) => Poll::Ready(Ok(n)),
-            Err(e) => Poll::Ready(Err(e)),
-        }
+        Pin::new(&mut self.session).poll_write(cx, buf)
     }
 
-    fn poll_flush(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        match self.inner.flush() {
-            Ok(n) => Poll::Ready(Ok(n)),
-            Err(e) => Poll::Ready(Err(e)),
-        }
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        Pin::new(&mut self.session).poll_flush(cx)
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        Poll::Ready(Ok(()))
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        Pin::new(&mut self.session).poll_shutdown(cx)
     }
 }
 
 pub struct AsyncQueue {
     inner: Queue,
+    session: WinSession,
 }
 
 impl AsyncQueue {
     /// Create a new `AsyncQueue` wrapping around a `Queue`.
     pub fn new(queue: Queue) -> io::Result<AsyncQueue> {
-        Ok(AsyncQueue { inner: queue })
+        let session = WinSession::new(queue.get_session())?;
+        Ok(AsyncQueue {
+            inner: queue,
+            session,
+        })
     }
     /// Returns a shared reference to the underlying Queue object
     pub fn get_ref(&self) -> &Queue {
@@ -124,28 +120,86 @@ impl AsyncRead for AsyncQueue {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        let rbuf = buf.initialize_unfilled();
-        match Pin::new(&mut self.inner).poll_read(cx, rbuf) {
-            Poll::Ready(Ok(n)) => {
-                buf.advance(n);
-                Poll::Ready(Ok(()))
-            }
-            Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
-            Poll::Pending => Poll::Pending,
-        }
+        Pin::new(&mut self.session).poll_read(cx, buf)
     }
 }
 
 impl AsyncWrite for AsyncQueue {
     fn poll_write(
         mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, Error>> {
+        Pin::new(&mut self.session).poll_write(cx, buf)
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        Pin::new(&mut self.session).poll_flush(cx)
+    }
+
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        Pin::new(&mut self.session).poll_shutdown(cx)
+    }
+}
+
+struct WinSession {
+    session: std::sync::Arc<wintun::Session>,
+    receiver: tokio::sync::mpsc::UnboundedReceiver<Vec<u8>>,
+    _task: std::thread::JoinHandle<()>,
+}
+
+impl WinSession {
+    fn new(session: std::sync::Arc<wintun::Session>) -> Result<WinSession, io::Error> {
+        let session_reader = session.clone();
+        let (receiver_tx, receiver_rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+        let task = std::thread::spawn(move || loop {
+            match session_reader.receive_blocking() {
+                Ok(packet) => {
+                    if let Err(err) = receiver_tx.send(packet.bytes().to_vec()) {
+                        log::error!("{}", err);
+                    }
+                }
+                Err(err) => {
+                    log::info!("{}", err);
+                    break;
+                }
+            }
+        });
+
+        Ok(WinSession {
+            session,
+            receiver: receiver_rx,
+            _task: task,
+        })
+    }
+}
+
+impl AsyncRead for WinSession {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        match std::task::ready!(self.receiver.poll_recv(cx)) {
+            Some(bytes) => {
+                buf.put_slice(&bytes);
+                std::task::Poll::Ready(Ok(()))
+            }
+            None => std::task::Poll::Ready(Ok(())),
+        }
+    }
+}
+
+impl AsyncWrite for WinSession {
+    fn poll_write(
+        self: Pin<&mut Self>,
         _cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<Result<usize, Error>> {
-        match self.inner.write(buf) {
-            Ok(n) => Poll::Ready(Ok(n)),
-            Err(e) => Poll::Ready(Err(e)),
-        }
+        let mut write_pack = self.session.allocate_send_packet(buf.len() as u16)?;
+        write_pack.bytes_mut().copy_from_slice(buf.as_ref());
+        self.session.send_packet(write_pack);
+        std::task::Poll::Ready(Ok(buf.len()))
     }
 
     fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Error>> {

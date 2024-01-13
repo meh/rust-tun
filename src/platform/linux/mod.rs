@@ -23,9 +23,19 @@ use crate::configuration::Configuration as C;
 use crate::error::*;
 
 /// Linux-only interface configuration.
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Configuration {
     pub(crate) packet_information: bool,
+    pub(crate) apply_settings: bool,
+}
+
+impl Default for Configuration {
+    fn default() -> Self {
+        Configuration {
+            packet_information: false,
+            apply_settings: true,
+        }
+    }
 }
 
 impl Configuration {
@@ -33,6 +43,12 @@ impl Configuration {
     /// each packet is a header with flags and protocol type.
     pub fn packet_information(&mut self, value: bool) -> &mut Self {
         self.packet_information = value;
+        self
+    }
+
+    /// Enable or disable to assign IP/netmask/destination etc.
+    pub fn apply_settings(&mut self, value: bool) -> &mut Self {
+        self.apply_settings = value;
         self
     }
 }

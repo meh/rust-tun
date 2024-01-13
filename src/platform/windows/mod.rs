@@ -23,11 +23,14 @@ use crate::error::*;
 
 /// Windows-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
-pub struct Configuration {}
+pub struct Configuration {
+    pub(crate) device_guid: Option<u128>,
+}
 
 impl Configuration {
-    pub fn initialize(&mut self) {
+    pub fn initialize(&mut self, device_guid: Option<u128>) {
         log::trace!("Windows configuration initialize");
+        self.device_guid = device_guid;
     }
 }
 

@@ -27,6 +27,7 @@ async fn main() {
     #[cfg(target_os = "linux")]
     config.platform(|config| {
         config.packet_information(true);
+        config.apply_settings(true);
     });
 
     let dev = tun::create_as_async(&config).unwrap();
