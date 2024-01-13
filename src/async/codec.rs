@@ -95,8 +95,8 @@ pub struct TunPacketCodec(bool, i32);
 impl TunPacketCodec {
     /// Create a new `TunPacketCodec` specifying whether the underlying
     ///  tunnel Device has enabled the packet information header.
-    pub fn new(pi: bool, mtu: i32) -> TunPacketCodec {
-        TunPacketCodec(pi, mtu)
+    pub fn new(packet_information: bool, mtu: i32) -> TunPacketCodec {
+        TunPacketCodec(packet_information, mtu)
     }
 }
 
