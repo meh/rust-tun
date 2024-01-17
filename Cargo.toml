@@ -29,18 +29,20 @@ wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 [dev-dependencies]
 futures = "0.3"
 packet = "0.1"
+tokio = { version = "1", features = ["rt-multi-thread"] }
 
 [features]
+default = []
 async = ["tokio", "tokio-util", "bytes", "byteorder", "futures-core"]
 
 [[example]]
 name = "read-async"
-required-features = ["async", "tokio/rt-multi-thread"]
+required-features = ["async"]
 
 [[example]]
 name = "read-async-codec"
-required-features = ["async", "tokio/rt-multi-thread"]
+required-features = ["async"]
 
 [[example]]
 name = "ping-tun"
-required-features = ["async", "tokio/rt-multi-thread"]
+required-features = ["async"]
