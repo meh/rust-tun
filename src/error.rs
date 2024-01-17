@@ -12,8 +12,6 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::{ffi, io, num};
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("invalid configuration")]
@@ -41,24 +39,24 @@ pub enum Error {
     InvalidQueuesNumber,
 
     #[error(transparent)]
-    Io(#[from] io::Error),
+    Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    Nul(#[from] ffi::NulError),
+    Nul(#[from] std::ffi::NulError),
 
     #[error(transparent)]
-    ParseNum(#[from] num::ParseIntError),
+    ParseNum(#[from] std::num::ParseIntError),
 
     #[cfg(target_os = "windows")]
     #[error(transparent)]
     WintunError(#[from] wintun::Error),
 }
 
-impl From<Error> for io::Error {
+impl From<Error> for std::io::Error {
     fn from(value: Error) -> Self {
         match value {
             Error::Io(err) => err,
-            _ => io::Error::new(io::ErrorKind::Other, value),
+            _ => std::io::Error::new(std::io::ErrorKind::Other, value),
         }
     }
 }

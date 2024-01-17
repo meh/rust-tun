@@ -96,7 +96,7 @@ impl Device {
 
                 queues.push(Queue {
                     tun,
-                    packet_information: config.platform.packet_information,
+                    packet_information,
                 });
             }
 
