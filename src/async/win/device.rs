@@ -21,7 +21,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
 use crate::device::Device as D;
-use crate::platform::{Device, Queue};
+use crate::platform::Device;
 use crate::r#async::codec::*;
 
 pub struct AsyncDevice {
