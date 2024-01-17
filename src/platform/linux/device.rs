@@ -161,7 +161,7 @@ impl Device {
     }
 
     /// Return whether the device has packet information
-    pub fn has_packet_information(&mut self) -> bool {
+    pub fn has_packet_information(&self) -> bool {
         self.queues[0].has_packet_information()
     }
 
@@ -405,7 +405,7 @@ pub struct Queue {
 }
 
 impl Queue {
-    pub fn has_packet_information(&mut self) -> bool {
+    pub fn has_packet_information(&self) -> bool {
         self.packet_information
     }
 
