@@ -22,12 +22,12 @@ use crate::platform::create;
 #[cfg(unix)]
 mod device;
 #[cfg(unix)]
-pub use self::device::{AsyncDevice, AsyncQueue};
+pub use self::device::AsyncDevice;
 
 #[cfg(target_os = "windows")]
 mod win;
 #[cfg(target_os = "windows")]
-pub use win::device::{AsyncDevice, AsyncQueue};
+pub use win::device::AsyncDevice;
 
 mod codec;
 pub use self::codec::{TunPacket, TunPacketCodec};

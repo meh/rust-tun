@@ -85,65 +85,6 @@ impl AsyncWrite for AsyncDevice {
     }
 }
 
-pub struct AsyncQueue {
-    inner: Queue,
-    session: WinSession,
-}
-
-impl AsyncQueue {
-    /// Create a new `AsyncQueue` wrapping around a `Queue`.
-    pub fn new(queue: Queue) -> io::Result<AsyncQueue> {
-        let session = WinSession::new(queue.get_session())?;
-        Ok(AsyncQueue {
-            inner: queue,
-            session,
-        })
-    }
-    /// Returns a shared reference to the underlying Queue object
-    pub fn get_ref(&self) -> &Queue {
-        &self.inner
-    }
-
-    /// Returns a mutable reference to the underlying Queue object
-    pub fn get_mut(&mut self) -> &mut Queue {
-        &mut self.inner
-    }
-
-    /// Consumes this AsyncQueue and return a Framed object (unified Stream and Sink interface)
-    pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
-        let codec = TunPacketCodec::new(false, 1512);
-        Framed::new(self, codec)
-    }
-}
-
-impl AsyncRead for AsyncQueue {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.session).poll_read(cx, buf)
-    }
-}
-
-impl AsyncWrite for AsyncQueue {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize, Error>> {
-        Pin::new(&mut self.session).poll_write(cx, buf)
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        Pin::new(&mut self.session).poll_flush(cx)
-    }
-
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        Pin::new(&mut self.session).poll_shutdown(cx)
-    }
-}
-
 struct WinSession {
     session: std::sync::Arc<wintun::Session>,
     receiver: tokio::sync::mpsc::UnboundedReceiver<Vec<u8>>,
