@@ -43,7 +43,7 @@ impl Device {
         let mask = config.netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 0));
         let gateway = config.destination.map(IpAddr::from);
         adapter.set_network_addresses_tuple(IpAddr::V4(address), IpAddr::V4(mask), gateway)?;
-        let mtu = config.mtu.unwrap_or(1500) as usize;
+        let mtu = config.mtu.unwrap_or(u16::MAX as i32) as usize;
 
         let session = adapter.start_session(wintun::MAX_RING_CAPACITY)?;
 
