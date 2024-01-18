@@ -51,7 +51,7 @@ fn main() {
         .up();
 
     #[cfg(target_os = "linux")]
-    config.platform(|config| {
+    config.platform_config(|config| {
         config.packet_information(true);
         config.apply_settings(true);
     });

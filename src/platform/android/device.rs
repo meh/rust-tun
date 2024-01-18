@@ -13,14 +13,14 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 #![allow(unused_variables)]
 
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::net::Ipv4Addr;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::sync::Arc;
 
 use crate::configuration::Configuration;
-use crate::device::Device as D;
-use crate::error::*;
+use crate::device::AbstractDevice;
+use crate::error::{Error, Result};
 use crate::platform::posix::{self, Fd};
 
 /// A TUN device for Android.
@@ -36,7 +36,7 @@ impl Device {
             _ => return Err(Error::InvalidConfig),
         };
         let device = {
-            let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+            let tun = Fd::new(fd).map_err(|_| std::io::Error::last_os_error())?;
 
             Device {
                 queue: Queue { tun },
@@ -57,36 +57,36 @@ impl Device {
     }
 
     /// Set non-blocking mode
-    pub fn set_nonblock(&self) -> io::Result<()> {
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
         self.queue.set_nonblock()
     }
 }
 
 impl Read for Device {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.queue.tun.read(buf)
     }
 
-    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+    fn read_vectored(&mut self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize> {
         self.queue.tun.read_vectored(bufs)
     }
 }
 
 impl Write for Device {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.queue.tun.write(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         self.queue.tun.flush()
     }
 
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
         self.queue.tun.write_vectored(bufs)
     }
 }
 
-impl D for Device {
+impl AbstractDevice for Device {
     type Queue = Queue;
 
     fn name(&self) -> Result<String> {
@@ -172,7 +172,7 @@ impl Queue {
         false
     }
 
-    pub fn set_nonblock(&self) -> io::Result<()> {
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
         self.tun.set_nonblock()
     }
 }
@@ -190,25 +190,25 @@ impl IntoRawFd for Queue {
 }
 
 impl Read for Queue {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.tun.read(buf)
     }
 
-    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+    fn read_vectored(&mut self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize> {
         self.tun.read_vectored(bufs)
     }
 }
 
 impl Write for Queue {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.tun.write(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         self.tun.flush()
     }
 
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
         self.tun.write_vectored(bufs)
     }
 }

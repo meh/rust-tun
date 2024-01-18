@@ -12,14 +12,13 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+use crate::configuration::Configuration;
+use crate::error::Result;
 use std::io::{Read, Write};
 use std::net::Ipv4Addr;
 
-use crate::configuration::Configuration;
-use crate::error::*;
-
-/// A TUN device.
-pub trait Device: Read + Write {
+/// A TUN abstract device interface.
+pub trait AbstractDevice: Read + Write {
     type Queue: Read + Write;
 
     /// Reconfigure the device.

@@ -27,14 +27,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .up();
 
     #[cfg(target_os = "linux")]
-    config.platform(|config| {
+    config.platform_config(|config| {
         config.packet_information(true);
         config.apply_settings(true);
     });
 
     #[cfg(target_os = "windows")]
-    config.platform(|config| {
-        config.initialize(Some(9099482345783245345345_u128));
+    config.platform_config(|config| {
+        config.device_guid(Some(9099482345783245345345_u128));
     });
 
     let dev = tun2::create_as_async(&config)?;

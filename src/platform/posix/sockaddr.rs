@@ -12,10 +12,9 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+use crate::error::{Error, Result};
 use libc::{in_addr, sockaddr, sockaddr_in};
 use std::{mem, net::Ipv4Addr, ptr};
-
-use crate::error::*;
 
 /// A wrapper for `sockaddr_in`.
 #[derive(Copy, Clone)]

@@ -19,8 +19,8 @@ use std::sync::Arc;
 use wintun::Session;
 
 use crate::configuration::Configuration;
-use crate::device::Device as D;
-use crate::error::*;
+use crate::device::AbstractDevice;
+use crate::error::{Error, Result};
 
 /// A TUN device using the wintun driver.
 pub struct Device {
@@ -33,7 +33,7 @@ impl Device {
     pub fn new(config: &Configuration) -> Result<Self> {
         let wintun = unsafe { wintun::load()? };
         let tun_name = config.name.as_deref().unwrap_or("wintun");
-        let guid = config.platform.device_guid;
+        let guid = config.platform_config.device_guid;
         let adapter = match wintun::Adapter::open(&wintun, tun_name) {
             Ok(a) => a,
             Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, guid)?,
@@ -85,7 +85,7 @@ impl Write for Device {
     }
 }
 
-impl D for Device {
+impl AbstractDevice for Device {
     type Queue = Queue;
 
     fn name(&self) -> Result<String> {

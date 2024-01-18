@@ -13,13 +13,13 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 mod error;
-pub use crate::error::*;
+pub use crate::error::{Error, Result};
 
 mod address;
 pub use crate::address::IntoAddress;
 
 mod device;
-pub use crate::device::Device;
+pub use crate::device::AbstractDevice;
 
 mod configuration;
 pub use crate::configuration::{Configuration, Layer};

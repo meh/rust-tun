@@ -19,7 +19,7 @@ use std::os::unix::io::RawFd;
 use std::os::windows::raw::HANDLE;
 
 use crate::address::IntoAddress;
-use crate::platform;
+use crate::platform::PlatformConfig;
 
 /// TUN interface OSI layer of operation.
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
@@ -33,8 +33,7 @@ pub enum Layer {
 #[derive(Clone, Default, Debug)]
 pub struct Configuration {
     pub(crate) name: Option<String>,
-    pub(crate) platform: platform::Configuration,
-
+    pub(crate) platform_config: PlatformConfig,
     pub(crate) address: Option<Ipv4Addr>,
     pub(crate) destination: Option<Ipv4Addr>,
     pub(crate) broadcast: Option<Ipv4Addr>,
@@ -53,11 +52,11 @@ pub struct Configuration {
 
 impl Configuration {
     /// Access the platform dependant configuration.
-    pub fn platform<F>(&mut self, f: F) -> &mut Self
+    pub fn platform_config<F>(&mut self, f: F) -> &mut Self
     where
-        F: FnOnce(&mut platform::Configuration),
+        F: FnOnce(&mut PlatformConfig),
     {
-        f(&mut self.platform);
+        f(&mut self.platform_config);
         self
     }
 

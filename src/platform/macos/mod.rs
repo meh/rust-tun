@@ -19,14 +19,14 @@ pub mod sys;
 mod device;
 pub use self::device::{Device, Queue};
 
-use crate::configuration::Configuration as C;
-use crate::error::*;
+use crate::configuration::Configuration;
+use crate::error::Result;
 
 /// macOS-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
-pub struct Configuration {}
+pub struct PlatformConfig {}
 
 /// Create a TUN device with the given name.
-pub fn create(configuration: &C) -> Result<Device> {
+pub fn create(configuration: &Configuration) -> Result<Device> {
     Device::new(configuration)
 }

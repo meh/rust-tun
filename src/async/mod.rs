@@ -25,9 +25,9 @@ mod device;
 pub use self::device::AsyncDevice;
 
 #[cfg(target_os = "windows")]
-mod win;
+mod win_device;
 #[cfg(target_os = "windows")]
-pub use win::device::AsyncDevice;
+pub use win_device::AsyncDevice;
 
 mod codec;
 pub use self::codec::{TunPacket, TunPacketCodec};

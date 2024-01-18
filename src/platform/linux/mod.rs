@@ -19,26 +19,26 @@ pub mod sys;
 mod device;
 pub use self::device::{Device, Queue};
 
-use crate::configuration::Configuration as C;
-use crate::error::*;
+use crate::configuration::Configuration;
+use crate::error::Result;
 
 /// Linux-only interface configuration.
 #[derive(Copy, Clone, Debug)]
-pub struct Configuration {
+pub struct PlatformConfig {
     pub(crate) packet_information: bool,
     pub(crate) apply_settings: bool,
 }
 
-impl Default for Configuration {
+impl Default for PlatformConfig {
     fn default() -> Self {
-        Configuration {
+        PlatformConfig {
             packet_information: false,
             apply_settings: true,
         }
     }
 }
 
-impl Configuration {
+impl PlatformConfig {
     /// Enable or disable packet information, when enabled the first 4 bytes of
     /// each packet is a header with flags and protocol type.
     pub fn packet_information(&mut self, value: bool) -> &mut Self {
@@ -54,6 +54,6 @@ impl Configuration {
 }
 
 /// Create a TUN device with the given name.
-pub fn create(configuration: &C) -> Result<Device> {
+pub fn create(configuration: &Configuration) -> Result<Device> {
     Device::new(configuration)
 }
