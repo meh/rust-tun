@@ -12,11 +12,10 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+use crate::error::{Error, Result};
+use libc::{self, fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
 use std::io::{self, Read, Write};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-
-use crate::error::*;
-use libc::{self, fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
 
 /// POSIX file descriptor support for `io` traits.
 pub struct Fd(pub RawFd);

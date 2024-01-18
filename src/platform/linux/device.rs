@@ -29,8 +29,8 @@ use std::{
 
 use crate::{
     configuration::{Configuration, Layer},
-    device::Device as D,
-    error::*,
+    device::AbstractDevice,
+    error::{Error, Result},
     platform::linux::sys::*,
     platform::posix::{self, Fd, SockAddr},
 };
@@ -81,7 +81,7 @@ impl Device {
 
             let iff_no_pi = IFF_NO_PI as c_short;
             let iff_multi_queue = IFF_MULTI_QUEUE as c_short;
-            let packet_information = config.platform.packet_information;
+            let packet_information = config.platform_config.packet_information;
             req.ifr_ifru.ifru_flags = device_type
                 | if packet_information { 0 } else { iff_no_pi }
                 | if queues_num > 1 { iff_multi_queue } else { 0 };
@@ -108,7 +108,7 @@ impl Device {
             Device { name, queues, ctl }
         };
 
-        if config.platform.apply_settings {
+        if config.platform_config.apply_settings {
             device.configure(config)?;
         }
 
@@ -201,7 +201,7 @@ impl Write for Device {
     }
 }
 
-impl D for Device {
+impl AbstractDevice for Device {
     type Queue = Queue;
 
     fn name(&self) -> Result<String> {

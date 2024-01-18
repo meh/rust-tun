@@ -12,10 +12,9 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+use crate::error::{Error, Result};
 use std::net::{IpAddr, Ipv4Addr};
 use std::net::{SocketAddr, SocketAddrV4};
-
-use crate::error::*;
 
 /// Helper trait to convert things into IPv4 addresses.
 #[allow(clippy::wrong_self_convention)]

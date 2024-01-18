@@ -18,23 +18,23 @@ mod device;
 
 pub use device::{Device, Queue};
 
-use crate::configuration::Configuration as C;
-use crate::error::*;
+use crate::configuration::Configuration;
+use crate::error::Result;
 
 /// Windows-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
-pub struct Configuration {
+pub struct PlatformConfig {
     pub(crate) device_guid: Option<u128>,
 }
 
-impl Configuration {
-    pub fn initialize(&mut self, device_guid: Option<u128>) {
-        log::trace!("Windows configuration initialize");
+impl PlatformConfig {
+    pub fn device_guid(&mut self, device_guid: Option<u128>) {
+        log::trace!("Windows configuration device GUID");
         self.device_guid = device_guid;
     }
 }
 
 /// Create a TUN device with the given name.
-pub fn create(configuration: &C) -> Result<Device> {
+pub fn create(configuration: &Configuration) -> Result<Device> {
     Device::new(configuration)
 }

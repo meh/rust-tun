@@ -20,32 +20,32 @@ pub mod posix;
 #[cfg(target_os = "linux")]
 pub mod linux;
 #[cfg(target_os = "linux")]
-pub use self::linux::{create, Configuration, Device, Queue};
+pub use self::linux::{create, Device, PlatformConfig, Queue};
 
 #[cfg(target_os = "macos")]
 pub mod macos;
 #[cfg(target_os = "macos")]
-pub use self::macos::{create, Configuration, Device, Queue};
+pub use self::macos::{create, Device, PlatformConfig, Queue};
 
 #[cfg(target_os = "ios")]
 pub mod ios;
 #[cfg(target_os = "ios")]
-pub use self::ios::{create, Configuration, Device, Queue};
+pub use self::ios::{create, Device, PlatformConfig, Queue};
 
 #[cfg(target_os = "android")]
 pub mod android;
 #[cfg(target_os = "android")]
-pub use self::android::{create, Configuration, Device, Queue};
+pub use self::android::{create, Device, PlatformConfig, Queue};
 
 #[cfg(target_os = "windows")]
 pub mod windows;
 #[cfg(target_os = "windows")]
-pub use self::windows::{create, Configuration, Device, Queue};
+pub use self::windows::{create, Device, PlatformConfig, Queue};
 
 #[cfg(test)]
 mod test {
     use crate::configuration::Configuration;
-    use crate::device::Device;
+    use crate::device::AbstractDevice;
     use std::net::Ipv4Addr;
 
     #[test]

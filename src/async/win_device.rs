@@ -20,9 +20,9 @@ use std::io::Error;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
-use crate::device::Device as D;
+use crate::device::AbstractDevice;
 use crate::platform::Device;
-use crate::r#async::codec::*;
+use crate::r#async::codec::TunPacketCodec;
 
 pub struct AsyncDevice {
     inner: Device,

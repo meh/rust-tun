@@ -15,8 +15,8 @@
 
 use crate::{
     configuration::{Configuration, Layer},
-    device::Device as D,
-    error::*,
+    device::AbstractDevice,
+    error::{Error, Result},
     platform::{
         macos::sys::*,
         posix::{self, Fd, SockAddr},
@@ -222,7 +222,7 @@ impl Write for Device {
     }
 }
 
-impl D for Device {
+impl AbstractDevice for Device {
     type Queue = Queue;
 
     fn name(&self) -> Result<String> {
