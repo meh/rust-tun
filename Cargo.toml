@@ -11,14 +11,14 @@ repository = "https://github.com/ssrlive/rust-tun"
 keywords = ["tun", "network", "tunnel", "bindings"]
 
 [dependencies]
-byteorder = { version = "1", optional = true }
-bytes = { version = "1", optional = true }
+byteorder = { version = "1" }
+bytes = { version = "1" }
 futures-core = { version = "0.3", optional = true }
 libc = "0.2"
 log = "0.4"
 thiserror = "1"
 tokio = { version = "1", features = ["net", "macros"], optional = true }
-tokio-util = { version = "0.7", features = ["codec"], optional = true }
+tokio-util = { version = "0.7", features = ["codec"] }
 
 [target.'cfg(unix)'.dependencies]
 ioctl = { version = "0.8", package = "ioctl-sys" }
@@ -33,7 +33,7 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 
 [features]
 default = []
-async = ["tokio", "tokio-util", "bytes", "byteorder", "futures-core"]
+async = ["tokio", "futures-core"]
 
 [[example]]
 name = "read-async"
