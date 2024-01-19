@@ -15,6 +15,9 @@
 mod error;
 pub use crate::error::{Error, Result};
 
+mod codec;
+pub use self::codec::{TunPacket, TunPacketCodec};
+
 mod address;
 pub use crate::address::IntoAddress;
 

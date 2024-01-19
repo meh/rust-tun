@@ -29,9 +29,6 @@ mod win_device;
 #[cfg(target_os = "windows")]
 pub use win_device::AsyncDevice;
 
-mod codec;
-pub use self::codec::{TunPacket, TunPacketCodec};
-
 /// Create a TUN device with the given name.
 pub fn create_as_async(configuration: &Configuration) -> Result<AsyncDevice, error::Error> {
     let device = create(configuration)?;

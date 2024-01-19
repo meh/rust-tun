@@ -12,8 +12,6 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io;
-
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
@@ -29,24 +27,24 @@ enum PacketProtocol {
 // Note: the protocol in the packet information header is platform dependent.
 impl PacketProtocol {
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    fn into_pi_field(self) -> Result<u16, io::Error> {
+    fn into_pi_field(self) -> std::io::Result<u16> {
         match self {
             PacketProtocol::IPv4 => Ok(libc::ETH_P_IP as u16),
             PacketProtocol::IPv6 => Ok(libc::ETH_P_IPV6 as u16),
-            PacketProtocol::Other(_) => Err(io::Error::new(
-                io::ErrorKind::Other,
+            PacketProtocol::Other(_) => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
                 "neither an IPv4 nor IPv6 packet",
             )),
         }
     }
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
-    fn into_pi_field(self) -> Result<u16, io::Error> {
+    fn into_pi_field(self) -> std::io::Result<u16> {
         match self {
             PacketProtocol::IPv4 => Ok(libc::PF_INET as u16),
             PacketProtocol::IPv6 => Ok(libc::PF_INET6 as u16),
-            PacketProtocol::Other(_) => Err(io::Error::new(
-                io::ErrorKind::Other,
+            PacketProtocol::Other(_) => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
                 "neither an IPv4 nor IPv6 packet",
             )),
         }
@@ -54,7 +52,7 @@ impl PacketProtocol {
 
     #[cfg(target_os = "windows")]
     #[allow(dead_code)]
-    fn into_pi_field(self) -> Result<u16, io::Error> {
+    fn into_pi_field(self) -> std::io::Result<u16> {
         unimplemented!()
     }
 }
@@ -102,7 +100,7 @@ impl TunPacketCodec {
 
 impl Decoder for TunPacketCodec {
     type Item = TunPacket;
-    type Error = io::Error;
+    type Error = std::io::Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if buf.is_empty() {
@@ -129,7 +127,7 @@ impl Decoder for TunPacketCodec {
 }
 
 impl Encoder<TunPacket> for TunPacketCodec {
-    type Error = io::Error;
+    type Error = std::io::Error;
 
     fn encode(&mut self, item: TunPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
         dst.reserve(item.get_bytes().len() + if self.0 { 4 } else { 0 });
