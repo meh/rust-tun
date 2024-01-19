@@ -20,9 +20,9 @@ use crate::configuration::Configuration;
 use crate::platform::create;
 
 #[cfg(unix)]
-mod device;
+mod unix_device;
 #[cfg(unix)]
-pub use self::device::AsyncDevice;
+pub use unix_device::AsyncDevice;
 
 #[cfg(target_os = "windows")]
 mod win_device;

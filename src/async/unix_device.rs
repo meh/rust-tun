@@ -12,12 +12,10 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io;
-use std::io::{IoSlice, Read, Write};
-
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
+use std::io::{IoSlice, Read, Write};
 use tokio::io::unix::AsyncFd;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
@@ -33,7 +31,7 @@ pub struct AsyncDevice {
 
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
-    pub fn new(device: Device) -> io::Result<AsyncDevice> {
+    pub fn new(device: Device) -> std::io::Result<AsyncDevice> {
         device.set_nonblock()?;
         Ok(AsyncDevice {
             inner: AsyncFd::new(device)?,
@@ -64,7 +62,7 @@ impl AsyncRead for AsyncDevice {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf,
-    ) -> Poll<io::Result<()>> {
+    ) -> Poll<std::io::Result<()>> {
         loop {
             let mut guard = ready!(self.inner.poll_read_ready_mut(cx))?;
             let rbuf = buf.initialize_unfilled();
@@ -81,7 +79,7 @@ impl AsyncWrite for AsyncDevice {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
-    ) -> Poll<io::Result<usize>> {
+    ) -> Poll<std::io::Result<usize>> {
         loop {
             let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
             match guard.try_io(|inner| inner.get_mut().write(buf)) {
@@ -91,7 +89,7 @@ impl AsyncWrite for AsyncDevice {
         }
     }
 
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         loop {
             let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
             match guard.try_io(|inner| inner.get_mut().flush()) {
@@ -101,7 +99,7 @@ impl AsyncWrite for AsyncDevice {
         }
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         Poll::Ready(Ok(()))
     }
 
@@ -109,7 +107,7 @@ impl AsyncWrite for AsyncDevice {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         bufs: &[IoSlice<'_>],
-    ) -> Poll<Result<usize, io::Error>> {
+    ) -> Poll<std::io::Result<usize>> {
         loop {
             let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
             match guard.try_io(|inner| inner.get_mut().write_vectored(bufs)) {
