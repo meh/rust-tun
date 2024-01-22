@@ -191,12 +191,8 @@ impl Queue {
     pub fn get_session(&self) -> Arc<Session> {
         self.session.clone()
     }
-}
-
-impl Read for Queue {
-    fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
-        let reader_session = self.session.clone();
-        match reader_session.receive_blocking() {
+    fn read_by_ref(&self, mut buf: &mut [u8]) -> io::Result<usize> {
+        match self.session.receive_blocking() {
             Ok(pkt) => match io::copy(&mut pkt.bytes(), &mut buf) {
                 Ok(n) => Ok(n as usize),
                 Err(e) => Err(e),
@@ -204,10 +200,7 @@ impl Read for Queue {
             Err(e) => Err(io::Error::new(io::ErrorKind::ConnectionAborted, e)),
         }
     }
-}
-
-impl Write for Queue {
-    fn write(&mut self, mut buf: &[u8]) -> io::Result<usize> {
+    fn write_by_ref(&self, mut buf: &[u8]) -> io::Result<usize> {
         let size = buf.len();
         match self.session.allocate_send_packet(size as u16) {
             Err(e) => Err(io::Error::new(io::ErrorKind::OutOfMemory, e)),
@@ -219,6 +212,18 @@ impl Write for Queue {
                 Err(e) => Err(e),
             },
         }
+    }
+}
+
+impl Read for Queue {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.read_by_ref(buf)
+    }
+}
+
+impl Write for Queue {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.write_by_ref(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -238,14 +243,8 @@ impl Drop for Queue {
 pub struct Reader(Arc<Queue>);
 
 impl Read for Reader {
-    fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
-        match self.0.session.receive_blocking() {
-            Ok(pkt) => match io::copy(&mut pkt.bytes(), &mut buf) {
-                Ok(n) => Ok(n as usize),
-                Err(e) => Err(e),
-            },
-            Err(e) => Err(io::Error::new(io::ErrorKind::ConnectionAborted, e)),
-        }
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.0.read_by_ref(buf)
     }
 }
 
@@ -253,18 +252,8 @@ impl Read for Reader {
 pub struct Writer(Arc<Queue>);
 
 impl Write for Writer {
-    fn write(&mut self, mut buf: &[u8]) -> io::Result<usize> {
-        let size = buf.len();
-        match self.0.session.allocate_send_packet(size as u16) {
-            Err(e) => Err(io::Error::new(io::ErrorKind::OutOfMemory, e)),
-            Ok(mut packet) => match io::copy(&mut buf, &mut packet.bytes_mut()) {
-                Ok(s) => {
-                    self.0.session.send_packet(packet);
-                    Ok(s as usize)
-                }
-                Err(e) => Err(e),
-            },
-        }
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write_by_ref(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
