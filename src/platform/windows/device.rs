@@ -59,6 +59,11 @@ impl Device {
 
         Ok(device)
     }
+
+    pub fn split(self) -> (Reader, Writer) {
+        let queue = Arc::new(self.queue);
+        (Reader(queue.clone()), Writer(queue))
+    }
 }
 
 impl Read for Device {
@@ -226,5 +231,43 @@ impl Drop for Queue {
         if let Err(err) = self.session.shutdown() {
             log::error!("failed to shutdown session: {:?}", err);
         }
+    }
+}
+
+#[repr(transparent)]
+pub struct Reader(Arc<Queue>);
+
+impl Read for Reader {
+    fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
+        match self.0.session.receive_blocking() {
+            Ok(pkt) => match io::copy(&mut pkt.bytes(), &mut buf) {
+                Ok(n) => Ok(n as usize),
+                Err(e) => Err(e),
+            },
+            Err(e) => Err(io::Error::new(io::ErrorKind::ConnectionAborted, e)),
+        }
+    }
+}
+
+#[repr(transparent)]
+pub struct Writer(Arc<Queue>);
+
+impl Write for Writer {
+    fn write(&mut self, mut buf: &[u8]) -> io::Result<usize> {
+        let size = buf.len();
+        match self.0.session.allocate_send_packet(size as u16) {
+            Err(e) => Err(io::Error::new(io::ErrorKind::OutOfMemory, e)),
+            Ok(mut packet) => match io::copy(&mut buf, &mut packet.bytes_mut()) {
+                Ok(s) => {
+                    self.0.session.send_packet(packet);
+                    Ok(s as usize)
+                }
+                Err(e) => Err(e),
+            },
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
 }
