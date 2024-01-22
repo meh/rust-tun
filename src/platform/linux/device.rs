@@ -168,7 +168,7 @@ impl Device {
     /// Split the interface into a `Reader` and `Writer`.
     pub fn split(mut self) -> (posix::Reader, posix::Writer) {
         let fd = Arc::new(self.queues.swap_remove(0).tun);
-        (posix::Reader(fd.clone()), posix::Writer(fd.clone()))
+        (posix::Reader(fd.clone()), posix::Writer(fd))
     }
 
     /// Set non-blocking mode
