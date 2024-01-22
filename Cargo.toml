@@ -14,7 +14,7 @@ keywords = ["tun", "network", "tunnel", "bindings"]
 byteorder = { version = "1" }
 bytes = { version = "1" }
 futures-core = { version = "0.3", optional = true }
-libc = "0.2.152"
+libc = "0.2"
 log = "0.4"
 thiserror = "1"
 tokio = { version = "1", features = ["net", "macros"], optional = true }
