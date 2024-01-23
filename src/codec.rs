@@ -12,10 +12,9 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+use crate::PACKET_INFORMATION_LENGTH;
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
-
-const PACKET_INFORMATION_LENGTH: usize = 4;
 
 /// Infer the protocol based on the first nibble in the packet buffer.
 fn is_ipv6(buf: &[u8]) -> std::io::Result<bool> {
@@ -93,7 +92,7 @@ impl TunPacketCodec {
     /// Create a new `TunPacketCodec` specifying whether the underlying
     ///  tunnel Device has enabled the packet information header.
     pub fn new(packet_information: bool, mtu: usize) -> TunPacketCodec {
-        let mtu = u16::try_from(mtu).unwrap_or(u16::MAX) as usize;
+        let mtu = u16::try_from(mtu).unwrap_or(crate::DEFAULT_MTU as u16) as usize;
         TunPacketCodec {
             packet_information,
             mtu,
