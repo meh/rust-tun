@@ -35,7 +35,7 @@ async fn main() {
     let mut buf: [u8; 1504] = [0u8; MTU as usize + 4];
     loop {
         if let Ok(len) = dev.read(&mut buf).await {
-            println!("pkt: {:?}", &buf[..len])
+            println!("pkt: {:?}", &buf[..len]);
         }
     }
 }
