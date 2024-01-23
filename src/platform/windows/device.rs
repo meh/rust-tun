@@ -90,6 +90,18 @@ impl Write for Device {
     }
 }
 
+impl AsRef<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice<Queue = Queue> + 'static) {
+        self
+    }
+}
+
+impl AsMut<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<Queue = Queue> + 'static) {
+        self
+    }
+}
+
 impl AbstractDevice for Device {
     type Queue = Queue;
 
@@ -180,6 +192,10 @@ impl AbstractDevice for Device {
 
     fn queue(&mut self, _index: usize) -> Option<&mut Self::Queue> {
         Some(&mut self.queue)
+    }
+
+    fn packet_information(&self) -> bool {
+        false
     }
 }
 

@@ -10,6 +10,9 @@ description = "TUN device creation and handling."
 repository = "https://github.com/ssrlive/rust-tun"
 keywords = ["tun", "network", "tunnel", "bindings"]
 
+[lib]
+crate-type = ["staticlib", "cdylib", "lib"]
+
 [dependencies]
 byteorder = { version = "1" }
 bytes = { version = "1" }
@@ -29,7 +32,7 @@ wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 [dev-dependencies]
 futures = "0.3"
 packet = "0.1"
-tokio = { version = "1", features = ["rt-multi-thread","io-util"] }
+tokio = { version = "1", features = ["rt-multi-thread", "io-util"] }
 
 [features]
 default = []

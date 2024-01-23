@@ -31,6 +31,18 @@ pub struct Device {
     queue: Queue,
 }
 
+impl AsRef<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice<Queue = Queue> + 'static) {
+        self
+    }
+}
+
+impl AsMut<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<Queue = Queue> + 'static) {
+        self
+    }
+}
+
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
@@ -45,6 +57,7 @@ impl Device {
                 queue: Queue { tun },
             }
         };
+
         Ok(device)
     }
 
@@ -52,11 +65,6 @@ impl Device {
     pub fn split(self) -> (posix::Reader, posix::Writer) {
         let fd = Arc::new(self.queue.tun);
         (posix::Reader(fd.clone()), posix::Writer(fd))
-    }
-
-    /// Return whether the device has packet information
-    pub fn has_packet_information(&self) -> bool {
-        self.queue.has_packet_information()
     }
 
     /// Set non-blocking mode
@@ -151,6 +159,11 @@ impl AbstractDevice for Device {
 
         Some(&mut self.queue)
     }
+
+    fn packet_information(&self) -> bool {
+        // on ios this is always the case
+        true
+    }
 }
 
 impl AsRawFd for Device {
@@ -170,11 +183,6 @@ pub struct Queue {
 }
 
 impl Queue {
-    pub fn has_packet_information(&self) -> bool {
-        // on ios this is always the case
-        true
-    }
-
     pub fn set_nonblock(&self) -> std::io::Result<()> {
         self.tun.set_nonblock()
     }

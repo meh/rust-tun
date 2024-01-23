@@ -7,8 +7,8 @@ TUN interfaces
 This crate allows the creation and usage of TUN interfaces, the aim is to make this cross-platform.
 
 > Since the original maintainer @meh is no longer interested in continuing to maintain
-> [tun](https://crates.io/crates/tun),
-> I (@ssrlive) created the [tun2](https://github.com/ssrlive/rust-tun) branch and
+> [tun](https://crates.io/crates/tun) at [repo](https://github.com/meh/rust-tun),
+> I (@ssrlive) created the [tun2](https://github.com/ssrlive/rust-tun) branch repo and
 > continued to actively update. Welcome to any interested contributor.
 > If you want to be a co-contributor and publisher of [tun2](https://crates.io/crates/tun2),
 > please contact me in [issues](https://github.com/ssrlive/rust-tun/issues).

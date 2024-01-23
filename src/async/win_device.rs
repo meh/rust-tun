@@ -29,6 +29,20 @@ pub struct AsyncDevice {
     session: WinSession,
 }
 
+/// Returns a shared reference to the underlying Device object
+impl AsRef<Device> for AsyncDevice {
+    fn as_ref(&self) -> &Device {
+        &self.inner
+    }
+}
+
+/// Returns a mutable reference to the underlying Device object
+impl AsMut<Device> for AsyncDevice {
+    fn as_mut(&mut self) -> &mut Device {
+        &mut self.inner
+    }
+}
+
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
     pub fn new(device: Device) -> io::Result<AsyncDevice> {
@@ -38,22 +52,14 @@ impl AsyncDevice {
             session,
         })
     }
-    /// Returns a shared reference to the underlying Device object
-    pub fn get_ref(&self) -> &Device {
-        &self.inner
-    }
-
-    /// Returns a mutable reference to the underlying Device object
-    pub fn get_mut(&mut self) -> &mut Device {
-        &mut self.inner
-    }
 
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
-        let mtu = self.get_ref().mtu().unwrap_or(u16::MAX as i32);
-        let codec = TunPacketCodec::new(false, mtu);
+        let packet_information = self.as_ref().packet_information();
+        let mtu = self.as_ref().mtu().unwrap_or(u16::MAX as i32) as usize;
+        let codec = TunPacketCodec::new(packet_information, mtu);
         // guarantee to avoid the mtu of wintun may far away larger than the default provided capacity of buff of Framed
-        Framed::with_capacity(self, codec, mtu as usize)
+        Framed::with_capacity(self, codec, mtu)
     }
 }
 

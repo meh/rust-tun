@@ -91,4 +91,7 @@ pub trait AbstractDevice: Read + Write {
 
     /// Get a device queue.
     fn queue(&mut self, index: usize) -> Option<&mut Self::Queue>;
+
+    /// Return whether the device has packet information
+    fn packet_information(&self) -> bool;
 }

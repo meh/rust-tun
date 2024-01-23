@@ -29,6 +29,20 @@ pub struct AsyncDevice {
     inner: AsyncFd<Device>,
 }
 
+/// Returns a shared reference to the underlying Device object
+impl AsRef<Device> for AsyncDevice {
+    fn as_ref(&self) -> &Device {
+        self.inner.get_ref()
+    }
+}
+
+/// Returns a mutable reference to the underlying Device object
+impl AsMut<Device> for AsyncDevice {
+    fn as_mut(&mut self) -> &mut Device {
+        self.inner.get_mut()
+    }
+}
+
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
     pub fn new(device: Device) -> std::io::Result<AsyncDevice> {
@@ -37,23 +51,14 @@ impl AsyncDevice {
             inner: AsyncFd::new(device)?,
         })
     }
-    /// Returns a shared reference to the underlying Device object
-    pub fn get_ref(&self) -> &Device {
-        self.inner.get_ref()
-    }
-
-    /// Returns a mutable reference to the underlying Device object
-    pub fn get_mut(&mut self) -> &mut Device {
-        self.inner.get_mut()
-    }
 
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
-        let packet_information = self.get_ref().has_packet_information();
-        let mtu = self.inner.get_ref().mtu().unwrap_or(1504);
+        let packet_information = self.as_ref().packet_information();
+        let mtu = self.as_ref().mtu().unwrap_or(1504) as usize;
         let codec = TunPacketCodec::new(packet_information, mtu);
         // associate mtu with the capacity of ReadBuf
-        Framed::with_capacity(self, codec, mtu as usize)
+        Framed::with_capacity(self, codec, mtu)
     }
 }
 

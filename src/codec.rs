@@ -15,86 +15,89 @@
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-/// A packet protocol IP version
-#[derive(Debug, Clone, Copy, Default)]
-enum PacketProtocol {
-    #[default]
-    IPv4,
-    IPv6,
-    Other(u8),
+const PACKET_INFORMATION_LENGTH: usize = 4;
+
+/// Infer the protocol based on the first nibble in the packet buffer.
+fn is_ipv6(buf: &[u8]) -> std::io::Result<bool> {
+    use std::io::{Error, ErrorKind::InvalidData};
+    match buf[0] >> 4 {
+        4 => Ok(false),
+        6 => Ok(true),
+        p => Err(Error::new(InvalidData, format!("IP version {}", p))),
+    }
 }
 
-// Note: the protocol in the packet information header is platform dependent.
-impl PacketProtocol {
+fn generate_packet_information(_packet_information: bool, _ipv6: bool) -> Option<Bytes> {
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    fn into_pi_field(self) -> std::io::Result<u16> {
-        match self {
-            PacketProtocol::IPv4 => Ok(libc::ETH_P_IP as u16),
-            PacketProtocol::IPv6 => Ok(libc::ETH_P_IPV6 as u16),
-            PacketProtocol::Other(_) => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "neither an IPv4 nor IPv6 packet",
-            )),
-        }
-    }
+    const TUN_PROTO_IP6: [u8; PACKET_INFORMATION_LENGTH] = (libc::ETH_P_IPV6 as u32).to_be_bytes();
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    const TUN_PROTO_IP4: [u8; PACKET_INFORMATION_LENGTH] = (libc::ETH_P_IP as u32).to_be_bytes();
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
-    fn into_pi_field(self) -> std::io::Result<u16> {
-        match self {
-            PacketProtocol::IPv4 => Ok(libc::PF_INET as u16),
-            PacketProtocol::IPv6 => Ok(libc::PF_INET6 as u16),
-            PacketProtocol::Other(_) => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "neither an IPv4 nor IPv6 packet",
-            )),
-        }
-    }
+    const TUN_PROTO_IP6: [u8; PACKET_INFORMATION_LENGTH] = (libc::AF_INET6 as u32).to_be_bytes();
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    const TUN_PROTO_IP4: [u8; PACKET_INFORMATION_LENGTH] = (libc::AF_INET as u32).to_be_bytes();
 
-    #[cfg(target_os = "windows")]
-    #[allow(dead_code)]
-    fn into_pi_field(self) -> std::io::Result<u16> {
-        unimplemented!()
+    #[cfg(unix)]
+    if _packet_information {
+        let mut buf = BytesMut::with_capacity(PACKET_INFORMATION_LENGTH);
+        if _ipv6 {
+            buf.put_slice(&TUN_PROTO_IP6);
+        } else {
+            buf.put_slice(&TUN_PROTO_IP4);
+        }
+        return Some(buf.freeze());
     }
+    None
 }
 
 /// A Tun Packet to be sent or received on the TUN interface.
 #[derive(Debug)]
-pub struct TunPacket(PacketProtocol, Bytes);
-
-/// Infer the protocol based on the first nibble in the packet buffer.
-fn infer_proto(buf: &[u8]) -> PacketProtocol {
-    match buf[0] >> 4 {
-        4 => PacketProtocol::IPv4,
-        6 => PacketProtocol::IPv6,
-        p => PacketProtocol::Other(p),
-    }
+pub struct TunPacket {
+    /// The packet information header.
+    pub(crate) header: Option<Bytes>,
+    /// The packet bytes.
+    pub(crate) bytes: Bytes,
 }
 
 impl TunPacket {
     /// Create a new `TunPacket` based on a byte slice.
-    pub fn new<S: AsRef<[u8]> + Into<Bytes>>(bytes: S) -> TunPacket {
-        let proto = infer_proto(bytes.as_ref());
-        TunPacket(proto, bytes.into())
+    pub fn new<S: AsRef<[u8]> + Into<Bytes>>(packet_information: bool, bytes: S) -> TunPacket {
+        let bytes = bytes.into();
+        let ipv6 = is_ipv6(bytes.as_ref()).unwrap();
+        let header = generate_packet_information(packet_information, ipv6);
+        TunPacket { header, bytes }
     }
 
     /// Return this packet's bytes.
     pub fn get_bytes(&self) -> &[u8] {
-        &self.1
+        &self.bytes
     }
 
     pub fn into_bytes(self) -> Bytes {
-        self.1
+        self.bytes
     }
 }
 
 /// A TunPacket Encoder/Decoder.
-pub struct TunPacketCodec(bool, i32);
+#[derive(Debug, Default)]
+pub struct TunPacketCodec {
+    /// Whether the underlying tunnel Device has enabled the packet information header.
+    pub(crate) packet_information: bool,
+
+    /// The MTU of the underlying tunnel Device.
+    pub(crate) mtu: usize,
+}
 
 impl TunPacketCodec {
     /// Create a new `TunPacketCodec` specifying whether the underlying
     ///  tunnel Device has enabled the packet information header.
-    pub fn new(packet_information: bool, mtu: i32) -> TunPacketCodec {
-        TunPacketCodec(packet_information, mtu)
+    pub fn new(packet_information: bool, mtu: usize) -> TunPacketCodec {
+        let mtu = u16::try_from(mtu).unwrap_or(u16::MAX) as usize;
+        TunPacketCodec {
+            packet_information,
+            mtu,
+        }
     }
 }
 
@@ -110,19 +113,20 @@ impl Decoder for TunPacketCodec {
         let mut pkt = buf.split_to(buf.len());
 
         // reserve enough space for the next packet
-        if self.0 {
-            buf.reserve(self.1 as usize + 4);
+        if self.packet_information {
+            buf.reserve(self.mtu + PACKET_INFORMATION_LENGTH);
         } else {
-            buf.reserve(self.1 as usize);
+            buf.reserve(self.mtu);
         }
 
+        let mut header = None;
         // if the packet information is enabled we have to ignore the first 4 bytes
-        if self.0 {
-            let _ = pkt.split_to(4);
+        if self.packet_information {
+            header = Some(pkt.split_to(PACKET_INFORMATION_LENGTH).into());
         }
 
-        let proto = infer_proto(pkt.as_ref());
-        Ok(Some(TunPacket(proto, pkt.freeze())))
+        let bytes = pkt.freeze();
+        Ok(Some(TunPacket { header, bytes }))
     }
 }
 
@@ -130,28 +134,14 @@ impl Encoder<TunPacket> for TunPacketCodec {
     type Error = std::io::Error;
 
     fn encode(&mut self, item: TunPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        dst.reserve(item.get_bytes().len() + if self.0 { 4 } else { 0 });
-        match item {
-            TunPacket(_proto, bytes) if self.0 => {
-                #[cfg(unix)]
-                {
-                    use byteorder::{NativeEndian, NetworkEndian, WriteBytesExt};
-
-                    // build the packet information header comprising of 2 u16
-                    // fields: flags and protocol.
-                    let mut buf = Vec::<u8>::with_capacity(4);
-
-                    // flags is always 0
-                    buf.write_u16::<NativeEndian>(0)?;
-                    // write the protocol as network byte order
-                    buf.write_u16::<NetworkEndian>(_proto.into_pi_field()?)?;
-
-                    dst.put_slice(&buf);
-                }
-                dst.put(bytes);
+        let extra = PACKET_INFORMATION_LENGTH;
+        dst.reserve(item.get_bytes().len() + if self.packet_information { extra } else { 0 });
+        if self.packet_information {
+            if let Some(header) = &item.header {
+                dst.put_slice(header.as_ref());
             }
-            TunPacket(_, bytes) => dst.put(bytes),
         }
+        dst.put(item.get_bytes());
         Ok(())
     }
 }

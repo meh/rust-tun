@@ -40,6 +40,19 @@ pub struct Device {
     name: String,
     queues: Vec<Queue>,
     ctl: Fd,
+    packet_information: bool,
+}
+
+impl AsRef<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice<Queue = Queue> + 'static) {
+        self
+    }
+}
+
+impl AsMut<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<Queue = Queue> + 'static) {
+        self
+    }
 }
 
 impl Device {
@@ -94,10 +107,7 @@ impl Device {
                     return Err(io::Error::last_os_error().into());
                 }
 
-                queues.push(Queue {
-                    tun,
-                    packet_information,
-                });
+                queues.push(Queue { tun });
             }
 
             let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
@@ -105,7 +115,12 @@ impl Device {
             let name = CStr::from_ptr(req.ifr_name.as_ptr())
                 .to_string_lossy()
                 .to_string();
-            Device { name, queues, ctl }
+            Device {
+                name,
+                queues,
+                ctl,
+                packet_information,
+            }
         };
 
         if config.platform_config.apply_settings {
@@ -158,11 +173,6 @@ impl Device {
                 Ok(())
             }
         }
-    }
-
-    /// Return whether the device has packet information
-    pub fn has_packet_information(&self) -> bool {
-        self.queues[0].has_packet_information()
     }
 
     /// Split the interface into a `Reader` and `Writer`.
@@ -383,6 +393,10 @@ impl AbstractDevice for Device {
     fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
         self.queues.get_mut(index)
     }
+
+    fn packet_information(&self) -> bool {
+        self.packet_information
+    }
 }
 
 impl AsRawFd for Device {
@@ -401,14 +415,9 @@ impl IntoRawFd for Device {
 
 pub struct Queue {
     tun: Fd,
-    packet_information: bool,
 }
 
 impl Queue {
-    pub fn has_packet_information(&self) -> bool {
-        self.packet_information
-    }
-
     pub fn set_nonblock(&self) -> io::Result<()> {
         self.tun.set_nonblock()
     }
