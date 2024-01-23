@@ -32,8 +32,11 @@ async fn main() {
     });
 
     let mut dev = tun2::create_as_async(&config).unwrap();
-    let mut buf = [0u8; MTU as usize + 4];
-    while let Ok(len) = dev.read(&mut buf).await {
-        println!("pkt: {:?}", &buf[..len]);
+    let mut buf: [u8; 1504] = [0u8; MTU as usize + 4];
+    loop {
+        match dev.read(&mut buf).await {
+            Ok(len) => println!("pkt: {:?}", &buf[..len]),
+            Err(_) => {}
+        }
     }
 }
