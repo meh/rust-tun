@@ -22,7 +22,7 @@ use crate::error::Result;
 
 /// Android-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
-pub struct PlatformConfig {}
+pub struct PlatformConfig; // zero-size type for more optimization
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {
