@@ -13,16 +13,16 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use tokio::io::AsyncReadExt;
+use tun2::AbstractDevice;
 
 #[tokio::main]
-async fn main() {
-    const MTU: i32 = 1500;
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut config = tun2::Configuration::default();
 
     config
         .address((10, 0, 0, 1))
         .netmask((255, 255, 255, 0))
-        .mtu(MTU)
+        .mtu(tun2::DEFAULT_MTU)
         .up();
 
     #[cfg(target_os = "linux")]
@@ -31,11 +31,14 @@ async fn main() {
         config.apply_settings(true);
     });
 
-    let mut dev = tun2::create_as_async(&config).unwrap();
-    let mut buf: [u8; 1504] = [0u8; MTU as usize + 4];
+    let mut dev = tun2::create_as_async(&config)?;
+    let size = dev.as_ref().mtu()? + tun2::PACKET_INFORMATION_LENGTH;
+    let mut buf = vec![0; size];
     loop {
         if let Ok(len) = dev.read(&mut buf).await {
             println!("pkt: {:?}", &buf[..len]);
         }
     }
+    #[allow(unreachable_code)]
+    Ok(())
 }

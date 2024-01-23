@@ -55,7 +55,7 @@ mod test {
                 .name("utun6")
                 .address("192.168.50.1")
                 .netmask("255.255.0.0")
-                .mtu(1400)
+                .mtu(crate::DEFAULT_MTU)
                 .up(),
         )
         .unwrap();
@@ -70,6 +70,6 @@ mod test {
             dev.netmask().unwrap()
         );
 
-        assert_eq!(1400, dev.mtu().unwrap());
+        assert_eq!(crate::DEFAULT_MTU, dev.mtu().unwrap());
     }
 }

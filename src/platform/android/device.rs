@@ -141,11 +141,11 @@ impl AbstractDevice for Device {
         Ok(())
     }
 
-    fn mtu(&self) -> Result<i32> {
+    fn mtu(&self) -> Result<usize> {
         Err(Error::NotImplemented)
     }
 
-    fn set_mtu(&mut self, value: i32) -> Result<()> {
+    fn set_mtu(&mut self, value: usize) -> Result<()> {
         Ok(())
     }
 

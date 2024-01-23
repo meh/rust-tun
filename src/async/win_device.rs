@@ -56,10 +56,10 @@ impl AsyncDevice {
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
         let packet_information = self.as_ref().packet_information();
-        let mtu = self.as_ref().mtu().unwrap_or(u16::MAX as i32) as usize;
+        let mtu = self.as_ref().mtu().unwrap_or(crate::DEFAULT_MTU);
         let codec = TunPacketCodec::new(packet_information, mtu);
         // guarantee to avoid the mtu of wintun may far away larger than the default provided capacity of buff of Framed
-        Framed::with_capacity(self, codec, mtu)
+        Framed::with_capacity(self, codec, mtu + crate::PACKET_INFORMATION_LENGTH)
     }
 }
 

@@ -84,10 +84,10 @@ pub trait AbstractDevice: Read + Write {
     fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()>;
 
     /// Get the MTU.
-    fn mtu(&self) -> Result<i32>;
+    fn mtu(&self) -> Result<usize>;
 
     /// Set the MTU.
-    fn set_mtu(&mut self, value: i32) -> Result<()>;
+    fn set_mtu(&mut self, value: usize) -> Result<()>;
 
     /// Get a device queue.
     fn queue(&mut self, index: usize) -> Option<&mut Self::Queue>;

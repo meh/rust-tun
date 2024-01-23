@@ -38,3 +38,10 @@ pub use r#async::*;
 pub fn configure() -> Configuration {
     Configuration::default()
 }
+
+#[cfg(unix)]
+pub const DEFAULT_MTU: usize = 1500;
+#[cfg(windows)]
+pub const DEFAULT_MTU: usize = 0xFFFF; // 65535
+
+pub const PACKET_INFORMATION_LENGTH: usize = 4;
