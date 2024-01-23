@@ -12,16 +12,17 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use futures::StreamExt;
-use packet::ip::Packet;
+use tokio::io::AsyncReadExt;
 
 #[tokio::main]
 async fn main() {
+    const MTU: i32 = 1500;
     let mut config = tun2::Configuration::default();
 
     config
         .address((10, 0, 0, 1))
         .netmask((255, 255, 255, 0))
+        .mtu(MTU)
         .up();
 
     #[cfg(target_os = "linux")]
@@ -30,14 +31,9 @@ async fn main() {
         config.apply_settings(true);
     });
 
-    let dev = tun2::create_as_async(&config).unwrap();
-
-    let mut stream = dev.into_framed();
-
-    while let Some(packet) = stream.next().await {
-        match packet {
-            Ok(pkt) => println!("pkt: {:#?}", Packet::unchecked(pkt.get_bytes())),
-            Err(err) => panic!("Error: {:?}", err),
-        }
+    let mut dev = tun2::create_as_async(&config).unwrap();
+    let mut buf = [0u8; MTU as usize + 4];
+    while let Ok(len) = dev.read(&mut buf).await {
+        println!("pkt: {:?}", &buf[..len]);
     }
 }

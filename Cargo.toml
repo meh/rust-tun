@@ -29,7 +29,7 @@ wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 [dev-dependencies]
 futures = "0.3"
 packet = "0.1"
-tokio = { version = "1", features = ["rt-multi-thread"] }
+tokio = { version = "1", features = ["rt-multi-thread","io-util"] }
 
 [features]
 default = []
