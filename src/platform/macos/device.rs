@@ -145,7 +145,7 @@ impl Device {
 
     /// Prepare a new request.
     /// # Safety
-    pub unsafe fn request(&self) -> Result<libc::ifreq> {
+    pub(crate) unsafe fn request(&self) -> Result<libc::ifreq> {
         let name = self.name.as_ref().ok_or(Error::InvalidConfig)?;
         let mut req: libc::ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
@@ -158,7 +158,12 @@ impl Device {
     }
 
     /// Set the IPv4 alias of the device.
-    pub fn set_alias(&mut self, addr: Ipv4Addr, broadaddr: Ipv4Addr, mask: Ipv4Addr) -> Result<()> {
+    pub(crate) fn set_alias(
+        &mut self,
+        addr: Ipv4Addr,
+        broadaddr: Ipv4Addr,
+        mask: Ipv4Addr,
+    ) -> Result<()> {
         let name = self.name.as_ref().ok_or(Error::InvalidConfig)?;
         let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
