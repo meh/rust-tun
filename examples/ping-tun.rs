@@ -14,7 +14,7 @@
 
 use futures::{SinkExt, StreamExt};
 use packet::{builder::Builder, icmp, ip, Packet};
-use tun2::{self, AbstractDevice, Configuration, TunPacket};
+use tun2::{self, Configuration, TunPacket};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,7 +38,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let dev = tun2::create_as_async(&config)?;
-    let packet_information = dev.as_ref().packet_information();
 
     let mut framed = dev.into_framed();
 
@@ -61,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .sequence(icmp.sequence())?
                             .payload(icmp.payload())?
                             .build()?;
-                        let pkt = TunPacket::new(packet_information, reply);
+                        let pkt = TunPacket::new(reply);
                         framed.send(pkt).await?;
                     }
                 }

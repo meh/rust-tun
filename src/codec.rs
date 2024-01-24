@@ -53,19 +53,15 @@ fn generate_packet_information(_packet_information: bool, _ipv6: bool) -> Option
 /// A Tun Packet to be sent or received on the TUN interface.
 #[derive(Debug)]
 pub struct TunPacket {
-    /// The packet information header.
-    pub(crate) header: Option<Bytes>,
     /// The packet bytes.
     pub(crate) bytes: Bytes,
 }
 
 impl TunPacket {
     /// Create a new `TunPacket` based on a byte slice.
-    pub fn new<S: AsRef<[u8]> + Into<Bytes>>(packet_information: bool, bytes: S) -> TunPacket {
+    pub fn new<S: AsRef<[u8]> + Into<Bytes>>(bytes: S) -> TunPacket {
         let bytes = bytes.into();
-        let ipv6 = is_ipv6(bytes.as_ref()).unwrap();
-        let header = generate_packet_information(packet_information, ipv6);
-        TunPacket { header, bytes }
+        TunPacket { bytes }
     }
 
     /// Return this packet's bytes.
@@ -114,18 +110,14 @@ impl Decoder for TunPacketCodec {
         // reserve enough space for the next packet
         if self.packet_information {
             buf.reserve(self.mtu + PACKET_INFORMATION_LENGTH);
+            // if the packet information is enabled we have to ignore the first 4 bytes
+            let _ = pkt.split_to(PACKET_INFORMATION_LENGTH);
         } else {
             buf.reserve(self.mtu);
         }
 
-        let mut header = None;
-        // if the packet information is enabled we have to ignore the first 4 bytes
-        if self.packet_information {
-            header = Some(pkt.split_to(PACKET_INFORMATION_LENGTH).into());
-        }
-
         let bytes = pkt.freeze();
-        Ok(Some(TunPacket { header, bytes }))
+        Ok(Some(TunPacket { bytes }))
     }
 }
 
@@ -134,11 +126,16 @@ impl Encoder<TunPacket> for TunPacketCodec {
 
     fn encode(&mut self, item: TunPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let extra = PACKET_INFORMATION_LENGTH;
-        dst.reserve(item.get_bytes().len() + if self.packet_information { extra } else { 0 });
+        let bytes = item.get_bytes();
         if self.packet_information {
-            if let Some(header) = &item.header {
+            dst.reserve(bytes.len() + extra);
+            if let Some(header) =
+                generate_packet_information(self.packet_information, is_ipv6(bytes)?)
+            {
                 dst.put_slice(header.as_ref());
             }
+        } else {
+            dst.reserve(bytes.len());
         }
         dst.put(item.get_bytes());
         Ok(())
