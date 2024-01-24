@@ -19,6 +19,9 @@ use tokio_util::codec::{Decoder, Encoder};
 /// Infer the protocol based on the first nibble in the packet buffer.
 fn is_ipv6(buf: &[u8]) -> std::io::Result<bool> {
     use std::io::{Error, ErrorKind::InvalidData};
+    if buf.is_empty() {
+        return Err(Error::new(InvalidData, "Zero-length data"));
+    }
     match buf[0] >> 4 {
         4 => Ok(false),
         6 => Ok(true),
@@ -50,31 +53,7 @@ fn generate_packet_information(_packet_information: bool, _ipv6: bool) -> Option
     None
 }
 
-/// A Tun Packet to be sent or received on the TUN interface.
-#[derive(Debug)]
-pub struct TunPacket {
-    /// The packet bytes.
-    pub(crate) bytes: Bytes,
-}
-
-impl TunPacket {
-    /// Create a new `TunPacket` based on a byte slice.
-    pub fn new<S: AsRef<[u8]> + Into<Bytes>>(bytes: S) -> TunPacket {
-        let bytes = bytes.into();
-        TunPacket { bytes }
-    }
-
-    /// Return this packet's bytes.
-    pub fn get_bytes(&self) -> &[u8] {
-        &self.bytes
-    }
-
-    pub fn into_bytes(self) -> Bytes {
-        self.bytes
-    }
-}
-
-/// A TunPacket Encoder/Decoder.
+/// A TUN packet Encoder/Decoder.
 #[derive(Debug, Default)]
 pub struct TunPacketCodec {
     /// Whether the underlying tunnel Device has enabled the packet information header.
@@ -97,7 +76,7 @@ impl TunPacketCodec {
 }
 
 impl Decoder for TunPacketCodec {
-    type Item = TunPacket;
+    type Item = Vec<u8>;
     type Error = std::io::Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -107,37 +86,41 @@ impl Decoder for TunPacketCodec {
 
         let mut pkt = buf.split_to(buf.len());
 
-        // reserve enough space for the next packet
         if self.packet_information {
+            // reserve enough space for the next packet
             buf.reserve(self.mtu + PACKET_INFORMATION_LENGTH);
+
             // if the packet information is enabled we have to ignore the first 4 bytes
-            let _ = pkt.split_to(PACKET_INFORMATION_LENGTH);
+            let header = pkt.split_to(PACKET_INFORMATION_LENGTH);
+            let _ipv6 = is_ipv6(pkt.as_ref())?;
+            let _header = generate_packet_information(true, _ipv6).unwrap();
+            if header != _header {
+                use std::io::{Error, ErrorKind::InvalidData};
+                return Err(Error::new(InvalidData, "Invalid packet information header"));
+            }
         } else {
             buf.reserve(self.mtu);
         }
 
         let bytes = pkt.freeze();
-        Ok(Some(TunPacket { bytes }))
+        Ok(Some(bytes.into()))
     }
 }
 
-impl Encoder<TunPacket> for TunPacketCodec {
+impl Encoder<Vec<u8>> for TunPacketCodec {
     type Error = std::io::Error;
 
-    fn encode(&mut self, item: TunPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        let extra = PACKET_INFORMATION_LENGTH;
-        let bytes = item.get_bytes();
+    fn encode(&mut self, item: Vec<u8>, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        let bytes = item.as_slice();
         if self.packet_information {
-            dst.reserve(bytes.len() + extra);
-            if let Some(header) =
-                generate_packet_information(self.packet_information, is_ipv6(bytes)?)
-            {
+            dst.reserve(bytes.len() + PACKET_INFORMATION_LENGTH);
+            if let Some(header) = generate_packet_information(true, is_ipv6(bytes)?) {
                 dst.put_slice(header.as_ref());
             }
         } else {
             dst.reserve(bytes.len());
         }
-        dst.put(item.get_bytes());
+        dst.put(bytes);
         Ok(())
     }
 }
