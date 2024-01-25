@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
         config.packet_information(true);
-        config.apply_settings(true);
+        config.ask_permission(true);
     });
 
     let mut dev = tun2::create(&config)?;

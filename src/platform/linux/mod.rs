@@ -26,14 +26,14 @@ use crate::error::Result;
 #[derive(Copy, Clone, Debug)]
 pub struct PlatformConfig {
     pub(crate) packet_information: bool,
-    pub(crate) apply_settings: bool,
+    pub(crate) ask_permission: bool,
 }
 
 impl Default for PlatformConfig {
     fn default() -> Self {
         PlatformConfig {
             packet_information: false,
-            apply_settings: true,
+            ask_permission: true,
         }
     }
 }
@@ -47,8 +47,8 @@ impl PlatformConfig {
     }
 
     /// Enable or disable to assign IP/netmask/destination etc.
-    pub fn apply_settings(&mut self, value: bool) -> &mut Self {
-        self.apply_settings = value;
+    pub fn ask_permission(&mut self, value: bool) -> &mut Self {
+        self.ask_permission = value;
         self
     }
 }

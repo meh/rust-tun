@@ -121,7 +121,7 @@ impl Device {
             }
         };
 
-        if config.platform_config.apply_settings {
+        if config.platform_config.ask_permission {
             device.configure(config)?;
         }
 
