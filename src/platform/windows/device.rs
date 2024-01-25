@@ -24,7 +24,7 @@ use crate::error::{Error, Result};
 
 /// A TUN device using the wintun driver.
 pub struct Device {
-    pub(crate) queue: Queue,
+    pub(crate) tun: Tun,
     mtu: usize,
 }
 
@@ -48,7 +48,7 @@ impl Device {
         let session = adapter.start_session(wintun::MAX_RING_CAPACITY)?;
 
         let mut device = Device {
-            queue: Queue {
+            tun: Tun {
                 session: Arc::new(session),
             },
             mtu,
@@ -61,56 +61,48 @@ impl Device {
     }
 
     pub fn split(self) -> (Reader, Writer) {
-        let queue = Arc::new(self.queue);
-        (Reader(queue.clone()), Writer(queue))
+        let tun = Arc::new(self.tun);
+        (Reader(tun.clone()), Writer(tun))
     }
 }
 
 impl Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.queue.read(buf)
-    }
-
-    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        self.queue.read_vectored(bufs)
+        self.tun.read(buf)
     }
 }
 
 impl Write for Device {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.queue.write(buf)
-    }
-
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        self.queue.write_vectored(bufs)
+        self.tun.write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.queue.flush()
+        self.tun.flush()
     }
 }
 
-impl AsRef<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
-    fn as_ref(&self) -> &(dyn AbstractDevice<Queue = Queue> + 'static) {
+impl AsRef<dyn AbstractDevice<IO = Tun> + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice<IO = Tun> + 'static) {
         self
     }
 }
 
-impl AsMut<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
-    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<Queue = Queue> + 'static) {
+impl AsMut<dyn AbstractDevice<IO = Tun> + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<IO = Tun> + 'static) {
         self
     }
 }
 
 impl AbstractDevice for Device {
-    type Queue = Queue;
+    type IO = Tun;
 
     fn name(&self) -> Result<String> {
-        Ok(self.queue.session.get_adapter().get_name()?)
+        Ok(self.tun.session.get_adapter().get_name()?)
     }
 
     fn set_name(&mut self, value: &str) -> Result<()> {
-        self.queue.session.get_adapter().set_name(value)?;
+        self.tun.session.get_adapter().set_name(value)?;
         Ok(())
     }
 
@@ -119,7 +111,7 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<Ipv4Addr> {
-        let addresses = self.queue.session.get_adapter().get_addresses()?;
+        let addresses = self.tun.session.get_adapter().get_addresses()?;
         addresses
             .iter()
             .find_map(|a| match a {
@@ -130,13 +122,13 @@ impl AbstractDevice for Device {
     }
 
     fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
-        self.queue.session.get_adapter().set_address(value)?;
+        self.tun.session.get_adapter().set_address(value)?;
         Ok(())
     }
 
     fn destination(&self) -> Result<Ipv4Addr> {
         // It's just the default gateway in windows.
-        self.queue
+        self.tun
             .session
             .get_adapter()
             .get_gateways()?
@@ -150,7 +142,7 @@ impl AbstractDevice for Device {
 
     fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
         // It's just set the default gateway in windows.
-        self.queue.session.get_adapter().set_gateway(Some(value))?;
+        self.tun.session.get_adapter().set_gateway(Some(value))?;
         Ok(())
     }
 
@@ -166,7 +158,7 @@ impl AbstractDevice for Device {
     fn netmask(&self) -> Result<Ipv4Addr> {
         let current_addr = self.address()?;
         let netmask = self
-            .queue
+            .tun
             .session
             .get_adapter()
             .get_netmask_of_address(&IpAddr::V4(current_addr))?;
@@ -177,7 +169,7 @@ impl AbstractDevice for Device {
     }
 
     fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
-        self.queue.session.get_adapter().set_netmask(value)?;
+        self.tun.session.get_adapter().set_netmask(value)?;
         Ok(())
     }
 
@@ -185,13 +177,13 @@ impl AbstractDevice for Device {
         Ok(self.mtu)
     }
 
-    fn set_mtu(&mut self, value: usize) -> Result<()> {
-        self.mtu = value;
+    /// no-op due to mtu of wintun is always 65535
+    fn set_mtu(&mut self, _: usize) -> Result<()> {
         Ok(())
     }
 
-    fn queue(&mut self, _index: usize) -> Option<&mut Self::Queue> {
-        Some(&mut self.queue)
+    fn device_io(&mut self) -> Option<&mut Self::IO> {
+        Some(&mut self.tun)
     }
 
     fn packet_information(&self) -> bool {
@@ -199,11 +191,11 @@ impl AbstractDevice for Device {
     }
 }
 
-pub struct Queue {
+pub struct Tun {
     session: Arc<Session>,
 }
 
-impl Queue {
+impl Tun {
     pub fn get_session(&self) -> Arc<Session> {
         self.session.clone()
     }
@@ -231,13 +223,13 @@ impl Queue {
     }
 }
 
-impl Read for Queue {
+impl Read for Tun {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.read_by_ref(buf)
     }
 }
 
-impl Write for Queue {
+impl Write for Tun {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.write_by_ref(buf)
     }
@@ -247,7 +239,7 @@ impl Write for Queue {
     }
 }
 
-impl Drop for Queue {
+impl Drop for Tun {
     fn drop(&mut self) {
         if let Err(err) = self.session.shutdown() {
             log::error!("failed to shutdown session: {:?}", err);
@@ -256,7 +248,7 @@ impl Drop for Queue {
 }
 
 #[repr(transparent)]
-pub struct Reader(Arc<Queue>);
+pub struct Reader(Arc<Tun>);
 
 impl Read for Reader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
@@ -265,7 +257,7 @@ impl Read for Reader {
 }
 
 #[repr(transparent)]
-pub struct Writer(Arc<Queue>);
+pub struct Writer(Arc<Tun>);
 
 impl Write for Writer {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {

@@ -46,7 +46,7 @@ impl AsMut<Device> for AsyncDevice {
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
     pub fn new(device: Device) -> io::Result<AsyncDevice> {
-        let session = WinSession::new(device.queue.get_session())?;
+        let session = WinSession::new(device.tun.get_session())?;
         Ok(AsyncDevice {
             inner: device,
             session,
@@ -55,13 +55,10 @@ impl AsyncDevice {
 
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
-        let packet_information = self.as_ref().packet_information();
         let mtu = self.as_ref().mtu().unwrap_or(crate::DEFAULT_MTU);
-        let codec = TunPacketCodec::new(packet_information, mtu);
-        let pi = crate::PACKET_INFORMATION_LENGTH;
-        let extra = if packet_information { pi } else { 0 };
-        // guarantee to avoid the mtu of wintun may far away larger than the default provided capacity of buff of Framed
-        Framed::with_capacity(self, codec, mtu + extra)
+        let codec = TunPacketCodec::new();
+        // guarantee to avoid the mtu of wintun may far away larger than the default provided capacity of RedBuff of Framed
+        Framed::with_capacity(self, codec, mtu)
     }
 }
 

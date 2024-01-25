@@ -23,8 +23,6 @@ use std::{
     net::Ipv4Addr,
     os::unix::io::{AsRawFd, IntoRawFd, RawFd},
     ptr,
-    sync::Arc,
-    vec::Vec,
 };
 
 use crate::{
@@ -32,25 +30,25 @@ use crate::{
     device::AbstractDevice,
     error::{Error, Result},
     platform::linux::sys::*,
-    platform::posix::{self, Fd, SockAddr},
+    platform::posix::{self, Fd, SockAddr, Tun},
 };
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
     name: String,
-    queues: Vec<Queue>,
+    tun: Tun,
     ctl: Fd,
     packet_information: bool,
 }
 
-impl AsRef<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
-    fn as_ref(&self) -> &(dyn AbstractDevice<Queue = Queue> + 'static) {
+impl AsRef<dyn AbstractDevice<IO = Tun> + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice<IO = Tun> + 'static) {
         self
     }
 }
 
-impl AsMut<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
-    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<Queue = Queue> + 'static) {
+impl AsMut<dyn AbstractDevice<IO = Tun> + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<IO = Tun> + 'static) {
         self
     }
 }
@@ -73,8 +71,6 @@ impl Device {
                 None => None,
             };
 
-            let mut queues = Vec::new();
-
             let mut req: ifreq = mem::zeroed();
 
             if let Some(dev) = dev.as_ref() {
@@ -88,7 +84,7 @@ impl Device {
             let device_type: c_short = config.layer.unwrap_or(Layer::L3).into();
 
             let queues_num = config.queues.unwrap_or(1);
-            if queues_num < 1 {
+            if queues_num != 1 {
                 return Err(Error::InvalidQueuesNumber);
             }
 
@@ -99,7 +95,7 @@ impl Device {
                 | if packet_information { 0 } else { iff_no_pi }
                 | if queues_num > 1 { iff_multi_queue } else { 0 };
 
-            for _ in 0..queues_num {
+            let tun = {
                 let tun = Fd::new(libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR))
                     .map_err(|_| io::Error::last_os_error())?;
 
@@ -107,8 +103,10 @@ impl Device {
                     return Err(io::Error::last_os_error().into());
                 }
 
-                queues.push(Queue { tun });
-            }
+                tun
+            };
+
+            let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
             let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
 
@@ -117,7 +115,7 @@ impl Device {
                 .to_string();
             Device {
                 name,
-                queues,
+                tun: Tun::new(tun, mtu, packet_information),
                 ctl,
                 packet_information,
             }
@@ -176,43 +174,42 @@ impl Device {
     }
 
     /// Split the interface into a `Reader` and `Writer`.
-    pub fn split(mut self) -> (posix::Reader, posix::Writer) {
-        let fd = Arc::new(self.queues.swap_remove(0).tun);
-        (posix::Reader(fd.clone()), posix::Writer(fd))
+    pub fn split(self) -> (posix::Reader, posix::Writer) {
+        (self.tun.reader, self.tun.writer)
     }
 
     /// Set non-blocking mode
     pub fn set_nonblock(&self) -> io::Result<()> {
-        self.queues[0].set_nonblock()
+        self.tun.set_nonblock()
     }
 }
 
 impl Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.queues[0].read(buf)
+        self.tun.read(buf)
     }
 
     fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        self.queues[0].read_vectored(bufs)
+        self.tun.read_vectored(bufs)
     }
 }
 
 impl Write for Device {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.queues[0].write(buf)
+        self.tun.write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.queues[0].flush()
+        self.tun.flush()
     }
 
     fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        self.queues[0].write_vectored(bufs)
+        self.tun.write_vectored(bufs)
     }
 }
 
 impl AbstractDevice for Device {
-    type Queue = Queue;
+    type IO = Tun;
 
     fn name(&self) -> Result<String> {
         Ok(self.name.clone())
@@ -385,13 +382,13 @@ impl AbstractDevice for Device {
             if siocsifmtu(self.ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
-
+            self.tun.set_mtu(value);
             Ok(())
         }
     }
 
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
-        self.queues.get_mut(index)
+    fn device_io(&mut self) -> Option<&mut Self::IO> {
+        Some(&mut self.tun)
     }
 
     fn packet_information(&self) -> bool {
@@ -401,59 +398,11 @@ impl AbstractDevice for Device {
 
 impl AsRawFd for Device {
     fn as_raw_fd(&self) -> RawFd {
-        self.queues[0].as_raw_fd()
-    }
-}
-
-impl IntoRawFd for Device {
-    fn into_raw_fd(mut self) -> RawFd {
-        // It is Ok to swap the first queue with the last one, because the self will be dropped afterwards
-        let queue = self.queues.swap_remove(0);
-        queue.into_raw_fd()
-    }
-}
-
-pub struct Queue {
-    tun: Fd,
-}
-
-impl Queue {
-    pub fn set_nonblock(&self) -> io::Result<()> {
-        self.tun.set_nonblock()
-    }
-}
-
-impl Read for Queue {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.tun.read(buf)
-    }
-
-    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        self.tun.read_vectored(bufs)
-    }
-}
-
-impl Write for Queue {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.tun.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.tun.flush()
-    }
-
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        self.tun.write_vectored(bufs)
-    }
-}
-
-impl AsRawFd for Queue {
-    fn as_raw_fd(&self) -> RawFd {
         self.tun.as_raw_fd()
     }
 }
 
-impl IntoRawFd for Queue {
+impl IntoRawFd for Device {
     fn into_raw_fd(self) -> RawFd {
         self.tun.into_raw_fd()
     }

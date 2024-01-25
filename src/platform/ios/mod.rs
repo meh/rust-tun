@@ -15,7 +15,7 @@
 //! iOS specific functionality.
 
 mod device;
-pub use crate::device::{Device, Queue};
+pub use device::Device;
 
 use crate::configuration::Configuration;
 use crate::error::Result;

@@ -16,7 +16,7 @@
 
 mod device;
 
-pub use device::{Device, Queue};
+pub use device::{Device, Tun};
 
 use crate::configuration::Configuration;
 use crate::error::Result;

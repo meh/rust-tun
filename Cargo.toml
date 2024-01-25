@@ -23,7 +23,7 @@ thiserror = "1"
 tokio = { version = "1", features = ["net", "macros"], optional = true }
 tokio-util = { version = "0.7", features = ["codec"] }
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "android"))'.dependencies]
 ioctl = { version = "0.8", package = "ioctl-sys" }
 
 [target.'cfg(target_os = "windows")'.dependencies]

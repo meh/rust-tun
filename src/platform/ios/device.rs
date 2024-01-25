@@ -17,28 +17,27 @@ use crate::{
     configuration::Configuration,
     device::AbstractDevice,
     error::{Error, Result},
-    platform::posix::{self, Fd},
+    platform::posix::{self, Fd, Tun},
 };
 use std::{
     io::{Read, Write},
     net::Ipv4Addr,
     os::unix::io::{AsRawFd, IntoRawFd, RawFd},
-    sync::Arc,
 };
 
 /// A TUN device for iOS.
 pub struct Device {
-    queue: Queue,
+    tun: Tun,
 }
 
-impl AsRef<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
-    fn as_ref(&self) -> &(dyn AbstractDevice<Queue = Queue> + 'static) {
+impl AsRef<dyn AbstractDevice<IO = Tun> + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice<IO = Tun> + 'static) {
         self
     }
 }
 
-impl AsMut<dyn AbstractDevice<Queue = Queue> + 'static> for Device {
-    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<Queue = Queue> + 'static) {
+impl AsMut<dyn AbstractDevice<IO = Tun> + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<IO = Tun> + 'static) {
         self
     }
 }
@@ -50,11 +49,11 @@ impl Device {
             Some(raw_fd) => raw_fd,
             _ => return Err(Error::InvalidConfig),
         };
-        let mut device = unsafe {
+        let device = {
+            let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
             let tun = Fd::new(fd).map_err(|_| std::io::Error::last_os_error())?;
-
             Device {
-                queue: Queue { tun },
+                tun: Tun::new(tun, mtu, true),
             }
         };
 
@@ -63,42 +62,41 @@ impl Device {
 
     /// Split the interface into a `Reader` and `Writer`.
     pub fn split(self) -> (posix::Reader, posix::Writer) {
-        let fd = Arc::new(self.queue.tun);
-        (posix::Reader(fd.clone()), posix::Writer(fd))
+        (self.tun.reader, self.tun.writer)
     }
 
     /// Set non-blocking mode
     pub fn set_nonblock(&self) -> std::io::Result<()> {
-        self.queue.set_nonblock()
+        self.tun.set_nonblock()
     }
 }
 
 impl Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.queue.tun.read(buf)
+        self.tun.read(buf)
     }
 
     fn read_vectored(&mut self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize> {
-        self.queue.tun.read_vectored(bufs)
+        self.tun.read_vectored(bufs)
     }
 }
 
 impl Write for Device {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.queue.tun.write(buf)
+        self.tun.write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.queue.tun.flush()
+        self.tun.flush()
     }
 
     fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        self.queue.tun.write_vectored(bufs)
+        self.tun.write_vectored(bufs)
     }
 }
 
 impl AbstractDevice for Device {
-    type Queue = Queue;
+    type IO = Tun;
 
     fn name(&self) -> Result<String> {
         Ok("".to_string())
@@ -145,19 +143,17 @@ impl AbstractDevice for Device {
     }
 
     fn mtu(&self) -> Result<usize> {
-        Err(Error::NotImplemented)
+        Ok(self.tun.mtu())
     }
 
     fn set_mtu(&mut self, value: usize) -> Result<()> {
+        // TODO: must set the mtu to the underlying device driver
+        self.tun.set_mtu(value);
         Ok(())
     }
 
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
-        if index > 0 {
-            return None;
-        }
-
-        Some(&mut self.queue)
+    fn device_io(&mut self) -> Option<&mut Self::IO> {
+        Some(&mut self.tun)
     }
 
     fn packet_information(&self) -> bool {
@@ -168,58 +164,12 @@ impl AbstractDevice for Device {
 
 impl AsRawFd for Device {
     fn as_raw_fd(&self) -> RawFd {
-        self.queue.as_raw_fd()
+        self.tun.as_raw_fd()
     }
 }
 
 impl IntoRawFd for Device {
     fn into_raw_fd(self) -> RawFd {
-        self.queue.into_raw_fd()
-    }
-}
-
-pub struct Queue {
-    tun: Fd,
-}
-
-impl Queue {
-    pub fn set_nonblock(&self) -> std::io::Result<()> {
-        self.tun.set_nonblock()
-    }
-}
-
-impl AsRawFd for Queue {
-    fn as_raw_fd(&self) -> RawFd {
-        self.tun.as_raw_fd()
-    }
-}
-
-impl IntoRawFd for Queue {
-    fn into_raw_fd(self) -> RawFd {
         self.tun.into_raw_fd()
-    }
-}
-
-impl Read for Queue {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.tun.read(buf)
-    }
-
-    fn read_vectored(&mut self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize> {
-        self.tun.read_vectored(bufs)
-    }
-}
-
-impl Write for Queue {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.tun.write(buf)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.tun.flush()
-    }
-
-    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        self.tun.write_vectored(bufs)
     }
 }

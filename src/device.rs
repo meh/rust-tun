@@ -19,7 +19,7 @@ use std::net::Ipv4Addr;
 
 /// A TUN abstract device interface.
 pub trait AbstractDevice: Read + Write {
-    type Queue: Read + Write;
+    type IO: Read + Write;
 
     /// Reconfigure the device.
     fn configure(&mut self, config: &Configuration) -> Result<()> {
@@ -89,8 +89,8 @@ pub trait AbstractDevice: Read + Write {
     /// Set the MTU.
     fn set_mtu(&mut self, value: usize) -> Result<()>;
 
-    /// Get a device queue.
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue>;
+    /// Get a device io.
+    fn device_io(&mut self) -> Option<&mut Self::IO>;
 
     /// Return whether the device has packet information
     fn packet_information(&self) -> bool;

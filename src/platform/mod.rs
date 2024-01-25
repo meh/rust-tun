@@ -20,27 +20,30 @@ pub mod posix;
 #[cfg(target_os = "linux")]
 pub mod linux;
 #[cfg(target_os = "linux")]
-pub use self::linux::{create, Device, PlatformConfig, Queue};
+pub use self::linux::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "macos")]
 pub mod macos;
 #[cfg(target_os = "macos")]
-pub use self::macos::{create, Device, PlatformConfig, Queue};
+pub use self::macos::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "ios")]
 pub mod ios;
 #[cfg(target_os = "ios")]
-pub use self::ios::{create, Device, PlatformConfig, Queue};
+pub use self::ios::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "android")]
 pub mod android;
 #[cfg(target_os = "android")]
-pub use self::android::{create, Device, PlatformConfig, Queue};
+pub use self::android::{create, Device, PlatformConfig};
+
+#[cfg(unix)]
+pub use crate::platform::posix::Tun;
 
 #[cfg(target_os = "windows")]
 pub mod windows;
 #[cfg(target_os = "windows")]
-pub use self::windows::{create, Device, PlatformConfig, Queue};
+pub use self::windows::{create, Device, PlatformConfig, Tun};
 
 #[cfg(test)]
 mod test {
