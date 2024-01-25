@@ -78,17 +78,26 @@ impl Reader {
 
 impl Read for Reader {
     fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
-        unsafe {
-            let len = self.buf.len();
-            let amount = libc::read(self.fd.as_raw_fd(), self.buf.as_mut_ptr() as *mut _, len);
-
-            if amount < 0 {
-                return Err(io::Error::last_os_error());
+        let either_buf = if self.offset != 0 {
+            let len = buf.len() + self.offset;
+            if len > self.buf.len() {
+                self.buf.resize(len, 0_u8);
             }
-            let amount = amount as usize;
-            buf.put_slice(&self.buf[self.offset..amount]);
-            Ok(amount - self.offset)
+            &mut self.buf[..len]
+        } else {
+            &mut *buf
+        };
+        let fd = self.fd.as_raw_fd();
+        let amount = unsafe { libc::read(fd, either_buf.as_mut_ptr() as *mut _, either_buf.len()) };
+
+        if amount < 0 {
+            return Err(io::Error::last_os_error());
         }
+        let amount = amount as usize;
+        if self.offset != 0 {
+            buf.put_slice(&self.buf[self.offset..amount]);
+        }
+        Ok(amount - self.offset)
     }
 }
 
