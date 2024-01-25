@@ -28,14 +28,14 @@ pub struct Device {
     tun: Tun,
 }
 
-impl AsRef<dyn AbstractDevice<IO = Tun> + 'static> for Device {
-    fn as_ref(&self) -> &(dyn AbstractDevice<IO = Tun> + 'static) {
+impl AsRef<dyn AbstractDevice + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice + 'static) {
         self
     }
 }
 
-impl AsMut<dyn AbstractDevice<IO = Tun> + 'static> for Device {
-    fn as_mut(&mut self) -> &mut (dyn AbstractDevice<IO = Tun> + 'static) {
+impl AsMut<dyn AbstractDevice + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice + 'static) {
         self
     }
 }
@@ -87,8 +87,6 @@ impl Write for Device {
 }
 
 impl AbstractDevice for Device {
-    type IO = Tun;
-
     fn name(&self) -> Result<String> {
         Ok("".to_string())
     }
@@ -134,6 +132,7 @@ impl AbstractDevice for Device {
     }
 
     fn mtu(&self) -> Result<usize> {
+        // TODO: must get the mtu from the underlying device driver
         Ok(self.tun.mtu())
     }
 
@@ -141,10 +140,6 @@ impl AbstractDevice for Device {
         // TODO: must set the mtu to the underlying device driver
         self.tun.set_mtu(value);
         Ok(())
-    }
-
-    fn device_io(&mut self) -> Option<&mut Self::IO> {
-        Some(&mut self.tun)
     }
 
     fn packet_information(&self) -> bool {
