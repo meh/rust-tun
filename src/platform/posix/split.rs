@@ -125,8 +125,11 @@ impl Write for Writer {
         let buf = if self.offset != 0 {
             let ipv6 = is_ipv6(buf)?;
             if let Some(header) = generate_packet_information(true, ipv6) {
-                (&mut self.buf[..self.offset]).put_slice(header.as_ref());
                 let len = self.offset + buf.len();
+                if len > self.buf.len() {
+                    self.buf.resize(len, 0_u8);
+                }
+                (&mut self.buf[..self.offset]).put_slice(header.as_ref());
                 (&mut self.buf[self.offset..len]).put_slice(buf);
                 &self.buf[..len]
             } else {
@@ -135,15 +138,12 @@ impl Write for Writer {
         } else {
             buf
         };
-        unsafe {
-            let amount = libc::write(self.fd.as_raw_fd(), buf.as_ptr() as *const _, buf.len());
-
-            if amount < 0 {
-                return Err(io::Error::last_os_error());
-            }
-
-            Ok(amount as usize - self.offset)
+        let fd = self.fd.as_raw_fd();
+        let amount = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
+        if amount < 0 {
+            return Err(io::Error::last_os_error());
         }
+        Ok(amount as usize - self.offset)
     }
 
     fn flush(&mut self) -> io::Result<()> {
