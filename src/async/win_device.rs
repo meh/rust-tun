@@ -20,7 +20,7 @@ use std::io::Error;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
-use crate::codec::TunPacketCodec;
+use super::TunPacketCodec;
 use crate::device::AbstractDevice;
 use crate::platform::Device;
 

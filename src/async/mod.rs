@@ -19,6 +19,9 @@ use crate::error;
 use crate::configuration::Configuration;
 use crate::platform::create;
 
+mod codec;
+pub use codec::TunPacketCodec;
+
 #[cfg(unix)]
 mod unix_device;
 #[cfg(unix)]
