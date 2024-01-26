@@ -16,13 +16,13 @@ use tokio_util::codec::{Decoder, Encoder};
 
 /// A TUN packet Encoder/Decoder.
 #[derive(Debug, Default)]
-pub struct TunPacketCodec;
+pub struct TunPacketCodec(usize);
 
 impl TunPacketCodec {
     /// Create a new `TunPacketCodec` specifying whether the underlying
     ///  tunnel Device has enabled the packet information header.
-    pub fn new() -> TunPacketCodec {
-        TunPacketCodec
+    pub fn new(mtu: usize) -> TunPacketCodec {
+        TunPacketCodec(mtu)
     }
 }
 
@@ -35,8 +35,9 @@ impl Decoder for TunPacketCodec {
             return Ok(None);
         }
         let pkt = buf.split_to(buf.len());
-        let bytes = pkt.freeze();
-        Ok(Some(bytes.into()))
+        //reserve enough space for the next packet
+        buf.reserve(self.0);
+        Ok(Some(pkt.freeze().into()))
     }
 }
 
