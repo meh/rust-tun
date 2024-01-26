@@ -39,10 +39,14 @@ impl Device {
             Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, guid)?,
         };
 
-        let address = config.address.unwrap_or(Ipv4Addr::new(10, 1, 0, 2));
-        let mask = config.netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 0));
+        let address = config
+            .address
+            .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 1, 0, 2)));
+        let mask = config
+            .netmask
+            .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
         let gateway = config.destination.map(IpAddr::from);
-        adapter.set_network_addresses_tuple(IpAddr::V4(address), IpAddr::V4(mask), gateway)?;
+        adapter.set_network_addresses_tuple(address, mask, gateway)?;
         let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
         let session = adapter.start_session(wintun::MAX_RING_CAPACITY)?;
@@ -108,23 +112,26 @@ impl AbstractDevice for Device {
         Ok(())
     }
 
-    fn address(&self) -> Result<Ipv4Addr> {
+    fn address(&self) -> Result<IpAddr> {
         let addresses = self.tun.session.get_adapter().get_addresses()?;
         addresses
             .iter()
             .find_map(|a| match a {
-                std::net::IpAddr::V4(a) => Some(*a),
+                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
                 _ => None,
             })
             .ok_or(Error::InvalidConfig)
     }
 
-    fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_address(&mut self, value: IpAddr) -> Result<()> {
+        let IpAddr::V4(value) = value else {
+            unimplemented!("do not support IPv6 yet")
+        };
         self.tun.session.get_adapter().set_address(value)?;
         Ok(())
     }
 
-    fn destination(&self) -> Result<Ipv4Addr> {
+    fn destination(&self) -> Result<IpAddr> {
         // It's just the default gateway in windows.
         self.tun
             .session
@@ -132,41 +139,43 @@ impl AbstractDevice for Device {
             .get_gateways()?
             .iter()
             .find_map(|a| match a {
-                std::net::IpAddr::V4(a) => Some(*a),
+                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
                 _ => None,
             })
             .ok_or(Error::InvalidConfig)
     }
 
-    fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_destination(&mut self, value: IpAddr) -> Result<()> {
+        let IpAddr::V4(value) = value else {
+            unimplemented!("do not support IPv6 yet")
+        };
         // It's just set the default gateway in windows.
         self.tun.session.get_adapter().set_gateway(Some(value))?;
         Ok(())
     }
 
-    fn broadcast(&self) -> Result<Ipv4Addr> {
+    fn broadcast(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_broadcast(&mut self, value: IpAddr) -> Result<()> {
         log::debug!("set_broadcast {} is not need", value);
         Ok(())
     }
 
-    fn netmask(&self) -> Result<Ipv4Addr> {
+    fn netmask(&self) -> Result<IpAddr> {
         let current_addr = self.address()?;
-        let netmask = self
-            .tun
+        self.tun
             .session
             .get_adapter()
-            .get_netmask_of_address(&IpAddr::V4(current_addr))?;
-        match netmask {
-            IpAddr::V4(netmask) => Ok(netmask),
-            _ => Err(Error::InvalidConfig),
-        }
+            .get_netmask_of_address(&current_addr)
+            .map_err(Error::WintunError)
     }
 
-    fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_netmask(&mut self, value: IpAddr) -> Result<()> {
+        let IpAddr::V4(value) = value else {
+            unimplemented!("do not support IPv6 yet")
+        };
         self.tun.session.get_adapter().set_netmask(value)?;
         Ok(())
     }

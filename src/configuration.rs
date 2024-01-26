@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 #[cfg(unix)]
 use std::os::unix::io::RawFd;
 #[cfg(windows)]
@@ -34,10 +34,10 @@ pub enum Layer {
 pub struct Configuration {
     pub(crate) name: Option<String>,
     pub(crate) platform_config: PlatformConfig,
-    pub(crate) address: Option<Ipv4Addr>,
-    pub(crate) destination: Option<Ipv4Addr>,
-    pub(crate) broadcast: Option<Ipv4Addr>,
-    pub(crate) netmask: Option<Ipv4Addr>,
+    pub(crate) address: Option<IpAddr>,
+    pub(crate) destination: Option<IpAddr>,
+    pub(crate) broadcast: Option<IpAddr>,
+    pub(crate) netmask: Option<IpAddr>,
     pub(crate) mtu: Option<usize>,
     pub(crate) enabled: Option<bool>,
     pub(crate) layer: Option<Layer>,

@@ -14,14 +14,17 @@ keywords = ["tun", "network", "tunnel", "bindings"]
 crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
-byteorder = { version = "1" }
 bytes = { version = "1" }
 futures-core = { version = "0.3", optional = true }
 libc = "0.2"
 log = "0.4"
 thiserror = "1"
-tokio = { version = "1", features = ["net", "macros"], optional = true }
-tokio-util = { version = "0.7", features = ["codec"] }
+tokio = { version = "1", features = [
+    "net",
+    "macros",
+    "io-util",
+], optional = true }
+tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "android"))'.dependencies]
 ioctl = { version = "0.8", package = "ioctl-sys" }
@@ -32,11 +35,11 @@ wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 [dev-dependencies]
 futures = "0.3"
 packet = "0.1"
-tokio = { version = "1", features = ["rt-multi-thread", "io-util"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }
 
 [features]
 default = []
-async = ["tokio", "futures-core"]
+async = ["tokio", "futures-core", "tokio-util"]
 
 [[example]]
 name = "read-async"

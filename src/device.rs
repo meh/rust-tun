@@ -15,7 +15,7 @@
 use crate::configuration::Configuration;
 use crate::error::Result;
 use std::io::{Read, Write};
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 
 /// A TUN abstract device interface.
 pub trait AbstractDevice: Read + Write {
@@ -58,28 +58,28 @@ pub trait AbstractDevice: Read + Write {
     fn enabled(&mut self, value: bool) -> Result<()>;
 
     /// Get the address.
-    fn address(&self) -> Result<Ipv4Addr>;
+    fn address(&self) -> Result<IpAddr>;
 
     /// Set the address.
-    fn set_address(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_address(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the destination address.
-    fn destination(&self) -> Result<Ipv4Addr>;
+    fn destination(&self) -> Result<IpAddr>;
 
     /// Set the destination address.
-    fn set_destination(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_destination(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the broadcast address.
-    fn broadcast(&self) -> Result<Ipv4Addr>;
+    fn broadcast(&self) -> Result<IpAddr>;
 
     /// Set the broadcast address.
-    fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_broadcast(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the netmask.
-    fn netmask(&self) -> Result<Ipv4Addr>;
+    fn netmask(&self) -> Result<IpAddr>;
 
     /// Set the netmask.
-    fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_netmask(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the MTU.
     fn mtu(&self) -> Result<usize>;

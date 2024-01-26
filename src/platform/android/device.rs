@@ -14,7 +14,7 @@
 #![allow(unused_variables)]
 
 use std::io::{Read, Write};
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::sync::Arc;
 
@@ -99,35 +99,35 @@ impl AbstractDevice for Device {
         Ok(())
     }
 
-    fn address(&self) -> Result<Ipv4Addr> {
+    fn address(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_address(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 
-    fn destination(&self) -> Result<Ipv4Addr> {
+    fn destination(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_destination(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 
-    fn broadcast(&self) -> Result<Ipv4Addr> {
+    fn broadcast(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_broadcast(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 
-    fn netmask(&self) -> Result<Ipv4Addr> {
+    fn netmask(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 

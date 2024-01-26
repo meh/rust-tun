@@ -20,7 +20,7 @@ use std::{
     ffi::{CStr, CString},
     io::{self, Read, Write},
     mem,
-    net::Ipv4Addr,
+    net::IpAddr,
     os::unix::io::{AsRawFd, IntoRawFd, RawFd},
     ptr,
 };
@@ -260,7 +260,7 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn address(&self) -> Result<Ipv4Addr> {
+    fn address(&self) -> Result<IpAddr> {
         unsafe {
             let mut req = self.request();
 
@@ -268,11 +268,16 @@ impl AbstractDevice for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifr_ifru.ifru_addr).map(Into::into)
+            Ok(IpAddr::V4(
+                SockAddr::new(&req.ifr_ifru.ifru_addr).map(Into::into)?,
+            ))
         }
     }
 
-    fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_address(&mut self, value: IpAddr) -> Result<()> {
+        let IpAddr::V4(value) = value else {
+            unimplemented!("do not support IPv6 yet")
+        };
         unsafe {
             let mut req = self.request();
             req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
@@ -285,7 +290,7 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn destination(&self) -> Result<Ipv4Addr> {
+    fn destination(&self) -> Result<IpAddr> {
         unsafe {
             let mut req = self.request();
 
@@ -293,11 +298,16 @@ impl AbstractDevice for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifr_ifru.ifru_dstaddr).map(Into::into)
+            Ok(IpAddr::V4(
+                SockAddr::new(&req.ifr_ifru.ifru_dstaddr).map(Into::into)?,
+            ))
         }
     }
 
-    fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_destination(&mut self, value: IpAddr) -> Result<()> {
+        let IpAddr::V4(value) = value else {
+            unimplemented!("do not support IPv6 yet")
+        };
         unsafe {
             let mut req = self.request();
             req.ifr_ifru.ifru_dstaddr = SockAddr::from(value).into();
@@ -310,7 +320,7 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn broadcast(&self) -> Result<Ipv4Addr> {
+    fn broadcast(&self) -> Result<IpAddr> {
         unsafe {
             let mut req = self.request();
 
@@ -318,11 +328,16 @@ impl AbstractDevice for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifr_ifru.ifru_broadaddr).map(Into::into)
+            Ok(IpAddr::V4(
+                SockAddr::new(&req.ifr_ifru.ifru_broadaddr).map(Into::into)?,
+            ))
         }
     }
 
-    fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_broadcast(&mut self, value: IpAddr) -> Result<()> {
+        let IpAddr::V4(value) = value else {
+            unimplemented!("do not support IPv6 yet")
+        };
         unsafe {
             let mut req = self.request();
             req.ifr_ifru.ifru_broadaddr = SockAddr::from(value).into();
@@ -335,7 +350,7 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn netmask(&self) -> Result<Ipv4Addr> {
+    fn netmask(&self) -> Result<IpAddr> {
         unsafe {
             let mut req = self.request();
 
@@ -343,11 +358,16 @@ impl AbstractDevice for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            SockAddr::new(&req.ifr_ifru.ifru_netmask).map(Into::into)
+            Ok(IpAddr::V4(
+                SockAddr::new(&req.ifr_ifru.ifru_netmask).map(Into::into)?,
+            ))
         }
     }
 
-    fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_netmask(&mut self, value: IpAddr) -> Result<()> {
+        let IpAddr::V4(value) = value else {
+            unimplemented!("do not support IPv6 yet")
+        };
         unsafe {
             let mut req = self.request();
             req.ifr_ifru.ifru_netmask = SockAddr::from(value).into();
