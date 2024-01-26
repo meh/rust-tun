@@ -44,8 +44,9 @@ async fn main() {
     let mut config = tun2::Configuration::default();
 
     config
-        .address((10, 0, 0, 1))
+        .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
+        .destination((10, 0, 0, 1))
         .up();
 
     let dev = tun2::create_as_async(&config).unwrap();

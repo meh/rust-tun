@@ -20,8 +20,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut config = tun2::Configuration::default();
 
     config
-        .address((10, 0, 0, 1))
+        .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
+        .destination((10, 0, 0, 1))
         .mtu(tun2::DEFAULT_MTU)
         .up();
 

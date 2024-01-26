@@ -40,8 +40,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             let size = reader.read(&mut buf)?;
             let pkt = &buf[..size];
-            tx.send(pkt.to_vec())
-                .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotConnected, ""))?;
+            use std::io::{Error, ErrorKind::Other};
+            tx.send(pkt.to_vec()).map_err(|e| Error::new(Other, e))?;
         }
         #[allow(unreachable_code)]
         Ok::<(), std::io::Error>(())
