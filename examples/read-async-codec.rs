@@ -15,6 +15,7 @@
 use bytes::BytesMut;
 use futures::StreamExt;
 use packet::{ip::Packet, Error};
+use tokio::sync::mpsc::Receiver;
 use tokio_util::codec::{Decoder, FramedRead};
 
 pub struct IPPacketCodec;
@@ -40,7 +41,21 @@ impl Decoder for IPPacketCodec {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
+
+    ctrlc2::set_async_handler(async move {
+        tx.send(()).await.expect("Signal error");
+    })
+    .await;
+
+    main_entry(rx).await?;
+    Ok(())
+}
+
+async fn main_entry(
+    mut quit: Receiver<()>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut config = tun2::Configuration::default();
 
     config
@@ -49,14 +64,23 @@ async fn main() {
         .destination((10, 0, 0, 1))
         .up();
 
-    let dev = tun2::create_as_async(&config).unwrap();
+    let dev = tun2::create_as_async(&config)?;
 
     let mut stream = FramedRead::new(dev, IPPacketCodec);
 
-    while let Some(packet) = stream.next().await {
-        match packet {
-            Ok(pkt) => println!("pkt: {:#?}", pkt),
-            Err(err) => panic!("Error: {:?}", err),
-        }
+    loop {
+        tokio::select! {
+            _ = quit.recv() => {
+                println!("Quit...");
+                break;
+            }
+            Some(packet) = stream.next() => {
+                match packet {
+                    Ok(pkt) => println!("pkt: {:#?}", pkt),
+                    Err(err) => panic!("Error: {:?}", err),
+                }
+            }
+        };
     }
+    Ok(())
 }

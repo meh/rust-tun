@@ -13,10 +13,25 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use tokio::io::AsyncReadExt;
+use tokio::sync::mpsc::Receiver;
 use tun2::AbstractDevice;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
+
+    ctrlc2::set_async_handler(async move {
+        tx.send(()).await.expect("Signal error");
+    })
+    .await;
+
+    main_entry(rx).await?;
+    Ok(())
+}
+
+async fn main_entry(
+    mut quit: Receiver<()>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut config = tun2::Configuration::default();
 
     config
@@ -36,10 +51,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let size = dev.as_ref().mtu()? + tun2::PACKET_INFORMATION_LENGTH;
     let mut buf = vec![0; size];
     loop {
-        if let Ok(len) = dev.read(&mut buf).await {
-            println!("pkt: {:?}", &buf[..len]);
-        }
+        tokio::select! {
+            _ = quit.recv() => {
+                println!("Quit...");
+                break;
+            }
+            len = dev.read(&mut buf) => {
+                println!("pkt: {:?}", &buf[..len?]);
+            }
+        };
     }
-    #[allow(unreachable_code)]
     Ok(())
 }

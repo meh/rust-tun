@@ -33,6 +33,7 @@ ioctl = { version = "0.8", package = "ioctl-sys" }
 wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 
 [dev-dependencies]
+ctrlc2 = { version = "3.5", features = ["tokio", "termination"] }
 futures = "0.3"
 packet = "0.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }

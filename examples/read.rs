@@ -13,8 +13,23 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::Read;
+use std::sync::mpsc::Receiver;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    let handle = ctrlc2::set_handler(move || {
+        tx.send(()).expect("Signal error.");
+        true
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    main_entry(rx)?;
+    handle.join().unwrap();
+    Ok(())
+}
+
+fn main_entry(quit: Receiver<()>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut config = tun2::Configuration::default();
 
     config
@@ -30,10 +45,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let mut dev = tun2::create(&config)?;
-    let mut buf = [0; 4096];
-
-    loop {
-        let amount = dev.read(&mut buf)?;
-        println!("{:?}", &buf[0..amount]);
-    }
+    std::thread::spawn(move || {
+        let mut buf = [0; 4096];
+        loop {
+            let amount = dev.read(&mut buf)?;
+            println!("{:?}", &buf[0..amount]);
+        }
+        #[allow(unreachable_code)]
+        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
+    });
+    quit.recv().expect("Quit error.");
+    Ok(())
 }

@@ -14,8 +14,23 @@
 
 use packet::{builder::Builder, icmp, ip, Packet};
 use std::io::{Read, Write};
+use std::sync::mpsc::Receiver;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    let handle = ctrlc2::set_handler(move || {
+        tx.send(()).expect("Signal error.");
+        true
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    main_entry(rx)?;
+    handle.join().unwrap();
+    Ok(())
+}
+
+fn main_entry(quit: Receiver<()>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut config = tun2::Configuration::default();
 
     config
@@ -35,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (tx, rx) = std::sync::mpsc::channel();
 
-    let t1 = std::thread::spawn(move || {
+    let _t1 = std::thread::spawn(move || {
         let mut buf = [0; 4096];
         loop {
             let size = reader.read(&mut buf)?;
@@ -47,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok::<(), std::io::Error>(())
     });
 
-    let t2 = std::thread::spawn(move || {
+    let _t2 = std::thread::spawn(move || {
         loop {
             if let Ok(pkt) = rx.recv() {
                 match ip::Packet::new(pkt.as_slice()) {
@@ -81,7 +96,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         #[allow(unreachable_code)]
         Ok::<(), packet::Error>(())
     });
-    let _ = t1.join().unwrap();
-    let _ = t2.join().unwrap();
+    quit.recv().expect("Quit error.");
     Ok(())
 }

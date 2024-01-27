@@ -14,10 +14,25 @@
 
 use futures::{SinkExt, StreamExt};
 use packet::{builder::Builder, icmp, ip, Packet};
+use tokio::sync::mpsc::Receiver;
 use tun2::{self, Configuration};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
+
+    ctrlc2::set_async_handler(async move {
+        tx.send(()).await.expect("Signal error");
+    })
+    .await;
+
+    main_entry(rx).await?;
+    Ok(())
+}
+
+async fn main_entry(
+    mut quit: Receiver<()>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut config = Configuration::default();
 
     config
@@ -41,31 +56,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut framed = dev.into_framed();
 
-    while let Some(packet) = framed.next().await {
-        let pkt: Vec<u8> = packet?;
-        match ip::Packet::new(pkt) {
-            Ok(ip::Packet::V4(pkt)) => {
-                if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
-                    if let Ok(icmp) = icmp.echo() {
-                        println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
-                        let reply = ip::v4::Builder::default()
-                            .id(0x42)?
-                            .ttl(64)?
-                            .source(pkt.destination())?
-                            .destination(pkt.source())?
-                            .icmp()?
-                            .echo()?
-                            .reply()?
-                            .identifier(icmp.identifier())?
-                            .sequence(icmp.sequence())?
-                            .payload(icmp.payload())?
-                            .build()?;
-                        framed.send(reply).await?;
+    loop {
+        tokio::select! {
+            _ = quit.recv() => {
+                println!("Quit...");
+                break;
+            }
+            Some(packet) = framed.next() => {
+                let pkt: Vec<u8> = packet?;
+                match ip::Packet::new(pkt) {
+                    Ok(ip::Packet::V4(pkt)) => {
+                        if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
+                            if let Ok(icmp) = icmp.echo() {
+                                println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                                let reply = ip::v4::Builder::default()
+                                    .id(0x42)?
+                                    .ttl(64)?
+                                    .source(pkt.destination())?
+                                    .destination(pkt.source())?
+                                    .icmp()?
+                                    .echo()?
+                                    .reply()?
+                                    .identifier(icmp.identifier())?
+                                    .sequence(icmp.sequence())?
+                                    .payload(icmp.payload())?
+                                    .build()?;
+                                framed.send(reply).await?;
+                            }
+                        }
                     }
+                    Err(err) => println!("Received an invalid packet: {:?}", err),
+                    _ => {}
                 }
             }
-            Err(err) => println!("Received an invalid packet: {:?}", err),
-            _ => {}
         }
     }
     Ok(())
