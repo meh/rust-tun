@@ -25,14 +25,14 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun2 = "0.7"
+tun2 = "1.0"
 ```
 
 If you want to use the TUN interface with mio/tokio, you need to enable the `async` feature:
 
 ```toml
 [dependencies]
-tun2 = { version = "0.7", features = ["async"] }
+tun2 = { version = "1.0", features = ["async"] }
 ```
 
 Example
@@ -46,8 +46,9 @@ use std::io::Read;
 fn main() {
     let mut config = tun2::Configuration::default();
     config
-        .address((10, 0, 0, 1))
+        .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
+        .destination((10, 0, 0, 1))
         .up();
 
     #[cfg(target_os = "linux")]
