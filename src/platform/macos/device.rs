@@ -92,7 +92,8 @@ impl Device {
         }
 
         let mut device = unsafe {
-            let tun = Fd::new(libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL))?;
+            let fd = libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL);
+            let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
 
             let mut info = ctl_info {
                 ctl_id: 0,

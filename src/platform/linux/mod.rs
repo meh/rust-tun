@@ -25,7 +25,9 @@ use crate::error::Result;
 /// Linux-only interface configuration.
 #[derive(Copy, Clone, Debug)]
 pub struct PlatformConfig {
+    /// switch of Enable/Disable packet information for network driver
     pub(crate) packet_information: bool,
+    /// root privileges required or not
     pub(crate) ask_permission: bool,
 }
 
@@ -46,7 +48,8 @@ impl PlatformConfig {
         self
     }
 
-    /// Enable or disable to assign IP/netmask/destination etc.
+    /// Indicated if tun2 running in root privilege,
+    /// since some operations need it such as assigning IP/netmask/destination etc.
     pub fn ask_permission(&mut self, value: bool) -> &mut Self {
         self.ask_permission = value;
         self
