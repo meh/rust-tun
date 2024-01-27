@@ -44,7 +44,7 @@ async fn main_entry(
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
         config.packet_information(true);
-        config.ask_permission(true);
+        config.ensure_root_privileges(true);
     });
 
     let mut dev = tun2::create_as_async(&config)?;

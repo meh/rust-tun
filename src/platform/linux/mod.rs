@@ -28,14 +28,14 @@ pub struct PlatformConfig {
     /// switch of Enable/Disable packet information for network driver
     pub(crate) packet_information: bool,
     /// root privileges required or not
-    pub(crate) ask_permission: bool,
+    pub(crate) ensure_root_privileges: bool,
 }
 
 impl Default for PlatformConfig {
     fn default() -> Self {
         PlatformConfig {
             packet_information: false,
-            ask_permission: true,
+            ensure_root_privileges: true,
         }
     }
 }
@@ -48,10 +48,10 @@ impl PlatformConfig {
         self
     }
 
-    /// Indicated if tun2 running in root privilege,
+    /// Indicated whether tun2 running in root privilege,
     /// since some operations need it such as assigning IP/netmask/destination etc.
-    pub fn ask_permission(&mut self, value: bool) -> &mut Self {
-        self.ask_permission = value;
+    pub fn ensure_root_privileges(&mut self, value: bool) -> &mut Self {
+        self.ensure_root_privileges = value;
         self
     }
 }
