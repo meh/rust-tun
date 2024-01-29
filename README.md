@@ -53,7 +53,6 @@ fn main() {
 
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
-        config.packet_information(true);
         config.ensure_root_privileges(true);
     });
 

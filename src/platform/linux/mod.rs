@@ -43,6 +43,11 @@ impl Default for PlatformConfig {
 impl PlatformConfig {
     /// Enable or disable packet information, when enabled the first 4 bytes of
     /// each packet is a header with flags and protocol type.
+    /// This configuration just applies to the Linux underlying API and is a no-op on tun2(i.e. the packet delivered by tun2 not contains packet information anymore).
+    #[deprecated(
+        since = "1.0.0",
+        note = "no operation applies to the packets delivered by tun2 since the packets always not contain packet information on all platforms anymore"
+    )]
     pub fn packet_information(&mut self, value: bool) -> &mut Self {
         self.packet_information = value;
         self
