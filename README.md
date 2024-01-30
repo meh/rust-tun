@@ -53,7 +53,7 @@ fn main() {
 
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
-        config.ensure_root_privileges(true);
+        config.ensure_root_privileges(true);  // requiring root privilege to acquire complete functions
     });
 
     let mut dev = tun2::create(&config).unwrap();
