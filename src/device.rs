@@ -85,8 +85,12 @@ pub trait AbstractDevice: Read + Write {
     fn mtu(&self) -> Result<usize>;
 
     /// Set the MTU.
+    ///
+    /// [Note: This setting has no effect on the Windows platform due to the mtu of wintun is always 65535. --end note]
     fn set_mtu(&mut self, value: usize) -> Result<()>;
 
-    /// Return whether the device has packet information
+    /// Return whether the underlying tun device on the platform has packet information
+    ///
+    /// [Note: This value is not used to specify whether the packets delivered from/to tun2 have packet information. -- end note]
     fn packet_information(&self) -> bool;
 }

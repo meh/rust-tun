@@ -91,6 +91,8 @@ impl Configuration {
     }
 
     /// Set the MTU.
+    ///
+    /// [Note: mtu on the Windows platform is always 65535 due to wintun -- end note]
     pub fn mtu(&mut self, value: usize) -> &mut Self {
         // mtu on windows platform is always 65535 due to wintun
         if cfg!(target_family = "unix") {
