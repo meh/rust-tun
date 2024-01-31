@@ -51,7 +51,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    /// Access the platform dependant configuration.
+    /// Access the platform-dependent configuration.
     pub fn platform_config<F>(&mut self, f: F) -> &mut Self
     where
         F: FnOnce(&mut PlatformConfig),
