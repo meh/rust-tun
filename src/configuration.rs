@@ -62,7 +62,7 @@ impl Configuration {
 
     /// Set the name.
     ///
-    /// [Note: on macOS, the name must be the form `utunxxx` where `xxx` is a number. -- end note]
+    /// [Note: on macOS, the name must be the form `utunx` where `x` is a number, such as `utun3`. -- end note]
     pub fn name<S: AsRef<str>>(&mut self, name: S) -> &mut Self {
         self.name = Some(name.as_ref().into());
         self
@@ -122,6 +122,8 @@ impl Configuration {
     }
 
     /// Set the number of queues.
+    /// Note: The queues must be 1, otherwise will failed.
+    #[deprecated(since = "1.0.0", note = "The queues will always be 1.")]
     pub fn queues(&mut self, value: usize) -> &mut Self {
         self.queues = Some(value);
         self
