@@ -43,8 +43,6 @@ async fn main_entry(
 
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
-        #[allow(deprecated)]
-        config.packet_information(true);
         config.ensure_root_privileges(true);
     });
 

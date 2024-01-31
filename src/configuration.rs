@@ -61,6 +61,8 @@ impl Configuration {
     }
 
     /// Set the name.
+    ///
+    /// [Note: on macOS, the name must be the form `utunxxx` where `xxx` is a number. -- end note]
     pub fn name<S: AsRef<str>>(&mut self, name: S) -> &mut Self {
         self.name = Some(name.as_ref().into());
         self

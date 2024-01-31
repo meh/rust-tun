@@ -41,8 +41,6 @@ fn main_entry(quit: Receiver<()>) -> Result<(), Box<dyn std::error::Error + Send
 
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
-        #[allow(deprecated)]
-        config.packet_information(true);
         config.ensure_root_privileges(true);
     });
 
