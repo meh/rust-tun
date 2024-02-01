@@ -15,10 +15,10 @@
 use futures::{SinkExt, StreamExt};
 use packet::{builder::Builder, icmp, ip, Packet};
 use tokio::sync::mpsc::Receiver;
-use tun2::{self, Configuration};
+use tun2::{self, BoxError, Configuration};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> Result<(), BoxError> {
     let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
 
     ctrlc2::set_async_handler(async move {
@@ -30,9 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-async fn main_entry(
-    mut quit: Receiver<()>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = Configuration::default();
 
     config
@@ -43,6 +41,8 @@ async fn main_entry(
 
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
+        #[allow(deprecated)]
+        config.packet_information(true);
         config.ensure_root_privileges(true);
     });
 

@@ -14,8 +14,9 @@
 
 use std::io::Read;
 use std::sync::mpsc::Receiver;
+use tun2::BoxError;
 
-fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+fn main() -> Result<(), BoxError> {
     let (tx, rx) = std::sync::mpsc::channel();
 
     let handle = ctrlc2::set_handler(move || {
@@ -29,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-fn main_entry(quit: Receiver<()>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun2::Configuration::default();
 
     config
@@ -51,7 +52,7 @@ fn main_entry(quit: Receiver<()>) -> Result<(), Box<dyn std::error::Error + Send
             println!("{:?}", &buf[0..amount]);
         }
         #[allow(unreachable_code)]
-        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
+        Ok::<(), BoxError>(())
     });
     quit.recv().expect("Quit error.");
     Ok(())

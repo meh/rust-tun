@@ -14,10 +14,10 @@
 
 use tokio::io::AsyncReadExt;
 use tokio::sync::mpsc::Receiver;
-use tun2::AbstractDevice;
+use tun2::{AbstractDevice, BoxError};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> Result<(), BoxError> {
     let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
 
     ctrlc2::set_async_handler(async move {
@@ -29,9 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-async fn main_entry(
-    mut quit: Receiver<()>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun2::Configuration::default();
 
     config

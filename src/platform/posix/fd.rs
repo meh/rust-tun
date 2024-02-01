@@ -36,6 +36,24 @@ impl Fd {
             _ => Err(io::Error::last_os_error()),
         }
     }
+
+    pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
+        let fd = self.as_raw_fd();
+        let amount = unsafe { libc::read(fd, buf.as_mut_ptr() as *mut _, buf.len()) };
+        if amount < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(amount as usize)
+    }
+
+    pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
+        let fd = self.as_raw_fd();
+        let amount = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
+        if amount < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(amount as usize)
+    }
 }
 
 impl AsRawFd for Fd {
@@ -54,10 +72,8 @@ impl IntoRawFd for Fd {
 
 impl Drop for Fd {
     fn drop(&mut self) {
-        unsafe {
-            if self.0 >= 0 {
-                libc::close(self.0);
-            }
+        if self.0 >= 0 {
+            unsafe { libc::close(self.0) };
         }
     }
 }

@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 mod error;
-pub use crate::error::{Error, Result};
+pub use crate::error::{BoxError, Error, Result};
 
 mod address;
 pub use crate::address::IntoAddress;

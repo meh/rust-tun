@@ -17,6 +17,7 @@ use futures::StreamExt;
 use packet::{ip::Packet, Error};
 use tokio::sync::mpsc::Receiver;
 use tokio_util::codec::{Decoder, FramedRead};
+use tun2::BoxError;
 
 pub struct IPPacketCodec;
 
@@ -41,7 +42,7 @@ impl Decoder for IPPacketCodec {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> Result<(), BoxError> {
     let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
 
     ctrlc2::set_async_handler(async move {
@@ -53,9 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-async fn main_entry(
-    mut quit: Receiver<()>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun2::Configuration::default();
 
     config
@@ -63,6 +62,18 @@ async fn main_entry(
         .netmask((255, 255, 255, 0))
         .destination((10, 0, 0, 1))
         .up();
+
+    #[cfg(target_os = "linux")]
+    config.platform_config(|config| {
+        #[allow(deprecated)]
+        config.packet_information(true);
+        config.ensure_root_privileges(true);
+    });
+
+    #[cfg(target_os = "windows")]
+    config.platform_config(|config| {
+        config.device_guid(Some(9099482345783245345345_u128));
+    });
 
     let dev = tun2::create_as_async(&config)?;
 

@@ -87,13 +87,7 @@ impl Read for Reader {
         } else {
             &mut *buf
         };
-        let fd = self.fd.as_raw_fd();
-        let amount = unsafe { libc::read(fd, either_buf.as_mut_ptr() as *mut _, either_buf.len()) };
-
-        if amount < 0 {
-            return Err(io::Error::last_os_error());
-        }
-        let amount = amount as usize;
+        let amount = self.fd.read(either_buf)?;
         if self.offset != 0 {
             buf.put_slice(&self.buf[self.offset..amount]);
         }
@@ -138,12 +132,8 @@ impl Write for Writer {
         } else {
             buf
         };
-        let fd = self.fd.as_raw_fd();
-        let amount = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
-        if amount < 0 {
-            return Err(io::Error::last_os_error());
-        }
-        Ok(amount as usize - self.offset)
+        let amount = self.fd.write(buf)?;
+        Ok(amount - self.offset)
     }
 
     fn flush(&mut self) -> io::Result<()> {
