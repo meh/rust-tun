@@ -397,7 +397,7 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn mtu(&self) -> Result<usize> {
+    fn mtu(&self) -> Result<u16> {
         let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
             let mut req = self.request()?;
@@ -406,11 +406,14 @@ impl AbstractDevice for Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            Ok(req.ifr_ifru.ifru_mtu as usize)
+            req.ifr_ifru
+                .ifru_mtu
+                .try_into()
+                .map_err(|_| Error::TryFromIntError)
         }
     }
 
-    fn set_mtu(&mut self, value: usize) -> Result<()> {
+    fn set_mtu(&mut self, value: u16) -> Result<()> {
         let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
             let mut req = self.request()?;

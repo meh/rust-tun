@@ -38,7 +38,7 @@ pub struct Configuration {
     pub(crate) destination: Option<IpAddr>,
     pub(crate) broadcast: Option<IpAddr>,
     pub(crate) netmask: Option<IpAddr>,
-    pub(crate) mtu: Option<usize>,
+    pub(crate) mtu: Option<u16>,
     pub(crate) enabled: Option<bool>,
     pub(crate) layer: Option<Layer>,
     pub(crate) queues: Option<usize>,
@@ -95,7 +95,7 @@ impl Configuration {
     /// Set the MTU.
     ///
     /// [Note: mtu on the Windows platform is always 65535 due to wintun -- end note]
-    pub fn mtu(&mut self, value: usize) -> &mut Self {
+    pub fn mtu(&mut self, value: u16) -> &mut Self {
         // mtu on windows platform is always 65535 due to wintun
         if cfg!(target_family = "unix") {
             self.mtu = Some(value);

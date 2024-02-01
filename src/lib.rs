@@ -37,8 +37,8 @@ pub fn configure() -> Configuration {
 }
 
 #[cfg(unix)]
-pub const DEFAULT_MTU: usize = 1500;
+pub const DEFAULT_MTU: u16 = 1500;
 #[cfg(windows)]
-pub const DEFAULT_MTU: usize = 0xFFFF; // 65535
+pub const DEFAULT_MTU: u16 = 0xFFFF; // 65535
 
 pub const PACKET_INFORMATION_LENGTH: usize = 4;

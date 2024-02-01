@@ -71,8 +71,8 @@ pub struct Reader {
 }
 
 impl Reader {
-    pub(crate) fn set_mtu(&mut self, value: usize) {
-        self.buf.resize(value + self.offset, 0);
+    pub(crate) fn set_mtu(&mut self, value: u16) {
+        self.buf.resize(value as usize + self.offset, 0);
     }
 }
 
@@ -115,8 +115,8 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub(crate) fn set_mtu(&mut self, value: usize) {
-        self.buf.resize(value + self.offset, 0);
+    pub(crate) fn set_mtu(&mut self, value: u16) {
+        self.buf.resize(value as usize + self.offset, 0);
     }
 }
 
@@ -164,22 +164,22 @@ pub struct Tun {
 }
 
 impl Tun {
-    pub(crate) fn new(fd: Fd, mtu: usize, packet_information: bool) -> Self {
+    pub(crate) fn new(fd: Fd, mtu: u16, packet_information: bool) -> Self {
         let fd = Arc::new(fd);
         let offset = if packet_information { PIL } else { 0 };
         Self {
             reader: Reader {
                 fd: fd.clone(),
                 offset,
-                buf: vec![0; mtu + offset],
+                buf: vec![0; mtu as usize + offset],
             },
             writer: Writer {
                 fd,
                 offset,
-                buf: vec![0; mtu + offset],
+                buf: vec![0; mtu as usize + offset],
             },
             info: TunInfo {
-                mtu,
+                mtu: mtu as usize,
                 packet_information,
             },
         }
@@ -189,14 +189,14 @@ impl Tun {
         self.reader.fd.set_nonblock()
     }
 
-    pub fn set_mtu(&mut self, value: usize) {
-        self.info.mtu = value;
+    pub fn set_mtu(&mut self, value: u16) {
+        self.info.mtu = value as usize;
         self.reader.set_mtu(value);
         self.writer.set_mtu(value);
     }
 
-    pub fn mtu(&self) -> usize {
-        self.info.mtu
+    pub fn mtu(&self) -> u16 {
+        self.info.mtu as u16
     }
 
     pub fn packet_information(&self) -> bool {

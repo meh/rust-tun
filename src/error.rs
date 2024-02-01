@@ -38,6 +38,9 @@ pub enum Error {
     #[error("invalid queues number")]
     InvalidQueuesNumber,
 
+    #[error("out of range integral type conversion attempted")]
+    TryFromIntError,
+
     #[error(transparent)]
     Io(#[from] std::io::Error),
 

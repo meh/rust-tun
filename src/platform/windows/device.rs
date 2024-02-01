@@ -25,7 +25,7 @@ use crate::error::{Error, Result};
 /// A TUN device using the wintun driver.
 pub struct Device {
     pub(crate) tun: Tun,
-    mtu: usize,
+    mtu: u16,
 }
 
 impl Device {
@@ -181,13 +181,13 @@ impl AbstractDevice for Device {
     }
 
     /// The return value is always `Ok(65535)` due to wintun
-    fn mtu(&self) -> Result<usize> {
+    fn mtu(&self) -> Result<u16> {
         // Note: wintun mtu is always 65535
         Ok(self.mtu)
     }
 
     /// This setting has no effect since the mtu of wintun is always 65535
-    fn set_mtu(&mut self, _: usize) -> Result<()> {
+    fn set_mtu(&mut self, _: u16) -> Result<()> {
         // Note: no-op due to mtu of wintun is always 65535
         Ok(())
     }

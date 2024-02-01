@@ -55,9 +55,9 @@ impl AsyncDevice {
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
         let mtu = self.as_ref().mtu().unwrap_or(crate::DEFAULT_MTU);
-        let codec = TunPacketCodec::new(mtu);
+        let codec = TunPacketCodec::new(mtu as usize);
         // associate mtu with the capacity of ReadBuf
-        Framed::with_capacity(self, codec, mtu)
+        Framed::with_capacity(self, codec, mtu as usize)
     }
 }
 

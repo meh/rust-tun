@@ -82,12 +82,12 @@ pub trait AbstractDevice: Read + Write {
     fn set_netmask(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the MTU.
-    fn mtu(&self) -> Result<usize>;
+    fn mtu(&self) -> Result<u16>;
 
     /// Set the MTU.
     ///
     /// [Note: This setting has no effect on the Windows platform due to the mtu of wintun is always 65535. --end note]
-    fn set_mtu(&mut self, value: usize) -> Result<()>;
+    fn set_mtu(&mut self, value: u16) -> Result<()>;
 
     /// Return whether the underlying tun device on the platform has packet information
     ///

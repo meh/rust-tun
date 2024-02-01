@@ -31,6 +31,7 @@ pub struct PlatformConfig {
     pub(crate) ensure_root_privileges: bool,
 }
 
+/// `packet_information` is default to be `false` and `ensure_root_privileges` is default to be `true`.
 impl Default for PlatformConfig {
     fn default() -> Self {
         PlatformConfig {
