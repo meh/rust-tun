@@ -22,6 +22,7 @@ use crate::{
         posix::{self, Fd, SockAddr, Tun},
     },
 };
+use cidr_util::Cidr;
 use libc::{
     self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_SYSTEM, AF_SYS_CONTROL,
     IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL, UTUN_OPT_IFNAME,
@@ -35,11 +36,19 @@ use std::{
     ptr,
 };
 
+#[derive(Clone, Copy)]
+struct Route {
+    addr: Ipv4Addr,
+    netmask: Ipv4Addr,
+    dest: Ipv4Addr,
+}
+
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
     name: Option<String>,
     tun: Tun,
     ctl: Option<Fd>,
+    route: Option<Route>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -64,6 +73,7 @@ impl Device {
                 name: None,
                 tun: Tun::new(tun, mtu, true),
                 ctl: None,
+                route: None,
             };
             return Ok(device);
         }
@@ -143,6 +153,7 @@ impl Device {
                 ),
                 tun: Tun::new(tun, mtu, true),
                 ctl,
+                route: None,
             }
         };
 
@@ -204,7 +215,14 @@ impl Device {
             if siocaifaddr(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
-
+            let route = Route {
+                addr,
+                netmask: mask,
+                dest: broadaddr,
+            };
+            if let Err(e) = self.set_route(route) {
+                log::warn!("{e:?}");
+            }
             Ok(())
         }
     }
@@ -217,6 +235,35 @@ impl Device {
     /// Set non-blocking mode
     pub fn set_nonblock(&self) -> io::Result<()> {
         self.tun.set_nonblock()
+    }
+
+    fn set_route(&mut self, route: Route) -> Result<()> {
+        if let Some(v) = &self.route {
+            let prefix_len = v.netmask.to_prefix_len();
+            let (start_ip, _) = v.addr.ip_range(v.netmask.to_prefix_len());
+            // command: route -n delete -net 10.0.0.0/24 10.0.0.1
+            let args = [
+                "-n",
+                "delete",
+                "-net",
+                &format!("{}/{}", start_ip, prefix_len),
+                &v.dest.to_string(),
+            ];
+            run_command("route", &args)?;
+        }
+
+        // command: route -n add -net 10.0.0.9/24 10.0.0.1
+        let prefix = route.netmask.to_prefix_len();
+        let args = [
+            "-n",
+            "add",
+            "-net",
+            &format!("{}/{}", route.addr, prefix),
+            &route.dest.to_string(),
+        ];
+        run_command("route", &args)?;
+        self.route = Some(route);
+        Ok(())
     }
 }
 
@@ -296,7 +343,10 @@ impl AbstractDevice for Device {
             if siocsifaddr(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
-
+            if let Some(mut route) = self.route {
+                route.addr = value;
+                self.set_route(route)?;
+            }
             Ok(())
         }
     }
@@ -328,11 +378,15 @@ impl AbstractDevice for Device {
             if siocsifdstaddr(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
-
+            if let Some(mut route) = self.route {
+                route.dest = value;
+                self.set_route(route)?;
+            }
             Ok(())
         }
     }
 
+    /// Question on macOS
     fn broadcast(&self) -> Result<IpAddr> {
         let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
@@ -348,6 +402,7 @@ impl AbstractDevice for Device {
         }
     }
 
+    /// Question on macOS
     fn set_broadcast(&mut self, value: IpAddr) -> Result<()> {
         let IpAddr::V4(value) = value else {
             unimplemented!("do not support IPv6 yet")
@@ -392,7 +447,10 @@ impl AbstractDevice for Device {
             if siocsifnetmask(ctl.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
-
+            if let Some(mut route) = self.route {
+                route.netmask = value;
+                self.set_route(route)?;
+            }
             Ok(())
         }
     }
@@ -443,4 +501,20 @@ impl IntoRawFd for Device {
     fn into_raw_fd(self) -> RawFd {
         self.tun.into_raw_fd()
     }
+}
+
+/// Runs a command and returns an error if the command fails, just convenience for users.
+#[doc(hidden)]
+pub fn run_command(command: &str, args: &[&str]) -> std::io::Result<Vec<u8>> {
+    let out = std::process::Command::new(command).args(args).output()?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(if out.stderr.is_empty() {
+            &out.stdout
+        } else {
+            &out.stderr
+        });
+        let info = format!("{} failed with: \"{}\"", command, err);
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, info));
+    }
+    Ok(out.stdout)
 }

@@ -18,6 +18,7 @@ use std::sync::mpsc::Receiver;
 use tun2::BoxError;
 
 fn main() -> Result<(), BoxError> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
     let (tx, rx) = std::sync::mpsc::channel();
 
     let handle = ctrlc2::set_handler(move || {

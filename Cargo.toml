@@ -1,6 +1,6 @@
 [package]
 name = "tun2"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
 
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
@@ -32,8 +32,12 @@ ioctl = { version = "0.8", package = "ioctl-sys" }
 [target.'cfg(target_os = "windows")'.dependencies]
 wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+cidr_util = "0.1.0"
+
 [dev-dependencies]
 ctrlc2 = { version = "3.5", features = ["tokio", "termination"] }
+env_logger = "0.11"
 futures = "0.3"
 packet = "0.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }

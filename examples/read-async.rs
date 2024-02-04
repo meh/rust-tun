@@ -18,6 +18,7 @@ use tun2::{AbstractDevice, BoxError};
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
     let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
 
     ctrlc2::set_async_handler(async move {
