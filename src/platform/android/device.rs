@@ -16,7 +16,6 @@
 use std::io::{Read, Write};
 use std::net::IpAddr;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::sync::Arc;
 
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
