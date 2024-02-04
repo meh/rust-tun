@@ -78,7 +78,7 @@ interfaces.
 
 macOS
 -----
-It just works, but you have to set up routing manually. For example:
+`tun2` will automatically set up a route according to the provided configuration, which does a similar thing:
 > sudo route -n add -net 10.0.0.0/24 10.0.0.1
 
 
