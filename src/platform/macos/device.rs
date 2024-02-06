@@ -22,7 +22,7 @@ use crate::{
         posix::{self, Fd, SockAddr, Tun},
     },
 };
-use cidr_util::Cidr;
+
 use libc::{
     self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_SYSTEM, AF_SYS_CONTROL,
     IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL, UTUN_OPT_IFNAME,
@@ -239,29 +239,35 @@ impl Device {
 
     fn set_route(&mut self, route: Route) -> Result<()> {
         if let Some(v) = &self.route {
-            let prefix_len = v.netmask.to_prefix_len();
-            let (start_ip, _) = v.addr.ip_range(v.netmask.to_prefix_len());
+            let prefix_len = ipnet::ip_mask_to_prefix(IpAddr::V4(v.netmask))
+                .map_err(|_| Error::InvalidConfig)?;
+            let network = ipnet::Ipv4Net::new(v.addr, prefix_len)
+                .map_err(|e| Error::InvalidConfig)?
+                .network();
             // command: route -n delete -net 10.0.0.0/24 10.0.0.1
             let args = [
                 "-n",
                 "delete",
                 "-net",
-                &format!("{}/{}", start_ip, prefix_len),
+                &format!("{}/{}", network, prefix_len),
                 &v.dest.to_string(),
             ];
             run_command("route", &args)?;
+            log::info!("route {}", args.join(" "));
         }
 
         // command: route -n add -net 10.0.0.9/24 10.0.0.1
-        let prefix = route.netmask.to_prefix_len();
+        let prefix_len = ipnet::ip_mask_to_prefix(IpAddr::V4(route.netmask))
+            .map_err(|_| Error::InvalidConfig)?;
         let args = [
             "-n",
             "add",
             "-net",
-            &format!("{}/{}", route.addr, prefix),
+            &format!("{}/{}", route.addr, prefix_len),
             &route.dest.to_string(),
         ];
         run_command("route", &args)?;
+        log::info!("route {}", args.join(" "));
         self.route = Some(route);
         Ok(())
     }

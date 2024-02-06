@@ -33,7 +33,7 @@ ioctl = { version = "0.8", package = "ioctl-sys" }
 wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cidr_util = "0.1.0"
+ipnet = "2"
 
 [dev-dependencies]
 ctrlc2 = { version = "3.5", features = ["tokio", "termination"] }
