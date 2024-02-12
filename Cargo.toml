@@ -1,6 +1,6 @@
 [package]
 name = "tun2"
-version = "1.0.4"
+version = "1.1.0"
 edition = "2021"
 
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
@@ -15,6 +15,7 @@ crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
 bytes = { version = "1" }
+cfg-if = "1.0"
 futures-core = { version = "0.3", optional = true }
 libc = "0.2"
 log = "0.4"

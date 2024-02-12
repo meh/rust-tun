@@ -21,6 +21,15 @@ use std::os::windows::raw::HANDLE;
 use crate::address::IntoAddress;
 use crate::platform::PlatformConfig;
 
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        #[derive(Clone, Debug)]
+        pub(crate) struct WinHandle(std::os::windows::raw::HANDLE);
+        unsafe impl Send for WinHandle {}
+        unsafe impl Sync for WinHandle {}
+    }
+}
+
 /// TUN interface OSI layer of operation.
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
 pub enum Layer {
@@ -47,7 +56,7 @@ pub struct Configuration {
     #[cfg(not(unix))]
     pub(crate) raw_fd: Option<i32>,
     #[cfg(windows)]
-    pub(crate) raw_handle: Option<HANDLE>,
+    pub(crate) raw_handle: Option<WinHandle>,
 }
 
 impl Configuration {
@@ -142,7 +151,7 @@ impl Configuration {
     }
     #[cfg(windows)]
     pub fn raw_handle(&mut self, handle: HANDLE) -> &mut Self {
-        self.raw_handle = Some(handle);
+        self.raw_handle = Some(WinHandle(handle));
         self
     }
 }
