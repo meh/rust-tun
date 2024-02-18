@@ -21,7 +21,7 @@ tokio = { version = "1", features = ["net", "macros"], optional = true }
 tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
-ioctl = { version = "0.8", package = "ioctl-sys" }
+nix = { version = "0.27", features = ["ioctl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 wintun = { version = "0.3", features = ["panic_on_unsent_packets"] }

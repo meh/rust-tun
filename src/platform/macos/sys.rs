@@ -14,8 +14,8 @@
 
 //! Bindings to internal macOS stuff.
 
-use ioctl::*;
 use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void, sockaddr, IFNAMSIZ};
+use nix::{ioctl_readwrite, ioctl_write_ptr};
 
 pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
@@ -109,25 +109,25 @@ pub struct ifaliasreq {
     pub mask: sockaddr,
 }
 
-ioctl!(readwrite ctliocginfo with 'N', 3; ctl_info);
+ioctl_readwrite!(ctliocginfo, b'N', 3, ctl_info);
 
-ioctl!(write siocsifflags with 'i', 16; ifreq);
-ioctl!(readwrite siocgifflags with 'i', 17; ifreq);
+ioctl_write_ptr!(siocsifflags, b'i', 16, ifreq);
+ioctl_readwrite!(siocgifflags, b'i', 17, ifreq);
 
-ioctl!(write siocsifaddr with 'i', 12; ifreq);
-ioctl!(readwrite siocgifaddr with 'i', 33; ifreq);
+ioctl_write_ptr!(siocsifaddr, b'i', 12, ifreq);
+ioctl_readwrite!(siocgifaddr, b'i', 33, ifreq);
 
-ioctl!(write siocsifdstaddr with 'i', 14; ifreq);
-ioctl!(readwrite siocgifdstaddr with 'i', 34; ifreq);
+ioctl_write_ptr!(siocsifdstaddr, b'i', 14, ifreq);
+ioctl_readwrite!(siocgifdstaddr, b'i', 34, ifreq);
 
-ioctl!(write siocsifbrdaddr with 'i', 19; ifreq);
-ioctl!(readwrite siocgifbrdaddr with 'i', 35; ifreq);
+ioctl_write_ptr!(siocsifbrdaddr, b'i', 19, ifreq);
+ioctl_readwrite!(siocgifbrdaddr, b'i', 35, ifreq);
 
-ioctl!(write siocsifnetmask with 'i', 22; ifreq);
-ioctl!(readwrite siocgifnetmask with 'i', 37; ifreq);
+ioctl_write_ptr!(siocsifnetmask, b'i', 22, ifreq);
+ioctl_readwrite!(siocgifnetmask, b'i', 37, ifreq);
 
-ioctl!(write siocsifmtu with 'i', 52; ifreq);
-ioctl!(readwrite siocgifmtu with 'i', 51; ifreq);
+ioctl_write_ptr!(siocsifmtu, b'i', 52, ifreq);
+ioctl_readwrite!(siocgifmtu, b'i', 51, ifreq);
 
-ioctl!(write siocaifaddr with 'i', 26; ifaliasreq);
-ioctl!(write siocdifaddr with 'i', 25; ifreq);
+ioctl_write_ptr!(siocaifaddr, b'i', 26, ifaliasreq);
+ioctl_write_ptr!(siocdifaddr, b'i', 25, ifreq);
