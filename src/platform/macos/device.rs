@@ -116,8 +116,8 @@ impl Device {
                 },
             };
 
-            if ctliocginfo(tun.0, &mut info as *mut _ as *mut _) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = ctliocginfo(tun.0, &mut info as *mut _ as *mut _) {
+                return Err(io::Error::from(err).into());
             }
 
             let addr = libc::sockaddr_ctl {
@@ -212,8 +212,8 @@ impl Device {
             req.broadaddr = SockAddr::from(broadaddr).into();
             req.mask = SockAddr::from(mask).into();
 
-            if siocaifaddr(ctl.as_raw_fd(), &req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocaifaddr(ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
             }
             let route = Route {
                 addr,
@@ -304,8 +304,8 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request()?;
 
-            if siocgifflags(ctl.as_raw_fd(), &mut req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocgifflags(ctl.as_raw_fd(), &mut req) {
+                return Err(io::Error::from(err).into());
             }
 
             if value {
@@ -314,8 +314,8 @@ impl AbstractDevice for Device {
                 req.ifr_ifru.ifru_flags &= !(IFF_UP as c_short);
             }
 
-            if siocsifflags(ctl.as_raw_fd(), &req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocsifflags(ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
             }
 
             Ok(())
@@ -327,8 +327,8 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request()?;
 
-            if siocgifaddr(ctl.as_raw_fd(), &mut req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocgifaddr(ctl.as_raw_fd(), &mut req) {
+                return Err(io::Error::from(err).into());
             }
 
             Ok(IpAddr::V4(
@@ -346,8 +346,8 @@ impl AbstractDevice for Device {
             let mut req = self.request()?;
             req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
 
-            if siocsifaddr(ctl.as_raw_fd(), &req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocsifaddr(ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
             }
             if let Some(mut route) = self.route {
                 route.addr = value;
@@ -362,8 +362,8 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request()?;
 
-            if siocgifdstaddr(ctl.as_raw_fd(), &mut req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocgifdstaddr(ctl.as_raw_fd(), &mut req) {
+                return Err(io::Error::from(err).into());
             }
 
             Ok(IpAddr::V4(
@@ -381,8 +381,8 @@ impl AbstractDevice for Device {
             let mut req = self.request()?;
             req.ifr_ifru.ifru_dstaddr = SockAddr::from(value).into();
 
-            if siocsifdstaddr(ctl.as_raw_fd(), &req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocsifdstaddr(ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
             }
             if let Some(mut route) = self.route {
                 route.dest = value;
@@ -398,8 +398,8 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request()?;
 
-            if siocgifbrdaddr(ctl.as_raw_fd(), &mut req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocgifbrdaddr(ctl.as_raw_fd(), &mut req) {
+                return Err(io::Error::from(err).into());
             }
 
             Ok(IpAddr::V4(
@@ -418,8 +418,8 @@ impl AbstractDevice for Device {
             let mut req = self.request()?;
             req.ifr_ifru.ifru_broadaddr = SockAddr::from(value).into();
 
-            if siocsifbrdaddr(ctl.as_raw_fd(), &req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocsifbrdaddr(ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
             }
 
             Ok(())
@@ -431,8 +431,8 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request()?;
 
-            if siocgifnetmask(ctl.as_raw_fd(), &mut req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocgifnetmask(ctl.as_raw_fd(), &mut req) {
+                return Err(io::Error::from(err).into());
             }
 
             Ok(IpAddr::V4(
@@ -450,8 +450,8 @@ impl AbstractDevice for Device {
             let mut req = self.request()?;
             req.ifr_ifru.ifru_addr = SockAddr::from(value).into();
 
-            if siocsifnetmask(ctl.as_raw_fd(), &req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocsifnetmask(ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
             }
             if let Some(mut route) = self.route {
                 route.netmask = value;
@@ -466,8 +466,8 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request()?;
 
-            if siocgifmtu(ctl.as_raw_fd(), &mut req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocgifmtu(ctl.as_raw_fd(), &mut req) {
+                return Err(io::Error::from(err).into());
             }
 
             req.ifr_ifru
@@ -483,8 +483,8 @@ impl AbstractDevice for Device {
             let mut req = self.request()?;
             req.ifr_ifru.ifru_mtu = value as i32;
 
-            if siocsifmtu(ctl.as_raw_fd(), &req) < 0 {
-                return Err(io::Error::last_os_error().into());
+            if let Err(err) = siocsifmtu(ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
             }
             self.tun.set_mtu(value);
             Ok(())
