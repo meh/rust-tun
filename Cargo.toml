@@ -24,7 +24,7 @@ tokio-util = { version = "0.7", features = ["codec"], optional = true }
 ioctl = { version = "0.8", package = "ioctl-sys" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-wintun = { version = "0.3", features = ["panic_on_unsent_packets"] }
+wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 
 [dev-dependencies]
 futures = "0.3"
