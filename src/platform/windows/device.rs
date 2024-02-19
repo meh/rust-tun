@@ -259,6 +259,14 @@ impl Queue {
             },
         }
     }
+
+    /// Returns the Win32 interface index of this adapter.
+    pub fn get_adapter_index(&self) -> io::Result<u32> {
+        match self.session.get_adapter().get_adapter_index() {
+            Ok(i) => Ok(i),
+            Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
+        }
+    }
 }
 
 impl Read for Queue {
