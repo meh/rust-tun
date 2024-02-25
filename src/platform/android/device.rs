@@ -86,11 +86,11 @@ impl Write for Device {
 }
 
 impl AbstractDevice for Device {
-    fn name(&self) -> Result<String> {
+    fn tun_name(&self) -> Result<String> {
         Ok("".to_string())
     }
 
-    fn set_name(&mut self, value: &str) -> Result<()> {
+    fn set_tun_name(&mut self, value: &str) -> Result<()> {
         Err(Error::NotImplemented)
     }
 

@@ -48,11 +48,11 @@ pub trait AbstractDevice: Read + Write {
         Ok(())
     }
 
-    /// Get the device name.
-    fn name(&self) -> Result<String>;
+    /// Get the device tun name.
+    fn tun_name(&self) -> Result<String>;
 
-    /// Set the device name.
-    fn set_name(&mut self, name: &str) -> Result<()>;
+    /// Set the device tun name.
+    fn set_tun_name(&mut self, tun_name: &str) -> Result<()>;
 
     /// Turn on or off the interface.
     fn enabled(&mut self, value: bool) -> Result<()>;

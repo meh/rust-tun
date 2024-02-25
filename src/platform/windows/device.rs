@@ -32,7 +32,7 @@ impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
         let wintun = unsafe { wintun::load()? };
-        let tun_name = config.name.as_deref().unwrap_or("wintun");
+        let tun_name = config.tun_name.as_deref().unwrap_or("wintun");
         let guid = config.platform_config.device_guid;
         let adapter = match wintun::Adapter::open(&wintun, tun_name) {
             Ok(a) => a,
@@ -99,11 +99,11 @@ impl AsMut<dyn AbstractDevice + 'static> for Device {
 }
 
 impl AbstractDevice for Device {
-    fn name(&self) -> Result<String> {
+    fn tun_name(&self) -> Result<String> {
         Ok(self.tun.session.get_adapter().get_name()?)
     }
 
-    fn set_name(&mut self, value: &str) -> Result<()> {
+    fn set_tun_name(&mut self, value: &str) -> Result<()> {
         self.tun.session.get_adapter().set_name(value)?;
         Ok(())
     }

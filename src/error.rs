@@ -20,10 +20,10 @@ pub enum Error {
     #[error("not implementated")]
     NotImplemented,
 
-    #[error("device name too long")]
+    #[error("device tun name too long")]
     NameTooLong,
 
-    #[error("invalid device name")]
+    #[error("invalid device tun name")]
     InvalidName,
 
     #[error("invalid address")]

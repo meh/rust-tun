@@ -15,8 +15,6 @@
 use std::net::IpAddr;
 #[cfg(unix)]
 use std::os::unix::io::RawFd;
-#[cfg(windows)]
-use std::os::windows::raw::HANDLE;
 
 use crate::address::IntoAddress;
 use crate::platform::PlatformConfig;
@@ -41,7 +39,7 @@ pub enum Layer {
 /// Configuration builder for a TUN interface.
 #[derive(Clone, Default, Debug)]
 pub struct Configuration {
-    pub(crate) name: Option<String>,
+    pub(crate) tun_name: Option<String>,
     pub(crate) platform_config: PlatformConfig,
     pub(crate) address: Option<IpAddr>,
     pub(crate) destination: Option<IpAddr>,
@@ -69,11 +67,11 @@ impl Configuration {
         self
     }
 
-    /// Set the name.
+    /// Set the tun name.
     ///
-    /// [Note: on macOS, the name must be the form `utunx` where `x` is a number, such as `utun3`. -- end note]
-    pub fn name<S: AsRef<str>>(&mut self, name: S) -> &mut Self {
-        self.name = Some(name.as_ref().into());
+    /// [Note: on macOS, the tun name must be the form `utunx` where `x` is a number, such as `utun3`. -- end note]
+    pub fn tun_name<S: AsRef<str>>(&mut self, tun_name: S) -> &mut Self {
+        self.tun_name = Some(tun_name.as_ref().into());
         self
     }
 
@@ -150,7 +148,7 @@ impl Configuration {
         self
     }
     #[cfg(windows)]
-    pub fn raw_handle(&mut self, handle: HANDLE) -> &mut Self {
+    pub fn raw_handle(&mut self, handle: std::os::windows::raw::HANDLE) -> &mut Self {
         self.raw_handle = Some(WinHandle(handle));
         self
     }

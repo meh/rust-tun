@@ -45,7 +45,7 @@ struct Route {
 
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
-    name: Option<String>,
+    tun_name: Option<String>,
     tun: Tun,
     ctl: Option<Fd>,
     route: Option<Route>,
@@ -70,7 +70,7 @@ impl Device {
         if let Some(fd) = config.raw_fd {
             let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
             let device = Device {
-                name: None,
+                tun_name: None,
                 tun: Tun::new(tun, mtu, true),
                 ctl: None,
                 route: None,
@@ -78,16 +78,16 @@ impl Device {
             return Ok(device);
         }
 
-        let id = if let Some(name) = config.name.as_ref() {
-            if name.len() > IFNAMSIZ {
+        let id = if let Some(tun_name) = config.tun_name.as_ref() {
+            if tun_name.len() > IFNAMSIZ {
                 return Err(Error::NameTooLong);
             }
 
-            if !name.starts_with("utun") {
+            if !tun_name.starts_with("utun") {
                 return Err(Error::InvalidName);
             }
 
-            name[4..].parse::<u32>()? + 1_u32
+            tun_name[4..].parse::<u32>()? + 1_u32
         } else {
             0_u32
         };
@@ -134,10 +134,10 @@ impl Device {
                 return Err(io::Error::last_os_error().into());
             }
 
-            let mut name = [0u8; 64];
+            let mut tun_name = [0u8; 64];
             let mut name_len: socklen_t = 64;
 
-            let optval = &mut name as *mut _ as *mut c_void;
+            let optval = &mut tun_name as *mut _ as *mut c_void;
             let optlen = &mut name_len as *mut socklen_t;
             if libc::getsockopt(tun.0, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, optval, optlen) < 0 {
                 return Err(io::Error::last_os_error().into());
@@ -146,8 +146,8 @@ impl Device {
             let ctl = Some(Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?);
 
             Device {
-                name: Some(
-                    CStr::from_ptr(name.as_ptr() as *const c_char)
+                tun_name: Some(
+                    CStr::from_ptr(tun_name.as_ptr() as *const c_char)
                         .to_string_lossy()
                         .into(),
                 ),
@@ -176,12 +176,12 @@ impl Device {
     /// Prepare a new request.
     /// # Safety
     pub unsafe fn request(&self) -> Result<libc::ifreq> {
-        let name = self.name.as_ref().ok_or(Error::InvalidConfig)?;
+        let tun_name = self.tun_name.as_ref().ok_or(Error::InvalidConfig)?;
         let mut req: libc::ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
-            name.as_ptr() as *const c_char,
+            tun_name.as_ptr() as *const c_char,
             req.ifr_name.as_mut_ptr(),
-            name.len(),
+            tun_name.len(),
         );
 
         Ok(req)
@@ -198,14 +198,14 @@ impl Device {
         let IpAddr::V4(mask) = mask else {
             unimplemented!("do not support IPv6 yet")
         };
-        let name = self.name.as_ref().ok_or(Error::InvalidConfig)?;
+        let tun_name = self.tun_name.as_ref().ok_or(Error::InvalidConfig)?;
         let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
         unsafe {
             let mut req: ifaliasreq = mem::zeroed();
             ptr::copy_nonoverlapping(
-                name.as_ptr() as *const c_char,
+                tun_name.as_ptr() as *const c_char,
                 req.ifran.as_mut_ptr(),
-                name.len(),
+                tun_name.len(),
             );
 
             req.addr = SockAddr::from(addr).into();
@@ -290,12 +290,12 @@ impl Write for Device {
 }
 
 impl AbstractDevice for Device {
-    fn name(&self) -> Result<String> {
-        self.name.as_ref().cloned().ok_or(Error::InvalidConfig)
+    fn tun_name(&self) -> Result<String> {
+        self.tun_name.as_ref().cloned().ok_or(Error::InvalidConfig)
     }
 
     // XXX: Cannot set interface name on Darwin.
-    fn set_name(&mut self, value: &str) -> Result<()> {
+    fn set_tun_name(&mut self, value: &str) -> Result<()> {
         Err(Error::InvalidName)
     }
 

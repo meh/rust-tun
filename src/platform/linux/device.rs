@@ -35,7 +35,7 @@ use crate::{
 
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
-    name: String,
+    tun_name: String,
     tun: Tun,
     ctl: Fd,
     packet_information: bool,
@@ -57,15 +57,15 @@ impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
         let mut device = unsafe {
-            let dev = match config.name.as_ref() {
-                Some(name) => {
-                    let name = CString::new(name.clone())?;
+            let dev = match config.tun_name.as_ref() {
+                Some(tun_name) => {
+                    let tun_name = CString::new(tun_name.clone())?;
 
-                    if name.as_bytes_with_nul().len() > IFNAMSIZ {
+                    if tun_name.as_bytes_with_nul().len() > IFNAMSIZ {
                         return Err(Error::NameTooLong);
                     }
 
-                    Some(name)
+                    Some(tun_name)
                 }
 
                 None => None,
@@ -110,11 +110,11 @@ impl Device {
 
             let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
 
-            let name = CStr::from_ptr(req.ifr_name.as_ptr())
+            let tun_name = CStr::from_ptr(req.ifr_name.as_ptr())
                 .to_string_lossy()
                 .to_string();
             Device {
-                name,
+                tun_name,
                 tun: Tun::new(tun, mtu, packet_information),
                 ctl,
                 packet_information,
@@ -132,9 +132,9 @@ impl Device {
     unsafe fn request(&self) -> ifreq {
         let mut req: ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
-            self.name.as_ptr() as *const c_char,
+            self.tun_name.as_ptr() as *const c_char,
             req.ifr_name.as_mut_ptr(),
-            self.name.len(),
+            self.tun_name.len(),
         );
 
         req
@@ -209,21 +209,21 @@ impl Write for Device {
 }
 
 impl AbstractDevice for Device {
-    fn name(&self) -> Result<String> {
-        Ok(self.name.clone())
+    fn tun_name(&self) -> Result<String> {
+        Ok(self.tun_name.clone())
     }
 
-    fn set_name(&mut self, value: &str) -> Result<()> {
+    fn set_tun_name(&mut self, value: &str) -> Result<()> {
         unsafe {
-            let name = CString::new(value)?;
+            let tun_name = CString::new(value)?;
 
-            if name.as_bytes_with_nul().len() > IFNAMSIZ {
+            if tun_name.as_bytes_with_nul().len() > IFNAMSIZ {
                 return Err(Error::NameTooLong);
             }
 
             let mut req = self.request();
             ptr::copy_nonoverlapping(
-                name.as_ptr() as *const c_char,
+                tun_name.as_ptr() as *const c_char,
                 req.ifr_ifru.ifru_newname.as_mut_ptr(),
                 value.len(),
             );
@@ -232,7 +232,7 @@ impl AbstractDevice for Device {
                 return Err(io::Error::from(err).into());
             }
 
-            self.name = value.into();
+            self.tun_name = value.into();
 
             Ok(())
         }
