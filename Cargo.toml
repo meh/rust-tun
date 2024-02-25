@@ -1,6 +1,6 @@
 [package]
 name = "tun2"
-version = "1.1.1"
+version = "1.1.2"
 edition = "2021"
 
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
@@ -28,7 +28,7 @@ tokio = { version = "1", features = [
 tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "android"))'.dependencies]
-nix = { version = "0.27", features = ["ioctl"] }
+nix = { version = "0.28", features = ["ioctl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
