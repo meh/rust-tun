@@ -25,13 +25,13 @@ tokio = { version = "1", features = [
 ], optional = true }
 tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "android"))'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "android", target_os="freebsd"))'.dependencies]
 nix = { version = "0.28", features = ["ioctl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
 
-[target.'cfg(target_os = "macos")'.dependencies]
+[target.'cfg(any(target_os = "macos", target_os = "freebsd"))'.dependencies]
 ipnet = "2"
 
 [dev-dependencies]

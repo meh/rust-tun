@@ -46,10 +46,20 @@ impl SockAddr {
 impl From<Ipv4Addr> for SockAddr {
     fn from(ip: Ipv4Addr) -> SockAddr {
         let octets = ip.octets();
+
         let mut addr = unsafe { mem::zeroed::<sockaddr_in>() };
 
         addr.sin_family = libc::AF_INET as libc::sa_family_t;
         addr.sin_port = 0;
+
+        #[cfg(any(target_os = "freebsd", target_os = "macos"))]
+        fn set_sin_len(addr: &mut sockaddr_in) {
+            addr.sin_len = std::mem::size_of::<sockaddr_in>() as u8;
+        }
+        #[cfg(not(any(target_os = "freebsd", target_os = "macos")))]
+        fn set_sin_len(_addr: &mut sockaddr_in) {}
+        set_sin_len(&mut addr);
+
         addr.sin_addr = in_addr {
             s_addr: u32::from_ne_bytes(octets),
         };

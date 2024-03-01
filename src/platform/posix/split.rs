@@ -46,6 +46,11 @@ pub(crate) fn generate_packet_information(
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     const TUN_PROTO_IP4: [u8; PIL] = (libc::AF_INET as u32).to_be_bytes();
 
+    #[cfg(target_os = "freebsd")]
+    const TUN_PROTO_IP6: [u8; PIL] = (libc::AF_INET6 as u32).to_be_bytes();
+    #[cfg(target_os = "freebsd")]
+    const TUN_PROTO_IP4: [u8; PIL] = (libc::AF_INET as u32).to_be_bytes();
+
     #[cfg(unix)]
     if _packet_information {
         if _ipv6 {
