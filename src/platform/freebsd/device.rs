@@ -77,6 +77,10 @@ impl Device {
                 None => None,
             };
 
+            if config.layer.filter(|l| *l != Layer::L3).is_some() {
+                return Err(Error::UnsupportedLayer);
+            }
+
             let queues_num = config.queues.unwrap_or(1);
             if queues_num != 1 {
                 return Err(Error::InvalidQueuesNumber);
@@ -101,7 +105,13 @@ impl Device {
                                 break 'End (tun, device_name);
                             }
                         }
-                        return Err(Error::InvalidName);
+                        return Err(Error::Io(
+                            std::io::Error::new(
+                                std::io::ErrorKind::AlreadyExists,
+                                "no avaiable file descriptor",
+                            )
+                            .into(),
+                        ));
                     };
                     (tun, device_name)
                 }

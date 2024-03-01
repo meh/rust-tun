@@ -36,7 +36,6 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun2::Configuration::default();
 
     config
-        .tun_name("tun3")
         .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
         .destination((10, 0, 0, 1))
@@ -60,6 +59,7 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     dev.set_address(std::net::IpAddr::V4(Ipv4Addr::new(10, 0, 0, 20)))?;
     dev.set_destination(std::net::IpAddr::V4(Ipv4Addr::new(10, 0, 0, 66)))?;
     dev.set_netmask(std::net::IpAddr::V4(Ipv4Addr::new(255, 255, 0, 0)))?;
+    dev.set_mtu(65535)?;
 
     //dev.set_tun_name("tun8")?;
 

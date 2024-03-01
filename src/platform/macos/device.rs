@@ -175,7 +175,7 @@ impl Device {
 
     /// Prepare a new request.
     /// # Safety
-    pub unsafe fn request(&self) -> Result<libc::ifreq> {
+    unsafe fn request(&self) -> Result<libc::ifreq> {
         let tun_name = self.tun_name.as_ref().ok_or(Error::InvalidConfig)?;
         let mut req: libc::ifreq = mem::zeroed();
         ptr::copy_nonoverlapping(
@@ -188,7 +188,7 @@ impl Device {
     }
 
     /// Set the IPv4 alias of the device.
-    pub fn set_alias(&mut self, addr: IpAddr, broadaddr: IpAddr, mask: IpAddr) -> Result<()> {
+    fn set_alias(&mut self, addr: IpAddr, broadaddr: IpAddr, mask: IpAddr) -> Result<()> {
         let IpAddr::V4(addr) = addr else {
             unimplemented!("do not support IPv6 yet")
         };
