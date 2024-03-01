@@ -69,7 +69,15 @@ fn main() {
 
 Platforms
 =========
-Recently, `tun2` supports Linux, Android, macOS, iOS and Windows.
+## Supported Platforms
+
+- [x] Windows
+- [x] Linux
+- [x] macOS
+- [x] FreeBSD
+- [x] Android
+- [x] iOS
+
 
 Linux
 -----
