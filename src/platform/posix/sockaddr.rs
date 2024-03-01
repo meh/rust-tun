@@ -17,7 +17,7 @@ use libc::{in_addr, sockaddr, sockaddr_in};
 use std::{mem, net::Ipv4Addr, ptr};
 
 /// A wrapper for `sockaddr_in`.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct SockAddr(sockaddr_in);
 
 impl SockAddr {
@@ -77,4 +77,19 @@ impl From<SockAddr> for sockaddr_in {
     fn from(addr: SockAddr) -> sockaddr_in {
         addr.0
     }
+}
+
+#[test]
+fn test_sockaddr() {
+    let old = Ipv4Addr::new(127, 0, 0, 1);
+    let addr = SockAddr::from(old);
+    if cfg!(target_endian = "big") {
+        assert_eq!(0x7f000001, addr.0.sin_addr.s_addr);
+    } else if cfg!(target_endian = "little") {
+        assert_eq!(0x0100007f, addr.0.sin_addr.s_addr);
+    } else {
+        unreachable!();
+    }
+    let ip = Ipv4Addr::from(addr);
+    assert_eq!(ip, old);
 }
