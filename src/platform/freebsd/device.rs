@@ -263,8 +263,27 @@ impl AbstractDevice for Device {
         Ok(self.tun_name.clone())
     }
 
-    fn set_tun_name(&mut self, _value: &str) -> Result<()> {
-        Err(Error::InvalidName)
+    fn set_tun_name(&mut self, value: &str) -> Result<()> {
+        use std::ffi::CString;
+        unsafe {
+            if value.len() > IFNAMSIZ {
+                return Err(Error::NameTooLong);
+            }
+            let mut req = self.request();
+            let tun_name = CString::new(value)?;
+            let mut tun_name: Vec<i8> = tun_name
+                .into_bytes_with_nul()
+                .into_iter()
+                .map(|c| c as i8)
+                .collect::<_>();
+            req.ifr_ifru.ifru_data = tun_name.as_mut_ptr();
+            if let Err(err) = siocsifname(self.ctl.as_raw_fd(), &req) {
+                return Err(io::Error::from(err).into());
+            }
+
+            self.tun_name = value.to_string();
+            Ok(())
+        }
     }
 
     fn enabled(&mut self, value: bool) -> Result<()> {
