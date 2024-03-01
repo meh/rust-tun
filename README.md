@@ -84,7 +84,7 @@ Linux
 You will need the `tun2` module to be loaded and root is required to create
 interfaces.
 
-macOS
+macOS & FreeBSD
 -----
 `tun2` will automatically set up a route according to the provided configuration, which does a similar thing like this:
 > sudo route -n add -net 10.0.0.0/24 10.0.0.1
