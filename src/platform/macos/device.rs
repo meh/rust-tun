@@ -19,18 +19,19 @@ use crate::{
     error::*,
     platform::{
         macos::sys::*,
-        posix::{self, Fd, SockAddr},
+        posix::{self, Fd, SockAddr, SockAddrV6},
     },
 };
 use libc::{
-    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_SYSTEM, AF_SYS_CONTROL,
-    IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL, UTUN_OPT_IFNAME,
+    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_INET6, AF_SYSTEM,
+    AF_SYS_CONTROL, IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL,
+    UTUN_OPT_IFNAME,
 };
 use std::{
     ffi::CStr,
     io::{self, Read, Write},
     mem,
-    net::Ipv4Addr,
+    net::{Ipv4Addr, Ipv6Addr},
     os::unix::io::{AsRawFd, IntoRawFd, RawFd},
     ptr,
     sync::Arc,
@@ -41,6 +42,7 @@ pub struct Device {
     name: String,
     queue: Queue,
     ctl: Fd,
+    ctl_inet6: Fd,
 }
 
 impl Device {
@@ -111,6 +113,7 @@ impl Device {
             }
 
             let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
+            let ctl_inet6 = Fd::new(libc::socket(AF_INET6, SOCK_DGRAM, 0))?;
 
             Device {
                 name: CStr::from_ptr(name.as_ptr() as *const c_char)
@@ -118,6 +121,7 @@ impl Device {
                     .into(),
                 queue: Queue { tun },
                 ctl,
+                ctl_inet6,
             }
         };
 
@@ -159,6 +163,29 @@ impl Device {
             req.mask = SockAddr::from(mask).into();
 
             if siocaifaddr(self.ctl.as_raw_fd(), &req) < 0 {
+                return Err(io::Error::last_os_error().into());
+            }
+
+            Ok(())
+        }
+    }
+
+    /// Add IPv6 alias of the device.
+    /// Tun devices are permitted to have multiple IPv6 aliases.
+    pub fn add_ipv6_alias(&mut self, addr: Ipv6Addr, mask: Ipv6Addr) -> Result<()> {
+        unsafe {
+            let mut req: in6_aliasreq = mem::zeroed();
+            ptr::copy_nonoverlapping(
+                self.name.as_ptr() as *const c_char,
+                req.name.as_mut_ptr(),
+                self.name.len(),
+            );
+            req.addr = SockAddrV6::from(addr).into();
+            req.prefixmask = SockAddrV6::from(mask).into();
+            req.lifetime.ia6t_pltime = u32::MAX;
+            req.lifetime.ia6t_vltime = u32::MAX;
+
+            if siocaifaddr_in6(self.ctl_inet6.as_raw_fd(), &req) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 

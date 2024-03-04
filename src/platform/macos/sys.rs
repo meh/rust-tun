@@ -15,7 +15,9 @@
 //! Bindings to internal macOS stuff.
 
 use ioctl::*;
-use libc::{c_char, c_int, c_short, c_uint, c_ushort, c_void, sockaddr, IFNAMSIZ};
+use libc::{
+    c_char, c_int, c_short, c_uint, c_ushort, c_void, sockaddr, sockaddr_in6, time_t, IFNAMSIZ,
+};
 
 pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
@@ -109,6 +111,28 @@ pub struct ifaliasreq {
     pub mask: sockaddr,
 }
 
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct in6_aliasreq {
+    pub name: [c_char; IFNAMSIZ],
+    pub addr: sockaddr_in6,
+    pub dstaddr: sockaddr_in6,
+    pub prefixmask: sockaddr_in6,
+    pub flags: c_int,
+    pub lifetime: in6_addrlifetime,
+}
+
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct in6_addrlifetime {
+    pub ia6t_expire: time_t,
+    pub ia6t_preferred: time_t,
+    pub ia6t_vltime: u32,
+    pub ia6t_pltime: u32,
+}
+
 ioctl!(readwrite ctliocginfo with 'N', 3; ctl_info);
 
 ioctl!(write siocsifflags with 'i', 16; ifreq);
@@ -131,3 +155,5 @@ ioctl!(readwrite siocgifmtu with 'i', 51; ifreq);
 
 ioctl!(write siocaifaddr with 'i', 26; ifaliasreq);
 ioctl!(write siocdifaddr with 'i', 25; ifreq);
+
+ioctl!(write siocaifaddr_in6 with 'i', 26; in6_aliasreq);
