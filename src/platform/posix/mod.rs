@@ -15,7 +15,7 @@
 //! POSIX compliant support.
 
 mod sockaddr;
-pub use self::sockaddr::SockAddr;
+pub use self::sockaddr::{SockAddr, SockAddrV6};
 
 mod fd;
 pub use self::fd::Fd;

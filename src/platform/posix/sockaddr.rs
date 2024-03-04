@@ -12,8 +12,12 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use libc::{in_addr, sockaddr, sockaddr_in};
-use std::{mem, net::Ipv4Addr, ptr};
+use libc::{in6_addr, in_addr, sockaddr, sockaddr_in, sockaddr_in6};
+use std::{
+    mem,
+    net::{Ipv4Addr, Ipv6Addr},
+    ptr,
+};
 
 use crate::error::*;
 
@@ -76,6 +80,60 @@ impl From<SockAddr> for sockaddr {
 
 impl From<SockAddr> for sockaddr_in {
     fn from(addr: SockAddr) -> sockaddr_in {
+        addr.0
+    }
+}
+
+/// A wrapper for `sockaddr_in6`.
+#[derive(Copy, Clone)]
+pub struct SockAddrV6(sockaddr_in6);
+
+impl SockAddrV6 {
+    /// Create a new `SockAddrV6` from a generic `sockaddr`.
+    pub fn new(value: &sockaddr_in6) -> Result<Self> {
+        if value.sin6_family != libc::AF_INET6 as libc::sa_family_t {
+            return Err(Error::InvalidAddress);
+        }
+
+        unsafe { Self::unchecked(value) }
+    }
+
+    /// # Safety
+    ///  Create a new `SockAddrV6` and not check the source.
+    pub unsafe fn unchecked(value: &sockaddr_in6) -> Result<Self> {
+        Ok(SockAddrV6(ptr::read(value as *const _ as *const _)))
+    }
+}
+
+impl From<Ipv6Addr> for SockAddrV6 {
+    fn from(ip: Ipv6Addr) -> SockAddrV6 {
+        let mut addr = unsafe { mem::zeroed::<sockaddr_in6>() };
+        let addr_family = if ip.is_unspecified() {
+            libc::AF_UNSPEC
+        } else {
+            libc::AF_INET6
+        };
+
+        // macos: ioctl does not accept sockaddr_in6 without sin6_len set.
+        addr.sin6_len = mem::size_of::<sockaddr_in6>() as u8;
+        addr.sin6_family = addr_family as libc::sa_family_t;
+        addr.sin6_port = 0;
+        addr.sin6_addr = in6_addr {
+            s6_addr: ip.octets(),
+        };
+
+        SockAddrV6(addr)
+    }
+}
+
+impl From<SockAddrV6> for Ipv6Addr {
+    fn from(addr: SockAddrV6) -> Ipv6Addr {
+        Ipv6Addr::from(addr.0.sin6_addr.s6_addr)
+    }
+}
+
+impl From<SockAddrV6> for sockaddr_in6 {
+    fn from(addr: SockAddrV6) -> sockaddr_in6 {
         addr.0
     }
 }
