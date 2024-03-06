@@ -46,10 +46,11 @@ pub(crate) fn generate_packet_information(
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     const TUN_PROTO_IP4: [u8; PIL] = (libc::AF_INET as u32).to_be_bytes();
 
+    // FIXME: Currently, the FreeBSD we test (FreeBSD-14.0-RELEASE) seems to have no PI. Here just a dummy.
     #[cfg(target_os = "freebsd")]
-    const TUN_PROTO_IP6: [u8; PIL] = (libc::AF_INET6 as u32).to_be_bytes();
+    const TUN_PROTO_IP6: [u8; PIL] = 0x86DD_u32.to_be_bytes();
     #[cfg(target_os = "freebsd")]
-    const TUN_PROTO_IP4: [u8; PIL] = (libc::AF_INET as u32).to_be_bytes();
+    const TUN_PROTO_IP4: [u8; PIL] = 0x0800_u32.to_be_bytes();
 
     #[cfg(unix)]
     if _packet_information {
