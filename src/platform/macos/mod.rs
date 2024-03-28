@@ -40,17 +40,18 @@ impl PlatformConfig {
     /// Enable or disable packet information, the first 4 bytes of
     /// each packet delivered from/to macOS underlying API is a header with flags and protocol type when enabled.
     ///
-    /// If we open an `utun` device, there always exist PI.
+    /// - If we open an `utun` device, there always exist PI.
     ///
-    /// If we use `Network Extension` to build our App:
+    /// - If we use `Network Extension` to build our App:
     ///
-    /// If get the fd from
-    /// ```Objective-C
-    /// int32_t tunFd = [[NEPacketTunnelProvider.packetFlow valueForKeyPath:@"socket.fileDescriptor"] intValue];
-    /// ```
-    /// there exist PI.
-    /// But if get packet from `[NEPacketTunnelProvider.packetFlow readPacketsWithCompletionHandler:]`, there is no PI.
-    /// and when write packet via `[NEPacketTunnelProvider.packetFlow writePackets:withProtocols:]`, there is no PI either.
+    ///   - If get the fd from
+    ///     ```Objective-C
+    ///     int32_t tunFd = [[NEPacketTunnelProvider::packetFlow valueForKeyPath:@"socket.fileDescriptor"] intValue];
+    ///     ```
+    ///     there exist PI.
+    ///
+    ///   - But if get packet from `[NEPacketTunnelProvider::packetFlow readPacketsWithCompletionHandler:]`
+    ///     and write packet via `[NEPacketTunnelProvider::packetFlow writePackets:withProtocols:]`, there is no PI.
     pub fn packet_information(&mut self, value: bool) -> &mut Self {
         self.packet_information = value;
         self
