@@ -193,6 +193,7 @@ impl AbstractDevice for Device {
     }
 
     fn packet_information(&self) -> bool {
+        // Note: wintun does not support packet information
         false
     }
 }

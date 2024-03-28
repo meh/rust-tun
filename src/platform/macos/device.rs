@@ -71,7 +71,7 @@ impl Device {
             let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
             let device = Device {
                 tun_name: None,
-                tun: Tun::new(tun, mtu, true),
+                tun: Tun::new(tun, mtu, config.platform_config.packet_information),
                 ctl: None,
                 route: None,
             };
@@ -151,7 +151,7 @@ impl Device {
                         .to_string_lossy()
                         .into(),
                 ),
-                tun: Tun::new(tun, mtu, true),
+                tun: Tun::new(tun, mtu, config.platform_config.packet_information),
                 ctl,
                 route: None,
             }
@@ -492,8 +492,7 @@ impl AbstractDevice for Device {
     }
 
     fn packet_information(&self) -> bool {
-        // on macos this is always the case
-        true
+        self.tun.packet_information()
     }
 }
 

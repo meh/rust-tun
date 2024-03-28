@@ -50,6 +50,7 @@ impl Device {
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
             let tun = Fd::new(fd).map_err(|_| std::io::Error::last_os_error())?;
 
+            // on Android there no packet information exists
             Device {
                 tun: Tun::new(tun, mtu, false),
             }
@@ -142,8 +143,7 @@ impl AbstractDevice for Device {
     }
 
     fn packet_information(&self) -> bool {
-        // on Android this is always the case
-        false
+        self.tun.packet_information()
     }
 }
 

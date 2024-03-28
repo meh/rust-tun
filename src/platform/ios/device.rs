@@ -51,9 +51,9 @@ impl Device {
         };
         let device = {
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
-            let tun = Fd::new(fd).map_err(|_| std::io::Error::last_os_error())?;
+            let fd = Fd::new(fd).map_err(|_| std::io::Error::last_os_error())?;
             Device {
-                tun: Tun::new(tun, mtu, true),
+                tun: Tun::new(fd, mtu, config.platform_config.packet_information),
             }
         };
 
@@ -152,8 +152,7 @@ impl AbstractDevice for Device {
     }
 
     fn packet_information(&self) -> bool {
-        // on ios this is always the case
-        true
+        self.tun.packet_information()
     }
 }
 

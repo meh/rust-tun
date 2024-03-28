@@ -21,6 +21,7 @@ use crate::platform::PlatformConfig;
 
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
+        #[allow(dead_code)]
         #[derive(Clone, Debug)]
         pub(crate) struct WinHandle(std::os::windows::raw::HANDLE);
         unsafe impl Send for WinHandle {}

@@ -451,7 +451,7 @@ impl AbstractDevice for Device {
     }
 
     fn packet_information(&self) -> bool {
-        false
+        self.tun.packet_information()
     }
 }
 

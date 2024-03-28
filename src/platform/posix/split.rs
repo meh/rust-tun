@@ -63,12 +63,6 @@ pub(crate) fn generate_packet_information(
     None
 }
 
-#[derive(Clone)]
-pub(crate) struct TunInfo {
-    mtu: usize,
-    packet_information: bool,
-}
-
 /// Read-only end for a file descriptor.
 pub struct Reader {
     pub(crate) fd: Arc<Fd>,
@@ -156,7 +150,8 @@ impl AsRawFd for Writer {
 pub struct Tun {
     pub(crate) reader: Reader,
     pub(crate) writer: Writer,
-    pub(crate) info: TunInfo,
+    pub(crate) mtu: u16,
+    pub(crate) packet_information: bool,
 }
 
 impl Tun {
@@ -174,10 +169,8 @@ impl Tun {
                 offset,
                 buf: vec![0; mtu as usize + offset],
             },
-            info: TunInfo {
-                mtu: mtu as usize,
-                packet_information,
-            },
+            mtu,
+            packet_information,
         }
     }
 
@@ -186,17 +179,17 @@ impl Tun {
     }
 
     pub fn set_mtu(&mut self, value: u16) {
-        self.info.mtu = value as usize;
+        self.mtu = value;
         self.reader.set_mtu(value);
         self.writer.set_mtu(value);
     }
 
     pub fn mtu(&self) -> u16 {
-        self.info.mtu as u16
+        self.mtu
     }
 
     pub fn packet_information(&self) -> bool {
-        self.info.packet_information
+        self.packet_information
     }
 }
 

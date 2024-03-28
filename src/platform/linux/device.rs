@@ -38,7 +38,6 @@ pub struct Device {
     tun_name: String,
     tun: Tun,
     ctl: Fd,
-    packet_information: bool,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -117,7 +116,6 @@ impl Device {
                 tun_name,
                 tun: Tun::new(tun, mtu, packet_information),
                 ctl,
-                packet_information,
             }
         };
 
@@ -409,7 +407,7 @@ impl AbstractDevice for Device {
     }
 
     fn packet_information(&self) -> bool {
-        self.packet_information
+        self.tun.packet_information()
     }
 }
 
