@@ -1,6 +1,6 @@
 [package]
 name = "tun2"
-version = "1.2.3"
+version = "1.2.4"
 edition = "2021"
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
 license = "WTFPL"
