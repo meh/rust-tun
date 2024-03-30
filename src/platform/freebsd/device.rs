@@ -121,7 +121,7 @@ impl Device {
 
             Device {
                 tun_name,
-                tun: Tun::new(tun, mtu, config.platform_config.packet_information),
+                tun: Tun::new(tun, mtu, false),
                 ctl,
                 route: None,
             }

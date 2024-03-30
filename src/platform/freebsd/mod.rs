@@ -23,19 +23,8 @@ use crate::configuration::Configuration;
 use crate::error::Result;
 
 /// FreeBSD-only interface configuration.
-/// packet information not exists in FreeBSD, so the `Default` is in `derive` list.
 #[derive(Copy, Clone, Default, Debug)]
-pub struct PlatformConfig {
-    pub(crate) packet_information: bool,
-}
-
-impl PlatformConfig {
-    pub fn packet_information(&mut self, value: bool) -> &mut Self {
-        assert!(!value);
-        self.packet_information = value;
-        self
-    }
-}
+pub struct PlatformConfig;
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {

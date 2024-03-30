@@ -51,7 +51,7 @@ impl Device {
             let tun = Fd::new(fd).map_err(|_| std::io::Error::last_os_error())?;
 
             Device {
-                tun: Tun::new(tun, mtu, config.platform_config.packet_information),
+                tun: Tun::new(tun, mtu, false),
             }
         };
 
