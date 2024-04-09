@@ -15,7 +15,7 @@ crate-type = ["staticlib", "cdylib", "lib"]
 bytes = { version = "1" }
 cfg-if = "1.0"
 futures-core = { version = "0.3", optional = true }
-libc = "0.2"
+libc = { version="0.2", features=["extra_traits"] }
 log = "0.4"
 thiserror = "1"
 tokio = { version = "1", features = [
