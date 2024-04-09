@@ -105,6 +105,7 @@ impl WinSession {
                 Ok(packet) => {
                     if let Err(err) = receiver_tx.send(packet.bytes().to_vec()) {
                         log::error!("{}", err);
+                        break;
                     }
                 }
                 Err(err) => {
