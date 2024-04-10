@@ -25,14 +25,14 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun2 = "1.0"
+tun2 = "1"
 ```
 
 If you want to use the TUN interface with mio/tokio, you need to enable the `async` feature:
 
 ```toml
 [dependencies]
-tun2 = { version = "1.0", features = ["async"] }
+tun2 = { version = "1", features = ["async"] }
 ```
 
 Example
@@ -43,7 +43,7 @@ packets from it.
 ```rust
 use std::io::Read;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let mut config = tun2::Configuration::default();
     config
         .address((10, 0, 0, 9))
@@ -57,11 +57,11 @@ fn main() {
         config.ensure_root_privileges(true);
     });
 
-    let mut dev = tun2::create(&config).unwrap();
+    let mut dev = tun2::create(&config)?;
     let mut buf = [0; 4096];
 
     loop {
-        let amount = dev.read(&mut buf).unwrap();
+        let amount = dev.read(&mut buf)?;
         println!("{:?}", &buf[0..amount]);
     }
 }
@@ -101,6 +101,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     override func startTunnel(options: [String : NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         let tunnelNetworkSettings = createTunnelSettings() // Configure TUN address, DNS, mtu, routing...
         setTunnelNetworkSettings(tunnelNetworkSettings) { [weak self] error in
+            // The tunnel of this tunFd is contains `Packet Information` prifix.
             let tunFd = self?.packetFlow.value(forKeyPath: "socket.fileDescriptor") as! Int32
             DispatchQueue.global(qos: .default).async {
                 start_tun(tunFd)
@@ -118,6 +119,10 @@ pub extern "C" fn start_tun(fd: std::os::raw::c_int) {
     rt.block_on(async {
         let mut cfg = tun2::Configuration::default();
         cfg.raw_fd(fd);
+        #[cfg(target_os = "ios")]
+        cfg.platform_config(|p_cfg| {
+            p_cfg.packet_information(true);
+        });
         let mut tun = tun2::create_as_async(&cfg).unwrap();
         let mut framed = tun.into_framed();
         while let Some(packet) = framed.next().await {
