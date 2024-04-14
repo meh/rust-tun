@@ -86,13 +86,13 @@ impl Device {
                 return Err(Error::InvalidQueuesNumber);
             }
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0), true)?;
 
             let (tun, tun_name) = {
                 if let Some(name) = dev.as_ref() {
                     let device_path = format!("/dev/{}\0", name);
                     let fd = libc::open(device_path.as_ptr() as *const _, O_RDWR);
-                    let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+                    let tun = Fd::new(fd, true).map_err(|_| io::Error::last_os_error())?;
                     (tun, name.clone())
                 } else {
                     let (tun, device_name) = 'End: {
@@ -101,7 +101,8 @@ impl Device {
                             let device_path = format!("/dev/{device_name}\0");
                             let fd = libc::open(device_path.as_ptr() as *const _, O_RDWR);
                             if fd > 0 {
-                                let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+                                let tun =
+                                    Fd::new(fd, true).map_err(|_| io::Error::last_os_error())?;
                                 break 'End (tun, device_name);
                             }
                         }

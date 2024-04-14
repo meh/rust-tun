@@ -58,7 +58,11 @@ impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
         let mut device = unsafe {
-            let dev = match config.tun_name.as_ref() {
+            if config.raw_fd.is_some() {
+                // TODO: Should we support this in the future?
+                return Err(Error::NotImplemented);
+            }
+            let dev_name = match config.tun_name.as_ref() {
                 Some(tun_name) => {
                     let tun_name = CString::new(tun_name.clone())?;
 
@@ -74,11 +78,11 @@ impl Device {
 
             let mut req: ifreq = mem::zeroed();
 
-            if let Some(dev) = dev.as_ref() {
+            if let Some(dev_name) = dev_name.as_ref() {
                 ptr::copy_nonoverlapping(
-                    dev.as_ptr() as *const c_char,
+                    dev_name.as_ptr() as *const c_char,
                     req.ifr_name.as_mut_ptr(),
-                    dev.as_bytes().len(),
+                    dev_name.as_bytes_with_nul().len(),
                 );
             }
 
@@ -96,27 +100,27 @@ impl Device {
                 | if packet_information { 0 } else { iff_no_pi }
                 | if queues_num > 1 { iff_multi_queue } else { 0 };
 
-            let tun = {
+            let tun_fd = {
                 let fd = libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR);
-                let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+                let tun_fd = Fd::new(fd, true).map_err(|_| io::Error::last_os_error())?;
 
-                if let Err(err) = tunsetiff(tun.0, &mut req as *mut _ as *mut _) {
+                if let Err(err) = tunsetiff(tun_fd.inner, &mut req as *mut _ as *mut _) {
                     return Err(io::Error::from(err).into());
                 }
 
-                tun
+                tun_fd
             };
 
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0), true)?;
 
             let tun_name = CStr::from_ptr(req.ifr_name.as_ptr())
                 .to_string_lossy()
                 .to_string();
             Device {
                 tun_name,
-                tun: Tun::new(tun, mtu, packet_information),
+                tun: Tun::new(tun_fd, mtu, packet_information),
                 ctl,
             }
         };

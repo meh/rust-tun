@@ -56,6 +56,8 @@ pub struct Configuration {
     pub(crate) raw_fd: Option<i32>,
     #[cfg(windows)]
     pub(crate) raw_handle: Option<WinHandle>,
+    #[cfg(unix)]
+    pub(crate) close_fd_on_drop: Option<bool>,
 }
 
 impl Configuration {
@@ -161,6 +163,16 @@ impl Configuration {
     #[cfg(windows)]
     pub fn raw_handle(&mut self, handle: std::os::windows::raw::HANDLE) -> &mut Self {
         self.raw_handle = Some(WinHandle(handle));
+        self
+    }
+
+    /// Set whether to close the received raw file descriptor on drop or not.
+    /// The default behaviour is to close the received or tun2 generated file descriptor.
+    /// Note: If this is set to false, it is up to the caller to ensure the
+    /// file descriptor that they pass via [Configuration::raw_fd] is properly closed.
+    #[cfg(unix)]
+    pub fn close_fd_on_drop(&mut self, value: bool) -> &mut Self {
+        self.close_fd_on_drop = Some(value);
         self
     }
 }

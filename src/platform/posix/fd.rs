@@ -18,20 +18,25 @@ use std::io;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 /// POSIX file descriptor support for `io` traits.
-#[repr(transparent)]
-pub(crate) struct Fd(pub(crate) RawFd);
+pub(crate) struct Fd {
+    pub(crate) inner: RawFd,
+    close_fd_on_drop: bool,
+}
 
 impl Fd {
-    pub fn new(value: RawFd) -> Result<Self> {
+    pub fn new(value: RawFd, close_fd_on_drop: bool) -> Result<Self> {
         if value < 0 {
             return Err(Error::InvalidDescriptor);
         }
-        Ok(Fd(value))
+        Ok(Fd {
+            inner: value,
+            close_fd_on_drop,
+        })
     }
 
     /// Enable non-blocking mode
     pub fn set_nonblock(&self) -> io::Result<()> {
-        match unsafe { fcntl(self.0, F_SETFL, fcntl(self.0, F_GETFL) | O_NONBLOCK) } {
+        match unsafe { fcntl(self.inner, F_SETFL, fcntl(self.inner, F_GETFL) | O_NONBLOCK) } {
             0 => Ok(()),
             _ => Err(io::Error::last_os_error()),
         }
@@ -58,22 +63,22 @@ impl Fd {
 
 impl AsRawFd for Fd {
     fn as_raw_fd(&self) -> RawFd {
-        self.0
+        self.inner
     }
 }
 
 impl IntoRawFd for Fd {
     fn into_raw_fd(mut self) -> RawFd {
-        let fd = self.0;
-        self.0 = -1;
+        let fd = self.inner;
+        self.inner = -1;
         fd
     }
 }
 
 impl Drop for Fd {
     fn drop(&mut self) {
-        if self.0 >= 0 {
-            unsafe { libc::close(self.0) };
+        if self.close_fd_on_drop && self.inner >= 0 {
+            unsafe { libc::close(self.inner) };
         }
     }
 }

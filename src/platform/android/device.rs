@@ -42,13 +42,14 @@ impl AsMut<dyn AbstractDevice + 'static> for Device {
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
+        let close_fd_on_drop = config.close_fd_on_drop.unwrap_or(true);
         let fd = match config.raw_fd {
             Some(raw_fd) => raw_fd,
             _ => return Err(Error::InvalidConfig),
         };
         let device = {
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
-            let tun = Fd::new(fd).map_err(|_| std::io::Error::last_os_error())?;
+            let tun = Fd::new(fd, close_fd_on_drop).map_err(|_| std::io::Error::last_os_error())?;
 
             Device {
                 tun: Tun::new(tun, mtu, false),

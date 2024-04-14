@@ -19,7 +19,7 @@ use crate::{
     error::{Error, Result},
     platform::{
         macos::sys::*,
-        posix::{self, ipaddr_to_sockaddr, sockaddr_to_rs_addr, sockaddr_union},
+        posix::{self, ipaddr_to_sockaddr, sockaddr_to_rs_addr, sockaddr_union, Fd},
     },
 };
 
@@ -70,7 +70,8 @@ impl Device {
     pub fn new(config: &Configuration) -> Result<Self> {
         let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
         if let Some(fd) = config.raw_fd {
-            let tun = posix::Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+            let close_fd_on_drop = config.close_fd_on_drop.unwrap_or(true);
+            let tun = Fd::new(fd, close_fd_on_drop).map_err(|_| io::Error::last_os_error())?;
             let device = Device {
                 tun_name: None,
                 tun: posix::Tun::new(tun, mtu, config.platform_config.packet_information),
@@ -105,7 +106,7 @@ impl Device {
 
         let mut device = unsafe {
             let fd = libc::socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL);
-            let tun = posix::Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+            let tun = posix::Fd::new(fd, true).map_err(|_| io::Error::last_os_error())?;
 
             let mut info = ctl_info {
                 ctl_id: 0,
@@ -118,7 +119,7 @@ impl Device {
                 },
             };
 
-            if let Err(err) = ctliocginfo(tun.0, &mut info as *mut _ as *mut _) {
+            if let Err(err) = ctliocginfo(tun.inner, &mut info as *mut _ as *mut _) {
                 return Err(io::Error::from(err).into());
             }
 
@@ -132,7 +133,7 @@ impl Device {
             };
 
             let address = &addr as *const libc::sockaddr_ctl as *const sockaddr;
-            if libc::connect(tun.0, address, mem::size_of_val(&addr) as socklen_t) < 0 {
+            if libc::connect(tun.inner, address, mem::size_of_val(&addr) as socklen_t) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
@@ -141,11 +142,11 @@ impl Device {
 
             let optval = &mut tun_name as *mut _ as *mut c_void;
             let optlen = &mut name_len as *mut socklen_t;
-            if libc::getsockopt(tun.0, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, optval, optlen) < 0 {
+            if libc::getsockopt(tun.inner, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, optval, optlen) < 0 {
                 return Err(io::Error::last_os_error().into());
             }
 
-            let ctl = Some(posix::Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0))?);
+            let ctl = Some(posix::Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0), true)?);
 
             Device {
                 tun_name: Some(
