@@ -31,10 +31,10 @@ pub struct ctl_info {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifaliasreq {
-    pub ifran: [c_char; IFNAMSIZ],
-    pub addr: sockaddr,
-    pub broadaddr: sockaddr,
-    pub mask: sockaddr,
+    pub ifra_name: [c_char; IFNAMSIZ],
+    pub ifra_addr: sockaddr,
+    pub ifra_broadaddr: sockaddr,
+    pub ifra_mask: sockaddr,
 }
 
 ioctl_readwrite!(ctliocginfo, b'N', 3, ctl_info);

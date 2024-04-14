@@ -7,3 +7,4 @@ protocol = "sparse"
 # target = ["aarch64-apple-ios"]
 # target = ["x86_64-pc-windows-msvc"]
 # target = ["x86_64-apple-darwin"]
+# target = ["x86_64-unknown-freebsd"]
