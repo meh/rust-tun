@@ -17,7 +17,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::vec::Vec;
 
 use wintun::Session;
@@ -55,6 +55,7 @@ impl Device {
             queue: Queue {
                 session: Arc::new(session),
                 cached: Arc::new(Mutex::new(Vec::with_capacity(mtu))),
+                thread_handle: Arc::new(Mutex::new(None)),
             },
             mtu,
         };
@@ -195,6 +196,7 @@ impl D for Device {
 pub struct Queue {
     session: Arc<Session>,
     cached: Arc<Mutex<Vec<u8>>>,
+    thread_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
 }
 
 impl Queue {
@@ -225,9 +227,18 @@ impl Queue {
                 Err(e) => Poll::Ready(Err(e)),
             },
             Ok(None) => {
+                let mut thread_handle = self
+                    .thread_handle
+                    .lock()
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+                if thread_handle.is_some() {
+                    return Poll::Pending;
+                }
+
                 let waker = cx.waker().clone();
                 let cached = self.cached.clone();
-                thread::spawn(move || {
+                let thread_handle_clone = self.thread_handle.clone();
+                *thread_handle = Some(thread::spawn(move || {
                     match reader_session.receive_blocking() {
                         Ok(packet) => {
                             if let Ok(mut cached) = cached.lock() {
@@ -238,8 +249,13 @@ impl Queue {
                         }
                         Err(e) => log::error!("receive_blocking error: {:?}", e),
                     }
+                    if let Ok(mut handle) = thread_handle_clone.lock() {
+                        *handle = None;
+                    } else {
+                        log::error!("thread_handle lock error, ");
+                    }
                     waker.wake()
-                });
+                }));
                 Poll::Pending
             }
         }
