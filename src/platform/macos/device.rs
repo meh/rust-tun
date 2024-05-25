@@ -19,7 +19,7 @@ use crate::{
     error::{Error, Result},
     platform::{
         macos::sys::*,
-        posix::{self, ipaddr_to_sockaddr, sockaddr_to_rs_addr, sockaddr_union, Fd},
+        posix::{self, ipaddr_to_sockaddr, sockaddr_union, Fd},
     },
 };
 
@@ -211,9 +211,9 @@ impl Device {
                 tun_name.len(),
             );
 
-            req.ifra_addr = posix::rs_addr_to_sockaddr((addr, 0).into()).addr;
-            req.ifra_broadaddr = posix::rs_addr_to_sockaddr((broadaddr, 0).into()).addr;
-            req.ifra_mask = posix::rs_addr_to_sockaddr((mask, 0).into()).addr;
+            req.ifra_addr = sockaddr_union::from((addr, 0)).addr;
+            req.ifra_broadaddr = sockaddr_union::from((broadaddr, 0)).addr;
+            req.ifra_mask = sockaddr_union::from((mask, 0)).addr;
 
             if let Err(err) = siocaifaddr(ctl.as_raw_fd(), &req) {
                 return Err(io::Error::from(err).into());
@@ -332,8 +332,8 @@ impl AbstractDevice for Device {
             if let Err(err) = siocgifaddr(ctl.as_raw_fd(), &mut req) {
                 return Err(io::Error::from(err).into());
             }
-            let sa = &req.ifr_ifru.ifru_addr as *const _ as *const sockaddr_union;
-            Ok(sockaddr_to_rs_addr(&*sa).ok_or(Error::InvalidAddress)?.ip())
+            let sa = sockaddr_union::from(req.ifr_ifru.ifru_addr);
+            Ok(std::net::SocketAddr::try_from(sa)?.ip())
         }
     }
 
@@ -363,8 +363,8 @@ impl AbstractDevice for Device {
             if let Err(err) = siocgifdstaddr(ctl.as_raw_fd(), &mut req) {
                 return Err(io::Error::from(err).into());
             }
-            let sa = &req.ifr_ifru.ifru_dstaddr as *const _ as *const sockaddr_union;
-            Ok(sockaddr_to_rs_addr(&*sa).ok_or(Error::InvalidAddress)?.ip())
+            let sa = sockaddr_union::from(req.ifr_ifru.ifru_dstaddr);
+            Ok(std::net::SocketAddr::try_from(sa)?.ip())
         }
     }
 
@@ -395,8 +395,8 @@ impl AbstractDevice for Device {
             if let Err(err) = siocgifbrdaddr(ctl.as_raw_fd(), &mut req) {
                 return Err(io::Error::from(err).into());
             }
-            let sa = &req.ifr_ifru.ifru_broadaddr as *const _ as *const sockaddr_union;
-            Ok(sockaddr_to_rs_addr(&*sa).ok_or(Error::InvalidAddress)?.ip())
+            let sa = sockaddr_union::from(req.ifr_ifru.ifru_broadaddr);
+            Ok(std::net::SocketAddr::try_from(sa)?.ip())
         }
     }
 
@@ -423,8 +423,8 @@ impl AbstractDevice for Device {
             if let Err(err) = siocgifnetmask(ctl.as_raw_fd(), &mut req) {
                 return Err(io::Error::from(err).into());
             }
-            let sa = &req.ifr_ifru.ifru_addr as *const _ as *const sockaddr_union;
-            Ok(sockaddr_to_rs_addr(&*sa).ok_or(Error::InvalidAddress)?.ip())
+            let sa = sockaddr_union::from(req.ifr_ifru.ifru_addr);
+            Ok(std::net::SocketAddr::try_from(sa)?.ip())
         }
     }
 

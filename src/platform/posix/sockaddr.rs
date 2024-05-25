@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 /// # Safety
-pub unsafe fn sockaddr_to_rs_addr(sa: &sockaddr_union) -> Option<std::net::SocketAddr> {
+unsafe fn sockaddr_to_rs_addr(sa: &sockaddr_union) -> Option<std::net::SocketAddr> {
     match sa.addr_stor.ss_family as libc::c_int {
         libc::AF_INET => {
             let sa_in = sa.addr4;
@@ -31,7 +31,7 @@ pub unsafe fn sockaddr_to_rs_addr(sa: &sockaddr_union) -> Option<std::net::Socke
     }
 }
 
-pub fn rs_addr_to_sockaddr(addr: std::net::SocketAddr) -> sockaddr_union {
+fn rs_addr_to_sockaddr(addr: std::net::SocketAddr) -> sockaddr_union {
     match addr {
         std::net::SocketAddr::V4(ipv4) => {
             let mut addr: sockaddr_union = unsafe { std::mem::zeroed() };
@@ -83,6 +83,51 @@ pub union sockaddr_union {
     pub addr6: libc::sockaddr_in6,
     pub addr4: libc::sockaddr_in,
     pub addr: libc::sockaddr,
+}
+
+impl From<libc::sockaddr_storage> for sockaddr_union {
+    fn from(addr: libc::sockaddr_storage) -> Self {
+        sockaddr_union { addr_stor: addr }
+    }
+}
+
+impl From<libc::sockaddr_in6> for sockaddr_union {
+    fn from(addr: libc::sockaddr_in6) -> Self {
+        sockaddr_union { addr6: addr }
+    }
+}
+
+impl From<libc::sockaddr_in> for sockaddr_union {
+    fn from(addr: libc::sockaddr_in) -> Self {
+        sockaddr_union { addr4: addr }
+    }
+}
+
+impl From<libc::sockaddr> for sockaddr_union {
+    fn from(addr: libc::sockaddr) -> Self {
+        sockaddr_union { addr }
+    }
+}
+
+impl From<std::net::SocketAddr> for sockaddr_union {
+    fn from(addr: std::net::SocketAddr) -> Self {
+        rs_addr_to_sockaddr(addr)
+    }
+}
+
+impl TryFrom<sockaddr_union> for std::net::SocketAddr {
+    type Error = std::io::Error;
+
+    fn try_from(addr: sockaddr_union) -> Result<Self, Self::Error> {
+        unsafe { sockaddr_to_rs_addr(&addr).ok_or(std::io::ErrorKind::InvalidInput.into()) }
+    }
+}
+
+impl<T: Into<std::net::IpAddr>> From<(T, u16)> for sockaddr_union {
+    fn from((ip, port): (T, u16)) -> Self {
+        let ip: std::net::IpAddr = ip.into();
+        rs_addr_to_sockaddr(std::net::SocketAddr::new(ip, port))
+    }
 }
 
 #[test]
