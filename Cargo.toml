@@ -30,6 +30,7 @@ nix = { version = "0.29", features = ["ioctl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
+libloading = "0.8.3"
 
 [target.'cfg(any(target_os = "macos", target_os = "freebsd"))'.dependencies]
 ipnet = "2"

@@ -53,6 +53,10 @@ pub enum Error {
     #[cfg(target_os = "windows")]
     #[error(transparent)]
     WintunError(#[from] wintun::Error),
+
+    #[cfg(target_os = "windows")]
+    #[error(transparent)]
+    LibloadingError(#[from] libloading::Error),
 }
 
 impl From<Error> for std::io::Error {
