@@ -31,10 +31,12 @@ pub struct Device {
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
+        let wintun_path = match &config.platform_config.wintun_path {
+            Some(path) => path.clone(),
+            None => "wintun.dll".to_string(),
+        };
         let wintun = unsafe {
-            let wintun_libray_path =
-                std::env::var("WINTUN_LIBARAY_PATH").unwrap_or("wintun.dll".to_string());
-            let wintun = libloading::Library::new(wintun_libray_path)?;
+            let wintun = libloading::Library::new(wintun_path)?;
             wintun::load_from_library(wintun)?
         };
         let tun_name = config.tun_name.as_deref().unwrap_or("wintun");

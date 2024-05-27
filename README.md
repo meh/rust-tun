@@ -135,5 +135,4 @@ pub extern "C" fn start_tun(fd: std::os::raw::c_int) {
 Windows
 -----
 You need to copy the [wintun.dll](https://wintun.net/) file which matches your architecture to 
-the same directory as your executable or can set `WINTUN_LIBARAY_PATH` to the dll file and run your program as administrator.
-
+the same directory as your executable and run your program as administrator.
