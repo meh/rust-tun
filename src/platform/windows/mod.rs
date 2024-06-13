@@ -22,23 +22,32 @@ use crate::configuration::Configuration;
 use crate::error::Result;
 
 /// Windows-only interface configuration.
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct PlatformConfig {
     pub(crate) device_guid: Option<u128>,
-    pub(crate) wintun_path: Option<String>,
+    pub(crate) wintun_path: String,
+}
+
+impl Default for PlatformConfig {
+    fn default() -> Self {
+        Self {
+            device_guid: None,
+            wintun_path: "wintun".to_string(),
+        }
+    }
 }
 
 impl PlatformConfig {
-    pub fn device_guid(&mut self, device_guid: Option<u128>) {
+    pub fn device_guid(&mut self, device_guid: u128) {
         log::trace!("Windows configuration device GUID");
-        self.device_guid = device_guid;
+        self.device_guid = Some(device_guid);
     }
 
     /// Use a custom path to the wintun.dll instead of looking in the working directory.
     /// Security note: It is up to the caller to ensure that the library can be safely loaded from
     /// the indicated path.
-    pub fn custom_wintun_path(&mut self, wintun_path: Option<String>) {
-        self.wintun_path = wintun_path;
+    pub fn custom_wintun_path(&mut self, wintun_path: &str) {
+        self.wintun_path = wintun_path.to_string();
     }
 }
 

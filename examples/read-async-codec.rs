@@ -73,7 +73,7 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
 
     #[cfg(target_os = "windows")]
     config.platform_config(|config| {
-        config.device_guid(Some(9099482345783245345345_u128));
+        config.device_guid(9099482345783245345345_u128);
     });
 
     let dev = tun2::create_as_async(&config)?;
