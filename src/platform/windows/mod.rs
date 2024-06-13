@@ -16,6 +16,8 @@
 
 mod device;
 
+use std::net::IpAddr;
+
 pub use device::{Device, Tun};
 
 use crate::configuration::Configuration;
@@ -26,6 +28,7 @@ use crate::error::Result;
 pub struct PlatformConfig {
     pub(crate) device_guid: Option<u128>,
     pub(crate) wintun_path: String,
+    pub(crate) dns_servers: Option<Vec<IpAddr>>,
 }
 
 impl Default for PlatformConfig {
@@ -33,6 +36,7 @@ impl Default for PlatformConfig {
         Self {
             device_guid: None,
             wintun_path: "wintun".to_string(),
+            dns_servers: None,
         }
     }
 }
@@ -48,6 +52,10 @@ impl PlatformConfig {
     /// the indicated path.
     pub fn custom_wintun_path(&mut self, wintun_path: &str) {
         self.wintun_path = wintun_path.to_string();
+    }
+
+    pub fn dns_servers(&mut self, dns_servers: Option<Vec<IpAddr>>) {
+        self.dns_servers = dns_servers;
     }
 }
 

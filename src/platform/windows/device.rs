@@ -51,6 +51,9 @@ impl Device {
             .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
         let gateway = config.destination.map(IpAddr::from);
         adapter.set_network_addresses_tuple(address, mask, gateway)?;
+        if let Some(dns_servers) = &config.platform_config.dns_servers {
+            adapter.set_dns_servers(dns_servers)?;
+        }
         let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
         let session = adapter.start_session(wintun::MAX_RING_CAPACITY)?;
