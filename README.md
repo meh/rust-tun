@@ -25,14 +25,14 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun2 = "1"
+tun2 = "2"
 ```
 
 If you want to use the TUN interface with mio/tokio, you need to enable the `async` feature:
 
 ```toml
 [dependencies]
-tun2 = { version = "1", features = ["async"] }
+tun2 = { version = "2", features = ["async"] }
 ```
 
 Example
