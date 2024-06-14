@@ -31,9 +31,9 @@ pub struct Device {
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
-        let wintun_path = &config.platform_config.wintun_path;
+        let wintun_file = &config.platform_config.wintun_file;
         let wintun = unsafe {
-            let wintun = libloading::Library::new(wintun_path)?;
+            let wintun = libloading::Library::new(wintun_file)?;
             wintun::load_from_library(wintun)?
         };
         let tun_name = config.tun_name.as_deref().unwrap_or("wintun");

@@ -16,18 +16,17 @@
 
 mod device;
 
-use std::net::IpAddr;
-
-pub use device::{Device, Tun};
-
 use crate::configuration::Configuration;
 use crate::error::Result;
+pub use device::{Device, Tun};
+use std::ffi::OsString;
+use std::net::IpAddr;
 
 /// Windows-only interface configuration.
 #[derive(Clone, Debug)]
 pub struct PlatformConfig {
     pub(crate) device_guid: Option<u128>,
-    pub(crate) wintun_path: String,
+    pub(crate) wintun_file: OsString,
     pub(crate) dns_servers: Option<Vec<IpAddr>>,
 }
 
@@ -35,7 +34,7 @@ impl Default for PlatformConfig {
     fn default() -> Self {
         Self {
             device_guid: None,
-            wintun_path: "wintun".to_string(),
+            wintun_file: "wintun.dll".into(),
             dns_servers: None,
         }
     }
@@ -50,12 +49,14 @@ impl PlatformConfig {
     /// Use a custom path to the wintun.dll instead of looking in the working directory.
     /// Security note: It is up to the caller to ensure that the library can be safely loaded from
     /// the indicated path.
-    pub fn custom_wintun_path(&mut self, wintun_path: &str) {
-        self.wintun_path = wintun_path.to_string();
+    ///
+    /// [`wintun_file`](PlatformConfig::wintun_file) likes "path/to/wintun" or "path/to/wintun.dll".
+    pub fn wintun_file<S: Into<OsString>>(&mut self, wintun_file: S) {
+        self.wintun_file = wintun_file.into();
     }
 
-    pub fn dns_servers(&mut self, dns_servers: Option<Vec<IpAddr>>) {
-        self.dns_servers = dns_servers;
+    pub fn dns_servers(&mut self, dns_servers: &[IpAddr]) {
+        self.dns_servers = Some(dns_servers.to_vec());
     }
 }
 
