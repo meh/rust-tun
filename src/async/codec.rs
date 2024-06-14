@@ -37,7 +37,7 @@ impl Decoder for TunPacketCodec {
         let pkt = buf.split_to(buf.len());
         //reserve enough space for the next packet
         buf.reserve(self.0);
-        Ok(Some(pkt.freeze().into()))
+        Ok(Some(pkt.freeze().to_vec()))
     }
 }
 
