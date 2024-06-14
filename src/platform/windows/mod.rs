@@ -15,12 +15,15 @@
 //! Windows specific functionality.
 
 mod device;
+mod verify_dll_file;
 
 use crate::configuration::Configuration;
 use crate::error::Result;
 pub use device::{Device, Tun};
 use std::ffi::OsString;
 use std::net::IpAddr;
+
+pub(crate) const WINTUN_PROVIDER: &str = "WireGuard LLC";
 
 /// Windows-only interface configuration.
 #[derive(Clone, Debug)]

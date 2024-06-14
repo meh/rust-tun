@@ -57,6 +57,27 @@ pub enum Error {
     #[cfg(target_os = "windows")]
     #[error(transparent)]
     LibloadingError(#[from] libloading::Error),
+
+    #[error("{0}")]
+    String(String),
+}
+
+impl From<&str> for Error {
+    fn from(err: &str) -> Self {
+        Self::String(err.to_string())
+    }
+}
+
+impl From<String> for Error {
+    fn from(err: String) -> Self {
+        Self::String(err)
+    }
+}
+
+impl From<&String> for Error {
+    fn from(err: &String) -> Self {
+        Self::String(err.to_string())
+    }
 }
 
 impl From<Error> for std::io::Error {
