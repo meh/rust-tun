@@ -29,7 +29,7 @@ use crate::{
     device::AbstractDevice,
     error::{Error, Result},
     platform::freebsd::sys::*,
-    platform::posix::{self, Fd, Tun},
+    platform::posix::{self, sockaddr_union, Fd, Tun},
 };
 
 #[derive(Clone, Copy)]
@@ -165,9 +165,9 @@ impl Device {
                 self.tun_name.len(),
             );
 
-            req.addr = posix::sockaddr_union::from((addr, 0).into()).addr;
-            req.dstaddr = posix::sockaddr_union::from((dest, 0).into()).addr;
-            req.mask = posix::sockaddr_union::from((mask, 0).into()).addr;
+            req.addr = posix::sockaddr_union::from((addr, 0)).addr;
+            req.dstaddr = posix::sockaddr_union::from((dest, 0)).addr;
+            req.mask = posix::sockaddr_union::from((mask, 0)).addr;
 
             if let Err(err) = siocaifaddr(ctl.as_raw_fd(), &req) {
                 return Err(io::Error::from(err).into());
