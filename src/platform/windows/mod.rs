@@ -30,6 +30,7 @@ pub(crate) const WINTUN_PROVIDER: &str = "WireGuard LLC";
 pub struct PlatformConfig {
     pub(crate) device_guid: Option<u128>,
     pub(crate) wintun_file: OsString,
+    #[cfg(feature = "wintun-dns")]
     pub(crate) dns_servers: Option<Vec<IpAddr>>,
 }
 
@@ -38,6 +39,7 @@ impl Default for PlatformConfig {
         Self {
             device_guid: None,
             wintun_file: "wintun.dll".into(),
+            #[cfg(feature = "wintun-dns")]
             dns_servers: None,
         }
     }
@@ -58,6 +60,7 @@ impl PlatformConfig {
         self.wintun_file = wintun_file.into();
     }
 
+    #[cfg(feature = "wintun-dns")]
     pub fn dns_servers(&mut self, dns_servers: &[IpAddr]) {
         self.dns_servers = Some(dns_servers.to_vec());
     }
