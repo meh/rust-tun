@@ -13,7 +13,7 @@ crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
 bytes = { version = "1" }
-cfg-if = "1.0"
+cfg-if = "1"
 futures-core = { version = "0.3", optional = true }
 libc = { version = "0.2", features = ["extra_traits"] }
 log = "0.4"
@@ -45,7 +45,7 @@ libloading = "0.8"
 ipnet = "2"
 
 [dev-dependencies]
-ctrlc2 = { version = "3.5", features = ["tokio", "termination"] }
+ctrlc2 = { version = "3", features = ["tokio", "termination"] }
 env_logger = "0.11"
 futures = "0.3"
 packet = "0.1"
