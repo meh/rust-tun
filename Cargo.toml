@@ -38,7 +38,7 @@ windows-sys = { version = "0.52", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_LibraryLoader",
 ] }
-wintun = { version = "0.4", features = ["panic_on_unsent_packets"] }
+wintun = { version = "0.5", features = ["panic_on_unsent_packets"] }
 libloading = "0.8"
 
 [target.'cfg(any(target_os = "macos", target_os = "freebsd"))'.dependencies]
