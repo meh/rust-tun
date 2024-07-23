@@ -17,6 +17,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 use std::io::{IoSlice, Read, Write};
 use tokio::io::unix::AsyncFd;
+use tokio::io::Interest;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
@@ -58,6 +59,24 @@ impl AsyncDevice {
         let codec = TunPacketCodec::new(mtu as usize);
         // associate mtu with the capacity of ReadBuf
         Framed::with_capacity(self, codec, mtu as usize)
+    }
+
+    /// Recv a packet from tun device
+    pub async fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let guard = self.inner.readable().await?;
+        guard
+            .get_ref()
+            .async_io(Interest::READABLE, |inner| inner.recv(buf))
+            .await
+    }
+
+    /// Send a packet to tun device
+    pub async fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
+        let guard = self.inner.writable().await?;
+        guard
+            .get_ref()
+            .async_io(Interest::WRITABLE, |inner| inner.send(buf))
+            .await
     }
 }
 

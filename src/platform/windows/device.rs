@@ -88,6 +88,16 @@ impl Device {
         let tun = Arc::new(self.tun);
         (Reader(tun.clone()), Writer(tun))
     }
+
+    /// Recv a packet from tun device
+    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        self.tun.recv(buf)
+    }
+
+    /// Send a packet to tun device
+    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        self.tun.send(buf)
+    }
 }
 
 impl Read for Device {
@@ -247,6 +257,16 @@ impl Tun {
                 Err(e) => Err(e),
             },
         }
+    }
+
+    /// Recv a packet from tun device
+    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        self.read_by_ref(buf)
+    }
+
+    /// Send a packet to tun device
+    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        self.write_by_ref(buf)
     }
 }
 

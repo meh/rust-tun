@@ -68,11 +68,38 @@ pub struct Reader {
     pub(crate) fd: Arc<Fd>,
     pub(crate) offset: usize,
     pub(crate) buf: Vec<u8>,
+    pub(crate) mtu: u16,
 }
 
 impl Reader {
     pub(crate) fn set_mtu(&mut self, value: u16) {
+        self.mtu = value;
         self.buf.resize(value as usize + self.offset, 0);
+    }
+
+    pub(crate) fn recv(&self, mut in_buf: &mut [u8]) -> io::Result<usize> {
+        const STACK_BUF_LEN: usize = crate::DEFAULT_MTU as usize + PIL;
+        let in_buf_len = in_buf.len() + self.offset;
+
+        // The following logic is to prevent dynamically allocating Vec on every recv
+        // As long as the MTU is set to value lesser than 1500, this api uses `stack_buf`
+        // and avoids `Vec` allocation
+        let local_buf = if in_buf_len > STACK_BUF_LEN && self.offset != 0 {
+            &mut vec![0u8; in_buf_len][..]
+        } else {
+            &mut [0u8; STACK_BUF_LEN]
+        };
+
+        let either_buf = if self.offset != 0 {
+            &mut *local_buf
+        } else {
+            &mut *in_buf
+        };
+        let amount = self.fd.read(either_buf)?;
+        if self.offset != 0 {
+            in_buf.put_slice(&local_buf[self.offset..amount]);
+        }
+        Ok(amount - self.offset)
     }
 }
 
@@ -106,11 +133,42 @@ pub struct Writer {
     pub(crate) fd: Arc<Fd>,
     pub(crate) offset: usize,
     pub(crate) buf: Vec<u8>,
+    pub(crate) mtu: u16,
 }
 
 impl Writer {
     pub(crate) fn set_mtu(&mut self, value: u16) {
+        self.mtu = value;
         self.buf.resize(value as usize + self.offset, 0);
+    }
+
+    pub(crate) fn send(&self, in_buf: &[u8]) -> io::Result<usize> {
+        const STACK_BUF_LEN: usize = crate::DEFAULT_MTU as usize + PIL;
+        let in_buf_len = in_buf.len() + self.offset;
+
+        // The following logic is to prevent dynamically allocating Vec on every send
+        // As long as the MTU is set to value lesser than 1500, this api uses `stack_buf`
+        // and avoids `Vec` allocation
+        let local_buf = if in_buf_len > STACK_BUF_LEN && self.offset != 0 {
+            &mut vec![0u8; in_buf_len][..]
+        } else {
+            &mut [0u8; STACK_BUF_LEN]
+        };
+
+        let either_buf = if self.offset != 0 {
+            let ipv6 = is_ipv6(in_buf)?;
+            if let Some(header) = generate_packet_information(true, ipv6) {
+                (&mut local_buf[..self.offset]).put_slice(header.as_ref());
+                (&mut local_buf[self.offset..in_buf_len]).put_slice(in_buf);
+                local_buf
+            } else {
+                in_buf
+            }
+        } else {
+            in_buf
+        };
+        let amount = self.fd.write(either_buf)?;
+        Ok(amount - self.offset)
     }
 }
 
@@ -163,11 +221,13 @@ impl Tun {
                 fd: fd.clone(),
                 offset,
                 buf: vec![0; mtu as usize + offset],
+                mtu,
             },
             writer: Writer {
                 fd,
                 offset,
                 buf: vec![0; mtu as usize + offset],
+                mtu,
             },
             mtu,
             packet_information,
@@ -190,6 +250,14 @@ impl Tun {
 
     pub fn packet_information(&self) -> bool {
         self.packet_information
+    }
+
+    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        self.reader.recv(buf)
+    }
+
+    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        self.writer.send(buf)
     }
 }
 
