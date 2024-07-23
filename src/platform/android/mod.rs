@@ -26,5 +26,5 @@ pub struct PlatformConfig;
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {
-    Device::new(&configuration)
+    Device::new(configuration)
 }

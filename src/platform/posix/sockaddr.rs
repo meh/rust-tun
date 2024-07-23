@@ -60,7 +60,8 @@ fn rs_addr_to_sockaddr(addr: std::net::SocketAddr) -> sockaddr_union {
 
 /// # Safety
 /// Fill the `addr` with the `src_addr` and `src_port`, the `size` should be the size of overwriting
-pub unsafe fn ipaddr_to_sockaddr<T>(
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+pub(crate) unsafe fn ipaddr_to_sockaddr<T>(
     src_addr: T,
     src_port: u16,
     addr: &mut libc::sockaddr,
