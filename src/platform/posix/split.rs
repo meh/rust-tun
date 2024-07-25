@@ -84,10 +84,14 @@ impl Reader {
         // The following logic is to prevent dynamically allocating Vec on every recv
         // As long as the MTU is set to value lesser than 1500, this api uses `stack_buf`
         // and avoids `Vec` allocation
+        let mut dynamic_buf: Vec<u8>;
+        let mut fixed_buf: [u8; STACK_BUF_LEN];
         let local_buf = if in_buf_len > STACK_BUF_LEN && self.offset != 0 {
-            &mut vec![0u8; in_buf_len][..]
+            dynamic_buf = vec![0u8; in_buf_len];
+            &mut dynamic_buf[..]
         } else {
-            &mut [0u8; STACK_BUF_LEN]
+            fixed_buf = [0u8; STACK_BUF_LEN];
+            &mut fixed_buf
         };
 
         let either_buf = if self.offset != 0 {
@@ -149,10 +153,14 @@ impl Writer {
         // The following logic is to prevent dynamically allocating Vec on every send
         // As long as the MTU is set to value lesser than 1500, this api uses `stack_buf`
         // and avoids `Vec` allocation
+        let mut dynamic_buf: Vec<u8>;
+        let mut fixed_buf: [u8; STACK_BUF_LEN];
         let local_buf = if in_buf_len > STACK_BUF_LEN && self.offset != 0 {
-            &mut vec![0u8; in_buf_len][..]
+            dynamic_buf = vec![0_u8; in_buf_len];
+            &mut dynamic_buf[..]
         } else {
-            &mut [0u8; STACK_BUF_LEN]
+            fixed_buf = [0_u8; STACK_BUF_LEN];
+            &mut fixed_buf
         };
 
         let either_buf = if self.offset != 0 {
