@@ -58,6 +58,9 @@ default = ["wintun-dns"]
 async = ["tokio", "futures-core", "tokio-util"]
 wintun-dns = []
 
+[package.metadata.docs.rs]
+features = ["async"]
+
 [[example]]
 name = "read-async"
 required-features = ["async"]
