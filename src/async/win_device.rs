@@ -24,21 +24,24 @@ use super::TunPacketCodec;
 use crate::device::AbstractDevice;
 use crate::platform::Device;
 
+/// An async TUN device wrapper around a TUN device.
 pub struct AsyncDevice {
     inner: Device,
     session: WinSession,
 }
 
-/// Returns a shared reference to the underlying Device object
-impl AsRef<Device> for AsyncDevice {
-    fn as_ref(&self) -> &Device {
+/// Returns a shared reference to the underlying Device object.
+impl core::ops::Deref for AsyncDevice {
+    type Target = Device;
+
+    fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-/// Returns a mutable reference to the underlying Device object
-impl AsMut<Device> for AsyncDevice {
-    fn as_mut(&mut self) -> &mut Device {
+/// Returns a mutable reference to the underlying Device object.
+impl core::ops::DerefMut for AsyncDevice {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
@@ -55,7 +58,7 @@ impl AsyncDevice {
 
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
-        let mtu = self.as_ref().mtu().unwrap_or(crate::DEFAULT_MTU);
+        let mtu = self.mtu().unwrap_or(crate::DEFAULT_MTU);
         let codec = TunPacketCodec::new(mtu as usize);
         // guarantee to avoid the mtu of wintun may far away larger than the default provided capacity of ReadBuf of Framed
         Framed::with_capacity(self, codec, mtu as usize)

@@ -30,16 +30,18 @@ pub struct AsyncDevice {
     inner: AsyncFd<Device>,
 }
 
-/// Returns a shared reference to the underlying Device object
-impl AsRef<Device> for AsyncDevice {
-    fn as_ref(&self) -> &Device {
+/// Returns a shared reference to the underlying Device object.
+impl core::ops::Deref for AsyncDevice {
+    type Target = Device;
+
+    fn deref(&self) -> &Self::Target {
         self.inner.get_ref()
     }
 }
 
-/// Returns a mutable reference to the underlying Device object
-impl AsMut<Device> for AsyncDevice {
-    fn as_mut(&mut self) -> &mut Device {
+/// Returns a mutable reference to the underlying Device object.
+impl core::ops::DerefMut for AsyncDevice {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         self.inner.get_mut()
     }
 }
@@ -55,7 +57,7 @@ impl AsyncDevice {
 
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)
     pub fn into_framed(self) -> Framed<Self, TunPacketCodec> {
-        let mtu = self.as_ref().mtu().unwrap_or(crate::DEFAULT_MTU);
+        let mtu = self.mtu().unwrap_or(crate::DEFAULT_MTU);
         let codec = TunPacketCodec::new(mtu as usize);
         // associate mtu with the capacity of ReadBuf
         Framed::with_capacity(self, codec, mtu as usize)
