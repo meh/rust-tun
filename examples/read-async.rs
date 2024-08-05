@@ -46,7 +46,7 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
     });
 
     let mut dev = tun2::create_as_async(&config)?;
-    let size = dev.as_ref().mtu()? as usize + tun2::PACKET_INFORMATION_LENGTH;
+    let size = dev.mtu()? as usize + tun2::PACKET_INFORMATION_LENGTH;
     let mut buf = vec![0; size];
     loop {
         tokio::select! {
