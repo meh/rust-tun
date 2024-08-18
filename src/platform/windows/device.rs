@@ -69,7 +69,8 @@ impl Device {
         }
         let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
-        let session = adapter.start_session(wintun::MAX_RING_CAPACITY)?;
+        let session =
+            adapter.start_session(config.ring_capacity.unwrap_or(wintun::MAX_RING_CAPACITY))?;
 
         let mut device = Device {
             tun: Tun {

@@ -56,6 +56,8 @@ pub struct Configuration {
     pub(crate) raw_fd: Option<i32>,
     #[cfg(windows)]
     pub(crate) raw_handle: Option<WinHandle>,
+    #[cfg(windows)]
+    pub(crate) ring_capacity: Option<u32>,
     #[cfg(unix)]
     pub(crate) close_fd_on_drop: Option<bool>,
 }
@@ -165,7 +167,11 @@ impl Configuration {
         self.raw_handle = Some(WinHandle(handle));
         self
     }
-
+    #[cfg(windows)]
+    pub fn ring_capacity(&mut self, ring_capacity: u32) -> &mut Self {
+        self.ring_capacity = Some(ring_capacity);
+        self
+    }
     /// Set whether to close the received raw file descriptor on drop or not.
     /// The default behaviour is to close the received or tun2 generated file descriptor.
     /// Note: If this is set to false, it is up to the caller to ensure the
