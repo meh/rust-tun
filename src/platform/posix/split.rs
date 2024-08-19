@@ -63,6 +63,62 @@ pub(crate) fn generate_packet_information(
     None
 }
 
+#[rustversion::since(1.79)]
+macro_rules! local_buf_util {
+	($e:expr,$size:expr) => {
+		if $e{
+			&mut vec![0u8; $size][..]
+		}else{
+			const STACK_BUF_LEN: usize = crate::DEFAULT_MTU as usize + PIL;
+			&mut [0u8; STACK_BUF_LEN]
+		}
+	};
+}
+
+#[rustversion::before(1.79)]
+macro_rules! local_buf_util {
+	($e:expr,$size:expr) =>{
+		{
+			pub(crate) enum OptBuf{
+				Heap(Vec<u8>),
+				Stack([u8;crate::DEFAULT_MTU as usize + PIL])
+			}
+			impl OptBuf{
+				pub(crate) fn as_mut(& mut self)->& mut [u8]{
+					match self{
+						OptBuf::Heap(v)=>v.as_mut(),
+						OptBuf::Stack(v)=>v.as_mut()
+					}
+				}
+			}
+
+			fn get_local_buf(cond:bool,in_buf_len:usize)-> OptBuf{
+				if cond{
+					OptBuf::Heap(vec![0u8; in_buf_len])
+				}else{
+					const STACK_BUF_LEN: usize = crate::DEFAULT_MTU as usize + PIL;
+					OptBuf::Stack([0u8; STACK_BUF_LEN])
+				}
+			}
+			get_local_buf($e,$size)
+		}
+	}
+}
+
+#[rustversion::since(1.79)]
+macro_rules! need_mut {
+    ($id:ident, $e:expr) => {
+        let $id = $e;
+    };
+}
+
+#[rustversion::before(1.79)]
+macro_rules! need_mut {
+    ($id:ident, $e:expr) => {
+        let mut $id = $e;
+    };
+}
+
 /// Read-only end for a file descriptor.
 pub struct Reader {
     pub(crate) fd: Arc<Fd>,
@@ -84,11 +140,12 @@ impl Reader {
         // The following logic is to prevent dynamically allocating Vec on every recv
         // As long as the MTU is set to value lesser than 1500, this api uses `stack_buf`
         // and avoids `Vec` allocation
-        let local_buf = if in_buf_len > STACK_BUF_LEN && self.offset != 0 {
-            &mut vec![0u8; in_buf_len][..]
-        } else {
-            &mut [0u8; STACK_BUF_LEN]
-        };
+
+        let local_buf_v0 =
+            local_buf_util!(in_buf_len > STACK_BUF_LEN && self.offset != 0, in_buf_len);
+        need_mut! {local_buf_v1,local_buf_v0};
+        #[allow(clippy::useless_asref)]
+        let local_buf = local_buf_v1.as_mut();
 
         let either_buf = if self.offset != 0 {
             &mut *local_buf
@@ -149,11 +206,11 @@ impl Writer {
         // The following logic is to prevent dynamically allocating Vec on every send
         // As long as the MTU is set to value lesser than 1500, this api uses `stack_buf`
         // and avoids `Vec` allocation
-        let local_buf = if in_buf_len > STACK_BUF_LEN && self.offset != 0 {
-            &mut vec![0_u8; in_buf_len][..]
-        } else {
-            &mut [0_u8; STACK_BUF_LEN]
-        };
+        let local_buf_v0 =
+            local_buf_util!(in_buf_len > STACK_BUF_LEN && self.offset != 0, in_buf_len);
+        need_mut! {local_buf_v1,local_buf_v0};
+        #[allow(clippy::useless_asref)]
+        let local_buf = local_buf_v1.as_mut();
 
         let either_buf = if self.offset != 0 {
             let ipv6 = is_ipv6(in_buf)?;

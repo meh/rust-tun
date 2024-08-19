@@ -1,13 +1,13 @@
 [package]
 name = "tun2"
-version = "2.0.5"
+version = "2.0.6"
 edition = "2021"
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
 license = "WTFPL"
 description = "TUN device creation and handling."
 repository = "https://github.com/ssrlive/rust-tun"
 keywords = ["tun", "network", "tunnel", "bindings"]
-rust-version = "1.79"
+#rust-version = "1.79"
 
 [lib]
 crate-type = ["staticlib", "cdylib", "lib"]
@@ -25,6 +25,7 @@ tokio = { version = "1", features = [
     "io-util",
 ], optional = true }
 tokio-util = { version = "0.7", features = ["codec"], optional = true }
+rustversion = "1.0.17"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "android", target_os="freebsd"))'.dependencies]
 nix = { version = "0.29", features = ["ioctl"] }
