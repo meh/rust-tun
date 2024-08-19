@@ -25,12 +25,12 @@ pub use codec::TunPacketCodec;
 #[cfg(unix)]
 mod unix_device;
 #[cfg(unix)]
-pub use unix_device::AsyncDevice;
+pub use unix_device::{AsyncDevice, DeviceReader, DeviceWriter};
 
 #[cfg(target_os = "windows")]
 mod win_device;
 #[cfg(target_os = "windows")]
-pub use win_device::AsyncDevice;
+pub use win_device::{AsyncDevice, DeviceReader, DeviceWriter};
 
 /// Create a TUN device with the given name.
 pub fn create_as_async(configuration: &Configuration) -> Result<AsyncDevice, error::Error> {

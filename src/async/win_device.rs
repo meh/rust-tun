@@ -17,17 +17,19 @@ use core::task::{Context, Poll};
 use std::io;
 use std::io::Error;
 
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use tokio_util::codec::Framed;
-
 use super::TunPacketCodec;
 use crate::device::AbstractDevice;
 use crate::platform::Device;
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::sync::mpsc::error::TrySendError;
+use tokio_util::codec::Framed;
+use wintun::Packet;
 
 /// An async TUN device wrapper around a TUN device.
 pub struct AsyncDevice {
     inner: Device,
-    session: WinSession,
+    session_reader: DeviceReader,
+    session_writer: DeviceWriter,
 }
 
 /// Returns a shared reference to the underlying Device object.
@@ -49,10 +51,12 @@ impl core::ops::DerefMut for AsyncDevice {
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
     pub fn new(device: Device) -> io::Result<AsyncDevice> {
-        let session = WinSession::new(device.tun.get_session())?;
+        let session_reader = DeviceReader::new(device.tun.get_session())?;
+        let session_writer = DeviceWriter::new(device.tun.get_session())?;
         Ok(AsyncDevice {
             inner: device,
-            session,
+            session_reader,
+            session_writer,
         })
     }
 
@@ -62,6 +66,9 @@ impl AsyncDevice {
         let codec = TunPacketCodec::new(mtu as usize);
         // guarantee to avoid the mtu of wintun may far away larger than the default provided capacity of ReadBuf of Framed
         Framed::with_capacity(self, codec, mtu as usize)
+    }
+    pub fn split(self) -> io::Result<(DeviceWriter, DeviceReader)> {
+        Ok((self.session_writer, self.session_reader))
     }
 
     /// Recv a packet from tun device - Not implemented for windows
@@ -81,7 +88,7 @@ impl AsyncRead for AsyncDevice {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.session).poll_read(cx, buf)
+        Pin::new(&mut self.session_reader).poll_read(cx, buf)
     }
 }
 
@@ -91,34 +98,38 @@ impl AsyncWrite for AsyncDevice {
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<Result<usize, Error>> {
-        Pin::new(&mut self.session).poll_write(cx, buf)
+        Pin::new(&mut self.session_writer).poll_write(cx, buf)
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        Pin::new(&mut self.session).poll_flush(cx)
+        Pin::new(&mut self.session_writer).poll_flush(cx)
     }
 
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        Pin::new(&mut self.session).poll_shutdown(cx)
+        Pin::new(&mut self.session_writer).poll_shutdown(cx)
     }
 }
-
-struct WinSession {
-    session: std::sync::Arc<wintun::Session>,
-    receiver: tokio::sync::mpsc::UnboundedReceiver<Vec<u8>>,
+pub struct DeviceReader {
+    receiver: tokio::sync::mpsc::Receiver<Packet>,
     _task: std::thread::JoinHandle<()>,
 }
-
-impl WinSession {
-    fn new(session: std::sync::Arc<wintun::Session>) -> Result<WinSession, io::Error> {
-        let session_reader = session.clone();
-        let (receiver_tx, receiver_rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+impl DeviceReader {
+    fn new(session: std::sync::Arc<wintun::Session>) -> Result<DeviceReader, io::Error> {
+        let (receiver_tx, receiver_rx) = tokio::sync::mpsc::channel(1024);
         let task = std::thread::spawn(move || loop {
-            match session_reader.receive_blocking() {
+            match session.receive_blocking() {
                 Ok(packet) => {
-                    if let Err(err) = receiver_tx.send(packet.bytes().to_vec()) {
-                        log::error!("{}", err);
-                        break;
+                    if let Err(err) = receiver_tx.try_send(packet) {
+                        match err {
+                            TrySendError::Full(_) => {
+                                log::error!("receiver_tx Full");
+                                continue;
+                            }
+                            TrySendError::Closed(_) => {
+                                log::error!("receiver_tx Closed");
+                                break;
+                            }
+                        }
                     }
                 }
                 Err(err) => {
@@ -127,16 +138,22 @@ impl WinSession {
                 }
             }
         });
-
-        Ok(WinSession {
-            session,
+        Ok(DeviceReader {
             receiver: receiver_rx,
             _task: task,
         })
     }
 }
+pub struct DeviceWriter {
+    session: std::sync::Arc<wintun::Session>,
+}
+impl DeviceWriter {
+    fn new(session: std::sync::Arc<wintun::Session>) -> Result<DeviceWriter, io::Error> {
+        Ok(Self { session })
+    }
+}
 
-impl AsyncRead for WinSession {
+impl AsyncRead for DeviceReader {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -144,7 +161,7 @@ impl AsyncRead for WinSession {
     ) -> Poll<io::Result<()>> {
         match std::task::ready!(self.receiver.poll_recv(cx)) {
             Some(bytes) => {
-                buf.put_slice(&bytes);
+                buf.put_slice(bytes.bytes());
                 std::task::Poll::Ready(Ok(()))
             }
             None => std::task::Poll::Ready(Ok(())),
@@ -152,7 +169,7 @@ impl AsyncRead for WinSession {
     }
 }
 
-impl AsyncWrite for WinSession {
+impl AsyncWrite for DeviceWriter {
     fn poll_write(
         self: Pin<&mut Self>,
         _cx: &mut Context<'_>,

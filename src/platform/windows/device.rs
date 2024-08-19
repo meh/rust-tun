@@ -287,13 +287,14 @@ impl Write for Tun {
     }
 }
 
-impl Drop for Tun {
-    fn drop(&mut self) {
-        if let Err(err) = self.session.shutdown() {
-            log::error!("failed to shutdown session: {:?}", err);
-        }
-    }
-}
+// impl Drop for Tun {
+//     fn drop(&mut self) {
+//         // The session has implemented drop
+//         if let Err(err) = self.session.shutdown() {
+//             log::error!("failed to shutdown session: {:?}", err);
+//         }
+//     }
+// }
 
 #[repr(transparent)]
 pub struct Reader(Arc<Tun>);
