@@ -58,6 +58,8 @@ pub struct Configuration {
     pub(crate) raw_handle: Option<WinHandle>,
     #[cfg(windows)]
     pub(crate) ring_capacity: Option<u32>,
+    #[cfg(windows)]
+    pub(crate) metric: Option<u16>,
     #[cfg(unix)]
     pub(crate) close_fd_on_drop: Option<bool>,
 }
@@ -170,6 +172,11 @@ impl Configuration {
     #[cfg(windows)]
     pub fn ring_capacity(&mut self, ring_capacity: u32) -> &mut Self {
         self.ring_capacity = Some(ring_capacity);
+        self
+    }
+    #[cfg(windows)]
+    pub fn metric(&mut self, metric: u16) -> &mut Self {
+        self.metric = Some(metric);
         self
     }
     /// Set whether to close the received raw file descriptor on drop or not.

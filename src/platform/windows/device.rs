@@ -21,6 +21,7 @@ use wintun::Session;
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
+use crate::platform::windows::netsh;
 use crate::platform::windows::verify_dll_file::{
     get_dll_absolute_path, get_signer_name, verify_embedded_signature,
 };
@@ -54,7 +55,9 @@ impl Device {
             Ok(a) => a,
             Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, guid)?,
         };
-
+        if let Some(metric) = config.metric {
+            netsh::set_interface_metric(adapter.get_adapter_index()?, metric)?;
+        }
         let address = config
             .address
             .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 1, 0, 2)));
@@ -72,15 +75,12 @@ impl Device {
         let session =
             adapter.start_session(config.ring_capacity.unwrap_or(wintun::MAX_RING_CAPACITY))?;
         adapter.set_mtu(mtu as _)?;
-        let mut device = Device {
+        let device = Device {
             tun: Tun {
                 session: Arc::new(session),
             },
             mtu,
         };
-
-        // This is not needed since we use netsh to set the address.
-        device.configure(config)?;
 
         Ok(device)
     }
