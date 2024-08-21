@@ -25,95 +25,169 @@ use crate::platform::windows::netsh;
 use crate::platform::windows::verify_dll_file::{
     get_dll_absolute_path, get_signer_name, verify_embedded_signature,
 };
+use crate::Layer;
 
+pub enum Driver {
+    Tun(Tun),
+    #[allow(dead_code)]
+    Tap(()),
+}
 /// A TUN device using the wintun driver.
 pub struct Device {
-    pub(crate) tun: Tun,
+    pub(crate) driver: Driver,
     mtu: u16,
+}
+
+macro_rules! driver_case {
+    ($driver:expr; $tun:ident =>  $tun_branch:block; $tap:ident => $tap_branch:block) => {
+        match $driver {
+            Driver::Tun($tun) => $tun_branch,
+            Driver::Tap($tap) => $tap_branch,
+        }
+    };
 }
 
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
-        let wintun_file = &config.platform_config.wintun_file;
-        let wintun = unsafe {
-            // Ensure the dll file has not been tampered with.
-            let abs_path = get_dll_absolute_path(wintun_file)?;
-            verify_embedded_signature(&abs_path)?;
-            let signer_name = get_signer_name(&abs_path)?;
-            let wp = super::WINTUN_PROVIDER;
-            if signer_name != wp {
-                return Err(format!("Signer \"{}\" not match \"{}\"", signer_name, wp).into());
+        let layer = config.layer.unwrap_or(Layer::L3);
+        if layer == Layer::L3 {
+            let wintun_file = &config.platform_config.wintun_file;
+            let wintun = unsafe {
+                // Ensure the dll file has not been tampered with.
+                let abs_path = get_dll_absolute_path(wintun_file)?;
+                verify_embedded_signature(&abs_path)?;
+                let signer_name = get_signer_name(&abs_path)?;
+                let wp = super::WINTUN_PROVIDER;
+                if signer_name != wp {
+                    return Err(format!("Signer \"{}\" not match \"{}\"", signer_name, wp).into());
+                }
+
+                let wintun = libloading::Library::new(wintun_file)?;
+                wintun::load_from_library(wintun)?
+            };
+            let tun_name = config.tun_name.as_deref().unwrap_or("wintun");
+            let guid = config.platform_config.device_guid;
+            let adapter = match wintun::Adapter::open(&wintun, tun_name) {
+                Ok(a) => a,
+                Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, guid)?,
+            };
+            if let Some(metric) = config.metric {
+                netsh::set_interface_metric(adapter.get_adapter_index()?, metric)?;
             }
+            let address = config
+                .address
+                .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 1, 0, 2)));
+            let mask = config
+                .netmask
+                .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
+            let gateway = config.destination.map(IpAddr::from);
+            adapter.set_network_addresses_tuple(address, mask, gateway)?;
+            #[cfg(feature = "wintun-dns")]
+            if let Some(dns_servers) = &config.platform_config.dns_servers {
+                adapter.set_dns_servers(dns_servers)?;
+            }
+            let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
-            let wintun = libloading::Library::new(wintun_file)?;
-            wintun::load_from_library(wintun)?
-        };
-        let tun_name = config.tun_name.as_deref().unwrap_or("wintun");
-        let guid = config.platform_config.device_guid;
-        let adapter = match wintun::Adapter::open(&wintun, tun_name) {
-            Ok(a) => a,
-            Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, guid)?,
-        };
-        if let Some(metric) = config.metric {
-            netsh::set_interface_metric(adapter.get_adapter_index()?, metric)?;
+            let session =
+                adapter.start_session(config.ring_capacity.unwrap_or(wintun::MAX_RING_CAPACITY))?;
+            adapter.set_mtu(mtu as _)?;
+            let device = Device {
+                driver: Driver::Tun(Tun {
+                    session: Arc::new(session),
+                }),
+                mtu,
+            };
+
+            Ok(device)
+        } else if layer == Layer::L2 {
+            todo!()
+        } else {
+            panic!("unknow layer {:?}", layer);
         }
-        let address = config
-            .address
-            .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 1, 0, 2)));
-        let mask = config
-            .netmask
-            .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
-        let gateway = config.destination.map(IpAddr::from);
-        adapter.set_network_addresses_tuple(address, mask, gateway)?;
-        #[cfg(feature = "wintun-dns")]
-        if let Some(dns_servers) = &config.platform_config.dns_servers {
-            adapter.set_dns_servers(dns_servers)?;
-        }
-        let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
-
-        let session =
-            adapter.start_session(config.ring_capacity.unwrap_or(wintun::MAX_RING_CAPACITY))?;
-        adapter.set_mtu(mtu as _)?;
-        let device = Device {
-            tun: Tun {
-                session: Arc::new(session),
-            },
-            mtu,
-        };
-
-        Ok(device)
     }
 
     pub fn split(self) -> (Reader, Writer) {
-        let tun = Arc::new(self.tun);
-        (Reader(tun.clone()), Writer(tun))
+        match self.driver {
+            Driver::Tun(tun) => {
+                let tun = Arc::new(tun);
+                (Reader(tun.clone()), Writer(tun))
+            }
+            Driver::Tap(_) => {
+                unimplemented!()
+            }
+        }
     }
 
     /// Recv a packet from tun device
     pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
-        self.tun.recv(buf)
+        driver_case!(
+            &self.driver;
+            tun =>{
+                tun.recv(buf)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     /// Send a packet to tun device
     pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
-        self.tun.send(buf)
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                tun.send(buf)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 }
 
 impl Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.tun.read(buf)
+        driver_case!(
+            & mut self.driver;
+            tun=>  {
+                tun.read(buf)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 }
 
 impl Write for Device {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.tun.write(buf)
+        driver_case!(
+            & mut self.driver;
+            tun=>  {
+                tun.write(buf)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.tun.flush()
+        driver_case!(
+            & mut self.driver;
+            tun=>  {
+                tun.flush()
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 }
 
@@ -131,12 +205,30 @@ impl AsMut<dyn AbstractDevice + 'static> for Device {
 
 impl AbstractDevice for Device {
     fn tun_name(&self) -> Result<String> {
-        Ok(self.tun.session.get_adapter().get_name()?)
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                Ok(tun.session.get_adapter().get_name()?)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn set_tun_name(&mut self, value: &str) -> Result<()> {
-        self.tun.session.get_adapter().set_name(value)?;
-        Ok(())
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                tun.session.get_adapter().set_name(value)?;
+                Ok(())
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn enabled(&mut self, _value: bool) -> Result<()> {
@@ -144,36 +236,63 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        let addresses = self.tun.session.get_adapter().get_addresses()?;
-        addresses
-            .iter()
-            .find_map(|a| match a {
-                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
-                _ => None,
-            })
-            .ok_or(Error::InvalidConfig)
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                let addresses =tun.session.get_adapter().get_addresses()?;
+                addresses
+                    .iter()
+                    .find_map(|a| match a {
+                        std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
+                        _ => None,
+                    })
+                    .ok_or(Error::InvalidConfig)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn set_address(&mut self, value: IpAddr) -> Result<()> {
         let IpAddr::V4(value) = value else {
             unimplemented!("do not support IPv6 yet")
         };
-        self.tun.session.get_adapter().set_address(value)?;
-        Ok(())
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                tun.session.get_adapter().set_address(value)?;
+                Ok(())
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn destination(&self) -> Result<IpAddr> {
         // It's just the default gateway in windows.
-        self.tun
-            .session
-            .get_adapter()
-            .get_gateways()?
-            .iter()
-            .find_map(|a| match a {
-                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
-                _ => None,
-            })
-            .ok_or(Error::InvalidConfig)
+        driver_case!(
+            &self.driver;
+            tun=>  {
+               tun
+                .session
+                .get_adapter()
+                .get_gateways()?
+                .iter()
+                .find_map(|a| match a {
+                    std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
+                    _ => None,
+                })
+                .ok_or(Error::InvalidConfig)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn set_destination(&mut self, value: IpAddr) -> Result<()> {
@@ -181,8 +300,17 @@ impl AbstractDevice for Device {
             unimplemented!("do not support IPv6 yet")
         };
         // It's just set the default gateway in windows.
-        self.tun.session.get_adapter().set_gateway(Some(value))?;
-        Ok(())
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                tun.session.get_adapter().set_gateway(Some(value))?;
+                Ok(())
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn broadcast(&self) -> Result<IpAddr> {
@@ -196,19 +324,36 @@ impl AbstractDevice for Device {
 
     fn netmask(&self) -> Result<IpAddr> {
         let current_addr = self.address()?;
-        self.tun
-            .session
-            .get_adapter()
-            .get_netmask_of_address(&current_addr)
-            .map_err(Error::WintunError)
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                tun .session
+                .get_adapter()
+                .get_netmask_of_address(&current_addr)
+                .map_err(Error::WintunError)
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn set_netmask(&mut self, value: IpAddr) -> Result<()> {
         let IpAddr::V4(value) = value else {
             unimplemented!("do not support IPv6 yet")
         };
-        self.tun.session.get_adapter().set_netmask(value)?;
-        Ok(())
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                tun.session.get_adapter().set_netmask(value)?;
+                Ok(())
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     /// The return value is always `Ok(65535)` due to wintun
@@ -218,9 +363,18 @@ impl AbstractDevice for Device {
 
     /// This setting has no effect since the mtu of wintun is always 65535
     fn set_mtu(&mut self, mtu: u16) -> Result<()> {
-        self.tun.session.get_adapter().set_mtu(mtu as _)?;
-        self.mtu = mtu;
-        Ok(())
+        driver_case!(
+            &self.driver;
+            tun=>  {
+                tun.session.get_adapter().set_mtu(mtu as _)?;
+                self.mtu = mtu;
+                Ok(())
+            };
+            _tap=>
+            {
+                unimplemented!()
+            }
+        )
     }
 
     fn packet_information(&self) -> bool {
