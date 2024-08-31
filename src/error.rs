@@ -52,7 +52,7 @@ pub enum Error {
 
     #[cfg(target_os = "windows")]
     #[error(transparent)]
-    WintunError(#[from] wintun::Error),
+    WintunError(#[from] wintun_bindings::Error),
 
     #[cfg(target_os = "windows")]
     #[error(transparent)]

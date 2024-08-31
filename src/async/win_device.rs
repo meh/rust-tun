@@ -24,7 +24,7 @@ use crate::platform::Device;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::sync::mpsc::error::TrySendError;
 use tokio_util::codec::Framed;
-use wintun::Packet;
+use wintun_bindings::{Packet, Session};
 
 /// An async TUN device wrapper around a TUN device.
 pub struct AsyncDevice {
@@ -122,7 +122,7 @@ pub struct DeviceReader {
     _task: std::thread::JoinHandle<()>,
 }
 impl DeviceReader {
-    fn new(session: std::sync::Arc<wintun::Session>) -> Result<DeviceReader, io::Error> {
+    fn new(session: std::sync::Arc<Session>) -> Result<DeviceReader, io::Error> {
         let (receiver_tx, receiver_rx) = tokio::sync::mpsc::channel(1024);
         let task = std::thread::spawn(move || loop {
             match session.receive_blocking() {
@@ -153,10 +153,10 @@ impl DeviceReader {
     }
 }
 pub struct DeviceWriter {
-    session: std::sync::Arc<wintun::Session>,
+    session: std::sync::Arc<Session>,
 }
 impl DeviceWriter {
-    fn new(session: std::sync::Arc<wintun::Session>) -> Result<DeviceWriter, io::Error> {
+    fn new(session: std::sync::Arc<Session>) -> Result<DeviceWriter, io::Error> {
         Ok(Self { session })
     }
 }
