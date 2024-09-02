@@ -30,6 +30,7 @@ tokio-util = { version = "0.7", features = ["codec"], optional = true }
 nix = { version = "0.29", features = ["ioctl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
+futures = { version = "0.3", optional = true }
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_Security",
@@ -60,7 +61,13 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 [features]
 default = ["wintun-dns"]
 # default = ["wintun-dns", "async"]
-async = ["tokio", "futures-core", "tokio-util"]
+async = [
+    "tokio",
+    "futures-core",
+    "futures",
+    "tokio-util",
+    "wintun-bindings/async",
+]
 wintun-dns = []
 
 [package.metadata.docs.rs]
