@@ -28,7 +28,10 @@ jobs:
       run: cargo clippy --all-targets --all-features -- -D warnings
     - name: Build
       if: ${{ !cancelled() }}
-      run: cargo build --verbose --examples --tests --all-features --features="async tokio/rt-multi-thread"
+      run: |
+        cargo build --verbose --examples --tests --all-features --features="async tokio/rt-multi-thread"
+        cargo clean
+        cargo build --verbose --examples --tests --no-default-features
     - name: Abort on error
       if: ${{ failure() }}
       run: echo "Some of jobs failed" && false
@@ -87,9 +90,5 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - uses: obi1kenobi/cargo-semver-checks-action@v2

@@ -16,16 +16,12 @@
 
 mod device;
 mod netsh;
-mod verify_dll_file;
 
 use crate::configuration::Configuration;
 use crate::error::Result;
 pub use device::Driver;
 pub use device::{Device, Tun};
 use std::ffi::OsString;
-use std::net::IpAddr;
-
-pub(crate) const WINTUN_PROVIDER: &str = "WireGuard LLC";
 
 /// Windows-only interface configuration.
 #[derive(Clone, Debug)]
@@ -33,7 +29,7 @@ pub struct PlatformConfig {
     pub(crate) device_guid: Option<u128>,
     pub(crate) wintun_file: OsString,
     #[cfg(feature = "wintun-dns")]
-    pub(crate) dns_servers: Option<Vec<IpAddr>>,
+    pub(crate) dns_servers: Option<Vec<std::net::IpAddr>>,
 }
 
 impl Default for PlatformConfig {
@@ -63,7 +59,7 @@ impl PlatformConfig {
     }
 
     #[cfg(feature = "wintun-dns")]
-    pub fn dns_servers(&mut self, dns_servers: &[IpAddr]) {
+    pub fn dns_servers(&mut self, dns_servers: &[std::net::IpAddr]) {
         self.dns_servers = Some(dns_servers.to_vec());
     }
 }
