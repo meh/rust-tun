@@ -15,7 +15,6 @@
 //! Windows specific functionality.
 
 mod device;
-mod netsh;
 
 use crate::configuration::Configuration;
 use crate::error::Result;

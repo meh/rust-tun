@@ -18,8 +18,6 @@ use crate::platform::windows::Driver;
 use crate::platform::Device;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use std::io;
-use std::io::Error;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 use wintun_bindings::AsyncSession;
@@ -49,7 +47,7 @@ impl core::ops::DerefMut for AsyncDevice {
 
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
-    pub fn new(device: Device) -> io::Result<AsyncDevice> {
+    pub fn new(device: Device) -> std::io::Result<AsyncDevice> {
         match &device.driver {
             Driver::Tun(tun) => {
                 let session_reader = DeviceReader::new(tun.get_session().into())?;
@@ -74,7 +72,7 @@ impl AsyncDevice {
         Framed::with_capacity(self, codec, mtu as usize)
     }
 
-    pub fn split(self) -> io::Result<(DeviceWriter, DeviceReader)> {
+    pub fn split(self) -> std::io::Result<(DeviceWriter, DeviceReader)> {
         Ok((self.session_writer, self.session_reader))
     }
 
@@ -94,7 +92,7 @@ impl AsyncRead for AsyncDevice {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
+    ) -> Poll<std::io::Result<()>> {
         Pin::new(&mut self.session_reader).poll_read(cx, buf)
     }
 }
@@ -104,15 +102,15 @@ impl AsyncWrite for AsyncDevice {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
-    ) -> Poll<Result<usize, Error>> {
+    ) -> Poll<std::io::Result<usize>> {
         Pin::new(&mut self.session_writer).poll_write(cx, buf)
     }
 
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         Pin::new(&mut self.session_writer).poll_flush(cx)
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         Pin::new(&mut self.session_writer).poll_shutdown(cx)
     }
 }
@@ -160,15 +158,15 @@ impl AsyncWrite for DeviceWriter {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
-    ) -> Poll<Result<usize, Error>> {
+    ) -> Poll<std::io::Result<usize>> {
         futures::AsyncWrite::poll_write(Pin::new(&mut self.session), cx, buf)
     }
 
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         futures::AsyncWrite::poll_flush(Pin::new(&mut self.session), cx)
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         futures::AsyncWrite::poll_close(Pin::new(&mut self.session), cx)
     }
 }

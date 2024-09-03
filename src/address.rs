@@ -86,8 +86,7 @@ impl IntoAddress for IpAddr {
     fn into_address(&self) -> Result<IpAddr> {
         match self {
             IpAddr::V4(value) => Ok(IpAddr::V4(*value)),
-
-            IpAddr::V6(_) => unimplemented!(),
+            IpAddr::V6(value) => Ok(IpAddr::V6(*value)),
         }
     }
 }
@@ -114,8 +113,7 @@ impl IntoAddress for SocketAddr {
     fn into_address(&self) -> Result<IpAddr> {
         match self {
             SocketAddr::V4(value) => Ok(IpAddr::V4(*value.ip())),
-
-            SocketAddr::V6(_) => unimplemented!(),
+            SocketAddr::V6(value) => Ok(IpAddr::V6(*value.ip())),
         }
     }
 }

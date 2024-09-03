@@ -19,9 +19,9 @@ use std::sync::Arc;
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
-use crate::platform::windows::netsh;
+use crate::run_command::run_command;
 use crate::Layer;
-use wintun_bindings::Session;
+use wintun_bindings::{load_from_path, Adapter, Session, MAX_RING_CAPACITY};
 
 pub enum Driver {
     Tun(Tun),
@@ -40,15 +40,18 @@ impl Device {
         let layer = config.layer.unwrap_or(Layer::L3);
         if layer == Layer::L3 {
             let wintun_file = &config.platform_config.wintun_file;
-            let wintun = unsafe { wintun_bindings::load_from_path(wintun_file)? };
+            let wintun = unsafe { load_from_path(wintun_file)? };
             let tun_name = config.tun_name.as_deref().unwrap_or("wintun");
             let guid = config.platform_config.device_guid;
-            let adapter = match wintun_bindings::Adapter::open(&wintun, tun_name) {
+            let adapter = match Adapter::open(&wintun, tun_name) {
                 Ok(a) => a,
-                Err(_) => wintun_bindings::Adapter::create(&wintun, tun_name, tun_name, guid)?,
+                Err(_) => Adapter::create(&wintun, tun_name, tun_name, guid)?,
             };
             if let Some(metric) = config.metric {
-                netsh::set_interface_metric(adapter.get_adapter_index()?, metric)?;
+                // Command: netsh interface ip set interface {index} metric={metric}
+                let i = adapter.get_adapter_index()?.to_string();
+                let m = format!("metric={}", metric);
+                run_command("netsh", &["interface", "ip", "set", "interface", &i, &m])?;
             }
             let address = config
                 .address
@@ -64,15 +67,16 @@ impl Device {
             }
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
-            let capacity = config
-                .ring_capacity
-                .unwrap_or(wintun_bindings::MAX_RING_CAPACITY);
+            let capacity = config.ring_capacity.unwrap_or(MAX_RING_CAPACITY);
             let session = adapter.start_session(capacity)?;
             adapter.set_mtu(mtu as _)?;
-            let device = Device {
+            let mut device = Device {
                 driver: Driver::Tun(Tun { session }),
                 mtu,
             };
+
+            // This is not needed since we use netsh to set the address.
+            device.configure(config)?;
 
             Ok(device)
         } else if layer == Layer::L2 {

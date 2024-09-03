@@ -27,6 +27,8 @@ pub use crate::configuration::{Configuration, Layer};
 pub mod platform;
 pub use crate::platform::create;
 
+pub(crate) mod run_command;
+
 #[cfg(feature = "async")]
 pub mod r#async;
 #[cfg(feature = "async")]
@@ -39,6 +41,6 @@ pub fn configure() -> Configuration {
 #[cfg(unix)]
 pub const DEFAULT_MTU: u16 = 1500;
 #[cfg(windows)]
-pub const DEFAULT_MTU: u16 = 0xFFFF; // 65535
+pub const DEFAULT_MTU: u16 = wintun_bindings::MAX_IP_PACKET_SIZE as _; // u16::MAX
 
 pub const PACKET_INFORMATION_LENGTH: usize = 4;

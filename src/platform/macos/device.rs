@@ -21,6 +21,7 @@ use crate::{
         macos::sys::*,
         posix::{self, ipaddr_to_sockaddr, sockaddr_union, Fd},
     },
+    run_command::run_command,
 };
 
 const OVERWRITE_SIZE: usize = std::mem::size_of::<libc::__c_anonymous_ifr_ifru>();
@@ -503,20 +504,4 @@ impl IntoRawFd for Device {
     fn into_raw_fd(self) -> RawFd {
         self.tun.into_raw_fd()
     }
-}
-
-/// Runs a command and returns an error if the command fails, just convenience for users.
-#[doc(hidden)]
-pub fn run_command(command: &str, args: &[&str]) -> std::io::Result<Vec<u8>> {
-    let out = std::process::Command::new(command).args(args).output()?;
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(if out.stderr.is_empty() {
-            &out.stdout
-        } else {
-            &out.stderr
-        });
-        let info = format!("{} failed with: \"{}\"", command, err);
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, info));
-    }
-    Ok(out.stdout)
 }
