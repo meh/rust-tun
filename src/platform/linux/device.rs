@@ -57,11 +57,21 @@ impl AsMut<dyn AbstractDevice + 'static> for Device {
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
+        if let Some(fd) = config.raw_fd {
+            let close_fd_on_drop = config.close_fd_on_drop.unwrap_or(true);
+            let tun_fd = Fd::new(fd, close_fd_on_drop)?;
+            let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
+            let packet_information = config.platform_config.packet_information;
+            let tun_name = config.tun_name.clone().unwrap_or_else(|| "".into());
+            let ctl = Fd::new(unsafe { libc::socket(AF_INET, SOCK_DGRAM, 0) }, true)?;
+            return Ok(Device {
+                tun: Tun::new(tun_fd, mtu, packet_information),
+                tun_name,
+                ctl,
+            });
+        }
+
         let mut device = unsafe {
-            if config.raw_fd.is_some() {
-                // TODO: Should we support this in the future?
-                return Err(Error::NotImplemented);
-            }
             let dev_name = match config.tun_name.as_ref() {
                 Some(tun_name) => {
                     let tun_name = CString::new(tun_name.clone())?;
