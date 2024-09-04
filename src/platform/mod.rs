@@ -15,30 +15,30 @@
 //! Platform specific modules.
 
 #[cfg(unix)]
-pub mod posix;
+pub(crate) mod posix;
 
 #[cfg(target_os = "linux")]
-pub mod linux;
+pub(crate) mod linux;
 #[cfg(target_os = "linux")]
 pub use self::linux::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "freebsd")]
-pub mod freebsd;
+pub(crate) mod freebsd;
 #[cfg(target_os = "freebsd")]
 pub use self::freebsd::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "macos")]
-pub mod macos;
+pub(crate) mod macos;
 #[cfg(target_os = "macos")]
 pub use self::macos::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "ios")]
-pub mod ios;
+pub(crate) mod ios;
 #[cfg(target_os = "ios")]
 pub use self::ios::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "android")]
-pub mod android;
+pub(crate) mod android;
 #[cfg(target_os = "android")]
 pub use self::android::{create, Device, PlatformConfig};
 
@@ -46,7 +46,7 @@ pub use self::android::{create, Device, PlatformConfig};
 pub use crate::platform::posix::Tun;
 
 #[cfg(target_os = "windows")]
-pub mod windows;
+pub(crate) mod windows;
 #[cfg(target_os = "windows")]
 pub use self::windows::{create, Device, PlatformConfig, Tun};
 
