@@ -16,7 +16,7 @@ mod error;
 pub use crate::error::{BoxError, Error, Result};
 
 mod address;
-pub use crate::address::IntoAddress;
+pub use crate::address::ToAddress;
 
 mod device;
 pub use crate::device::AbstractDevice;
@@ -24,13 +24,13 @@ pub use crate::device::AbstractDevice;
 mod configuration;
 pub use crate::configuration::{Configuration, Layer};
 
-pub mod platform;
-pub use crate::platform::create;
+mod platform;
+pub use crate::platform::*;
 
 pub(crate) mod run_command;
 
 #[cfg(feature = "async")]
-pub mod r#async;
+mod r#async;
 #[cfg(feature = "async")]
 pub use r#async::*;
 

@@ -16,7 +16,7 @@ use std::net::IpAddr;
 #[cfg(unix)]
 use std::os::unix::io::RawFd;
 
-use crate::address::IntoAddress;
+use crate::address::ToAddress;
 use crate::platform::PlatformConfig;
 
 cfg_if::cfg_if! {
@@ -93,26 +93,26 @@ impl Configuration {
     }
 
     /// Set the address.
-    pub fn address<A: IntoAddress>(&mut self, value: A) -> &mut Self {
-        self.address = Some(value.into_address().unwrap());
+    pub fn address<A: ToAddress>(&mut self, value: A) -> &mut Self {
+        self.address = Some(value.to_address().unwrap());
         self
     }
 
     /// Set the destination address.
-    pub fn destination<A: IntoAddress>(&mut self, value: A) -> &mut Self {
-        self.destination = Some(value.into_address().unwrap());
+    pub fn destination<A: ToAddress>(&mut self, value: A) -> &mut Self {
+        self.destination = Some(value.to_address().unwrap());
         self
     }
 
     /// Set the broadcast address.
-    pub fn broadcast<A: IntoAddress>(&mut self, value: A) -> &mut Self {
-        self.broadcast = Some(value.into_address().unwrap());
+    pub fn broadcast<A: ToAddress>(&mut self, value: A) -> &mut Self {
+        self.broadcast = Some(value.to_address().unwrap());
         self
     }
 
     /// Set the netmask.
-    pub fn netmask<A: IntoAddress>(&mut self, value: A) -> &mut Self {
-        self.netmask = Some(value.into_address().unwrap());
+    pub fn netmask<A: ToAddress>(&mut self, value: A) -> &mut Self {
+        self.netmask = Some(value.to_address().unwrap());
         self
     }
 

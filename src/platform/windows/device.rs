@@ -92,9 +92,7 @@ impl Device {
                 let tun = Arc::new(tun);
                 (Reader(tun.clone()), Writer(tun))
             }
-            Driver::Tap(_) => {
-                unimplemented!()
-            }
+            Driver::Tap(_) => unimplemented!(),
         }
     }
 
@@ -102,9 +100,7 @@ impl Device {
     pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
         match &self.driver {
             Driver::Tun(tun) => tun.recv(buf),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -112,9 +108,7 @@ impl Device {
     pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
         match &self.driver {
             Driver::Tun(tun) => tun.send(buf),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 }
@@ -123,9 +117,7 @@ impl Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match &mut self.driver {
             Driver::Tun(tun) => tun.read(buf),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 }
@@ -134,18 +126,14 @@ impl Write for Device {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match &mut self.driver {
             Driver::Tun(tun) => tun.write(buf),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match &mut self.driver {
             Driver::Tun(tun) => tun.flush(),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 }
@@ -154,9 +142,7 @@ impl AbstractDevice for Device {
     fn tun_name(&self) -> Result<String> {
         match &self.driver {
             Driver::Tun(tun) => Ok(tun.session.get_adapter().get_name()?),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -166,9 +152,7 @@ impl AbstractDevice for Device {
                 tun.session.get_adapter().set_name(value)?;
                 Ok(())
             }
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -188,9 +172,7 @@ impl AbstractDevice for Device {
                     })
                     .ok_or(Error::InvalidConfig)
             }
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -203,9 +185,7 @@ impl AbstractDevice for Device {
                 tun.session.get_adapter().set_address(value)?;
                 Ok(())
             }
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -222,9 +202,7 @@ impl AbstractDevice for Device {
                     _ => None,
                 })
                 .ok_or(Error::InvalidConfig),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -238,9 +216,7 @@ impl AbstractDevice for Device {
                 tun.session.get_adapter().set_gateway(Some(value))?;
                 Ok(())
             }
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -261,9 +237,7 @@ impl AbstractDevice for Device {
                 .get_adapter()
                 .get_netmask_of_address(&current_addr)
                 .map_err(Error::WintunError),
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -276,9 +250,7 @@ impl AbstractDevice for Device {
                 tun.session.get_adapter().set_netmask(value)?;
                 Ok(())
             }
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
@@ -295,9 +267,7 @@ impl AbstractDevice for Device {
                 self.mtu = mtu;
                 Ok(())
             }
-            Driver::Tap(_tap) => {
-                unimplemented!()
-            }
+            Driver::Tap(_tap) => unimplemented!(),
         }
     }
 

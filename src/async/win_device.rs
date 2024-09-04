@@ -58,9 +58,7 @@ impl AsyncDevice {
                     session_writer,
                 })
             }
-            Driver::Tap(_) => {
-                unimplemented!()
-            }
+            Driver::Tap(_) => unimplemented!(),
         }
     }
 
