@@ -54,10 +54,6 @@ pub enum Error {
     #[error(transparent)]
     WintunError(#[from] wintun_bindings::Error),
 
-    #[cfg(target_os = "windows")]
-    #[error(transparent)]
-    LibloadingError(#[from] libloading::Error),
-
     #[error("{0}")]
     String(String),
 }

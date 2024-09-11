@@ -44,7 +44,6 @@ wintun-bindings = { version = "0.7", features = [
     "verify_binary_signature",
     "async",
 ] }
-libloading = "0.8"
 
 [target.'cfg(any(target_os = "macos", target_os = "freebsd"))'.dependencies]
 ipnet = "2"
