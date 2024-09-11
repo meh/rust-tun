@@ -58,8 +58,8 @@ serde_json = "1"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 
 [features]
-default = ["wintun-dns"]
-# default = ["wintun-dns", "async"]
+default = []
+# default = ["async"]
 async = [
     "tokio",
     "futures-core",
@@ -67,7 +67,6 @@ async = [
     "tokio-util",
     "wintun-bindings/async",
 ]
-wintun-dns = []
 
 [package.metadata.docs.rs]
 features = ["async"]
