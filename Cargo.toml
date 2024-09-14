@@ -1,6 +1,6 @@
 [package]
 name = "tun2"
-version = "3.1.3"
+version = "3.1.4"
 edition = "2021"
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
 license = "WTFPL"
@@ -25,7 +25,7 @@ tokio = { version = "1", features = [
 ], optional = true }
 tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "android", target_os="freebsd"))'.dependencies]
+[target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["ioctl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
@@ -39,7 +39,7 @@ windows-sys = { version = "0.59", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_LibraryLoader",
 ] }
-wintun-bindings = { version = "0.7", features = [
+wintun-bindings = { version = "^0.7.7", features = [
     "panic_on_unsent_packets",
     "verify_binary_signature",
     "async",

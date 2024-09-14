@@ -75,13 +75,13 @@ impl AsyncDevice {
     }
 
     /// Recv a packet from tun device - Not implemented for windows
-    pub async fn recv(&self, _buf: &mut [u8]) -> std::io::Result<usize> {
-        unimplemented!()
+    pub async fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.session_reader.session.recv(buf).await
     }
 
     /// Send a packet to tun device - Not implemented for windows
-    pub async fn send(&self, _buf: &[u8]) -> std::io::Result<usize> {
-        unimplemented!()
+    pub async fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
+        self.session_writer.session.send(buf).await
     }
 }
 
