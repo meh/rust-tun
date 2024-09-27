@@ -48,7 +48,7 @@ impl Device {
                 Err(_) => Adapter::create(&wintun, tun_name, tun_name, guid)?,
             };
             if let Some(metric) = config.metric {
-                // Command: netsh interface ip set interface {index} metric={metric}
+                // command: netsh interface ip set interface {index} metric={metric}
                 let i = adapter.get_adapter_index()?.to_string();
                 let m = format!("metric={}", metric);
                 run_command("netsh", &["interface", "ip", "set", "interface", &i, &m])?;
