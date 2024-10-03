@@ -83,10 +83,7 @@ impl<'a> ToAddress for &'a Ipv4Addr {
 
 impl ToAddress for IpAddr {
     fn to_address(&self) -> Result<IpAddr> {
-        match self {
-            IpAddr::V4(value) => Ok(IpAddr::V4(*value)),
-            IpAddr::V6(value) => Ok(IpAddr::V6(*value)),
-        }
+        Ok(*self)
     }
 }
 
@@ -110,10 +107,7 @@ impl<'a> ToAddress for &'a SocketAddrV4 {
 
 impl ToAddress for SocketAddr {
     fn to_address(&self) -> Result<IpAddr> {
-        match self {
-            SocketAddr::V4(value) => Ok(IpAddr::V4(*value.ip())),
-            SocketAddr::V6(value) => Ok(IpAddr::V6(*value.ip())),
-        }
+        Ok(self.ip())
     }
 }
 
