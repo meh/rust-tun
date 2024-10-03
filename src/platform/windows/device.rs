@@ -165,7 +165,10 @@ impl AbstractDevice for Device {
                 let addresses = tun.session.get_adapter().get_addresses()?;
                 addresses
                     .iter()
-                    .find_map(|a| Some(*a))
+                    .find_map(|a| match a {
+                        std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
+                        _ => None,
+                    })
                     .ok_or(Error::InvalidConfig)
             }
             Driver::Tap(_tap) => unimplemented!(),
@@ -193,7 +196,10 @@ impl AbstractDevice for Device {
                 .get_adapter()
                 .get_gateways()?
                 .iter()
-                .find_map(|a| Some(*a))
+                .find_map(|a| match a {
+                    std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
+                    _ => None,
+                })
                 .ok_or(Error::InvalidConfig),
             Driver::Tap(_tap) => unimplemented!(),
         }
