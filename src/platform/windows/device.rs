@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 
@@ -96,7 +96,7 @@ impl Device {
     }
 
     /// Recv a packet from tun device
-    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+    pub fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         match &self.driver {
             Driver::Tun(tun) => tun.recv(buf),
             Driver::Tap(_tap) => unimplemented!(),
@@ -104,7 +104,7 @@ impl Device {
     }
 
     /// Send a packet to tun device
-    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+    pub fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
         match &self.driver {
             Driver::Tun(tun) => tun.send(buf),
             Driver::Tap(_tap) => unimplemented!(),
@@ -113,7 +113,7 @@ impl Device {
 }
 
 impl Read for Device {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         match &mut self.driver {
             Driver::Tun(tun) => tun.read(buf),
             Driver::Tap(_tap) => unimplemented!(),
@@ -122,14 +122,14 @@ impl Read for Device {
 }
 
 impl Write for Device {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match &mut self.driver {
             Driver::Tun(tun) => tun.write(buf),
             Driver::Tap(_tap) => unimplemented!(),
         }
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         match &mut self.driver {
             Driver::Tun(tun) => tun.flush(),
             Driver::Tap(_tap) => unimplemented!(),
@@ -284,20 +284,22 @@ impl Tun {
     pub fn get_session(&self) -> Arc<Session> {
         self.session.clone()
     }
-    fn read_by_ref(&self, mut buf: &mut [u8]) -> io::Result<usize> {
+    fn read_by_ref(&self, mut buf: &mut [u8]) -> std::io::Result<usize> {
+        use std::io::{Error, ErrorKind::ConnectionAborted};
         match self.session.receive_blocking() {
-            Ok(pkt) => match io::copy(&mut pkt.bytes(), &mut buf) {
+            Ok(pkt) => match std::io::copy(&mut pkt.bytes(), &mut buf) {
                 Ok(n) => Ok(n as usize),
                 Err(e) => Err(e),
             },
-            Err(e) => Err(io::Error::new(io::ErrorKind::ConnectionAborted, e)),
+            Err(e) => Err(Error::new(ConnectionAborted, e)),
         }
     }
-    fn write_by_ref(&self, mut buf: &[u8]) -> io::Result<usize> {
+    fn write_by_ref(&self, mut buf: &[u8]) -> std::io::Result<usize> {
+        use std::io::{Error, ErrorKind::OutOfMemory};
         let size = buf.len();
         match self.session.allocate_send_packet(size as u16) {
-            Err(e) => Err(io::Error::new(io::ErrorKind::OutOfMemory, e)),
-            Ok(mut packet) => match io::copy(&mut buf, &mut packet.bytes_mut()) {
+            Err(e) => Err(Error::new(OutOfMemory, e)),
+            Ok(mut packet) => match std::io::copy(&mut buf, &mut packet.bytes_mut()) {
                 Ok(s) => {
                     self.session.send_packet(packet);
                     Ok(s as usize)
@@ -308,28 +310,28 @@ impl Tun {
     }
 
     /// Recv a packet from tun device
-    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+    pub fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.read_by_ref(buf)
     }
 
     /// Send a packet to tun device
-    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+    pub fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
         self.write_by_ref(buf)
     }
 }
 
 impl Read for Tun {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.read_by_ref(buf)
     }
 }
 
 impl Write for Tun {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.write_by_ref(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }
@@ -347,7 +349,7 @@ impl Write for Tun {
 pub struct Reader(Arc<Tun>);
 
 impl Read for Reader {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.0.read_by_ref(buf)
     }
 }
@@ -356,11 +358,11 @@ impl Read for Reader {
 pub struct Writer(Arc<Tun>);
 
 impl Write for Writer {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.0.write_by_ref(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }

@@ -18,7 +18,7 @@ use libc::{
 };
 use std::{
     ffi::{CStr, CString},
-    io::{self, Read, Write},
+    io::{Read, Write},
     mem,
     net::IpAddr,
     os::unix::io::{AsRawFd, IntoRawFd, RawFd},
@@ -118,10 +118,10 @@ impl Device {
 
             let tun_fd = {
                 let fd = libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR);
-                let tun_fd = Fd::new(fd, true).map_err(|_| io::Error::last_os_error())?;
+                let tun_fd = Fd::new(fd, true).map_err(|_| std::io::Error::last_os_error())?;
 
                 if let Err(err) = tunsetiff(tun_fd.inner, &mut req as *mut _ as *mut _) {
-                    return Err(io::Error::from(err).into());
+                    return Err(std::io::Error::from(err).into());
                 }
 
                 tun_fd
@@ -164,7 +164,7 @@ impl Device {
     pub fn persist(&mut self) -> Result<()> {
         unsafe {
             if let Err(err) = tunsetpersist(self.as_raw_fd(), &1) {
-                Err(io::Error::from(err).into())
+                Err(std::io::Error::from(err).into())
             } else {
                 Ok(())
             }
@@ -175,7 +175,7 @@ impl Device {
     pub fn user(&mut self, value: i32) -> Result<()> {
         unsafe {
             if let Err(err) = tunsetowner(self.as_raw_fd(), &value) {
-                Err(io::Error::from(err).into())
+                Err(std::io::Error::from(err).into())
             } else {
                 Ok(())
             }
@@ -186,7 +186,7 @@ impl Device {
     pub fn group(&mut self, value: i32) -> Result<()> {
         unsafe {
             if let Err(err) = tunsetgroup(self.as_raw_fd(), &value) {
-                Err(io::Error::from(err).into())
+                Err(std::io::Error::from(err).into())
             } else {
                 Ok(())
             }
@@ -199,41 +199,41 @@ impl Device {
     }
 
     /// Set non-blocking mode
-    pub fn set_nonblock(&self) -> io::Result<()> {
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
         self.tun.set_nonblock()
     }
 
     /// Recv a packet from tun device
-    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+    pub fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.tun.recv(buf)
     }
 
     /// Send a packet to tun device
-    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+    pub fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
         self.tun.send(buf)
     }
 }
 
 impl Read for Device {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.tun.read(buf)
     }
 
-    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+    fn read_vectored(&mut self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize> {
         self.tun.read_vectored(bufs)
     }
 }
 
 impl Write for Device {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.tun.write(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         self.tun.flush()
     }
 
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
         self.tun.write_vectored(bufs)
     }
 }
@@ -259,7 +259,7 @@ impl AbstractDevice for Device {
             );
 
             if let Err(err) = siocsifname(self.ctl.as_raw_fd(), &req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
 
             self.tun_name = value.into();
@@ -273,7 +273,7 @@ impl AbstractDevice for Device {
             let mut req = self.request();
 
             if let Err(err) = siocgifflags(self.ctl.as_raw_fd(), &mut req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
 
             if value {
@@ -283,7 +283,7 @@ impl AbstractDevice for Device {
             }
 
             if let Err(err) = siocsifflags(self.ctl.as_raw_fd(), &req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
 
             Ok(())
@@ -294,7 +294,7 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request();
             if let Err(err) = siocgifaddr(self.ctl.as_raw_fd(), &mut req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             let sa = sockaddr_union::from(req.ifr_ifru.ifru_addr);
             Ok(std::net::SocketAddr::try_from(sa)?.ip())
@@ -306,7 +306,7 @@ impl AbstractDevice for Device {
             let mut req = self.request();
             ipaddr_to_sockaddr(value, 0, &mut req.ifr_ifru.ifru_addr, OVERWRITE_SIZE);
             if let Err(err) = siocsifaddr(self.ctl.as_raw_fd(), &req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             Ok(())
         }
@@ -316,7 +316,7 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request();
             if let Err(err) = siocgifdstaddr(self.ctl.as_raw_fd(), &mut req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             let sa = sockaddr_union::from(req.ifr_ifru.ifru_dstaddr);
             Ok(std::net::SocketAddr::try_from(sa)?.ip())
@@ -328,7 +328,7 @@ impl AbstractDevice for Device {
             let mut req = self.request();
             ipaddr_to_sockaddr(value, 0, &mut req.ifr_ifru.ifru_dstaddr, OVERWRITE_SIZE);
             if let Err(err) = siocsifdstaddr(self.ctl.as_raw_fd(), &req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             Ok(())
         }
@@ -338,7 +338,7 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request();
             if let Err(err) = siocgifbrdaddr(self.ctl.as_raw_fd(), &mut req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             let sa = sockaddr_union::from(req.ifr_ifru.ifru_broadaddr);
             Ok(std::net::SocketAddr::try_from(sa)?.ip())
@@ -350,7 +350,7 @@ impl AbstractDevice for Device {
             let mut req = self.request();
             ipaddr_to_sockaddr(value, 0, &mut req.ifr_ifru.ifru_broadaddr, OVERWRITE_SIZE);
             if let Err(err) = siocsifbrdaddr(self.ctl.as_raw_fd(), &req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             Ok(())
         }
@@ -360,7 +360,7 @@ impl AbstractDevice for Device {
         unsafe {
             let mut req = self.request();
             if let Err(err) = siocgifnetmask(self.ctl.as_raw_fd(), &mut req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             let sa = sockaddr_union::from(req.ifr_ifru.ifru_netmask);
             Ok(std::net::SocketAddr::try_from(sa)?.ip())
@@ -372,7 +372,7 @@ impl AbstractDevice for Device {
             let mut req = self.request();
             ipaddr_to_sockaddr(value, 0, &mut req.ifr_ifru.ifru_netmask, OVERWRITE_SIZE);
             if let Err(err) = siocsifnetmask(self.ctl.as_raw_fd(), &req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             Ok(())
         }
@@ -383,7 +383,7 @@ impl AbstractDevice for Device {
             let mut req = self.request();
 
             if let Err(err) = siocgifmtu(self.ctl.as_raw_fd(), &mut req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
 
             req.ifr_ifru
@@ -399,7 +399,7 @@ impl AbstractDevice for Device {
             req.ifr_ifru.ifru_mtu = value as i32;
 
             if let Err(err) = siocsifmtu(self.ctl.as_raw_fd(), &req) {
-                return Err(io::Error::from(err).into());
+                return Err(std::io::Error::from(err).into());
             }
             self.tun.set_mtu(value);
             Ok(())

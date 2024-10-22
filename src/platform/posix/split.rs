@@ -15,7 +15,7 @@
 use crate::platform::posix::Fd;
 use crate::PACKET_INFORMATION_LENGTH as PIL;
 use bytes::BufMut;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::sync::Arc;
 
@@ -77,7 +77,7 @@ impl Reader {
         self.buf.resize(value as usize + self.offset, 0);
     }
 
-    pub(crate) fn recv(&self, mut in_buf: &mut [u8]) -> io::Result<usize> {
+    pub(crate) fn recv(&self, mut in_buf: &mut [u8]) -> std::io::Result<usize> {
         const STACK_BUF_LEN: usize = crate::DEFAULT_MTU as usize + PIL;
         let in_buf_len = in_buf.len() + self.offset;
 
@@ -109,7 +109,7 @@ impl Reader {
 }
 
 impl Read for Reader {
-    fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, mut buf: &mut [u8]) -> std::io::Result<usize> {
         let either_buf = if self.offset != 0 {
             let len = buf.len() + self.offset;
             if len > self.buf.len() {
@@ -147,7 +147,7 @@ impl Writer {
         self.buf.resize(value as usize + self.offset, 0);
     }
 
-    pub(crate) fn send(&self, in_buf: &[u8]) -> io::Result<usize> {
+    pub(crate) fn send(&self, in_buf: &[u8]) -> std::io::Result<usize> {
         const STACK_BUF_LEN: usize = crate::DEFAULT_MTU as usize + PIL;
         let in_buf_len = in_buf.len() + self.offset;
 
@@ -182,7 +182,7 @@ impl Writer {
 }
 
 impl Write for Writer {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let buf = if self.offset != 0 {
             let ipv6 = is_ipv6(buf)?;
             if let Some(header) = generate_packet_information(true, ipv6) {
@@ -203,7 +203,7 @@ impl Write for Writer {
         Ok(amount - self.offset)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }
@@ -243,7 +243,7 @@ impl Tun {
         }
     }
 
-    pub fn set_nonblock(&self) -> io::Result<()> {
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
         self.reader.fd.set_nonblock()
     }
 
@@ -261,27 +261,27 @@ impl Tun {
         self.packet_information
     }
 
-    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+    pub fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.reader.recv(buf)
     }
 
-    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+    pub fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
         self.writer.send(buf)
     }
 }
 
 impl Read for Tun {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.reader.read(buf)
     }
 }
 
 impl Write for Tun {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.writer.write(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         self.writer.flush()
     }
 }

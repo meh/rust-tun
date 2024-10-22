@@ -14,7 +14,6 @@
 
 use crate::error::{Error, Result};
 use libc::{self, fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
-use std::io;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 /// POSIX file descriptor support for `io` traits.
@@ -35,27 +34,27 @@ impl Fd {
     }
 
     /// Enable non-blocking mode
-    pub fn set_nonblock(&self) -> io::Result<()> {
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
         match unsafe { fcntl(self.inner, F_SETFL, fcntl(self.inner, F_GETFL) | O_NONBLOCK) } {
             0 => Ok(()),
-            _ => Err(io::Error::last_os_error()),
+            _ => Err(std::io::Error::last_os_error()),
         }
     }
 
-    pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
+    pub fn read(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         let fd = self.as_raw_fd();
         let amount = unsafe { libc::read(fd, buf.as_mut_ptr() as *mut _, buf.len()) };
         if amount < 0 {
-            return Err(io::Error::last_os_error());
+            return Err(std::io::Error::last_os_error());
         }
         Ok(amount as usize)
     }
 
-    pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
+    pub fn write(&self, buf: &[u8]) -> std::io::Result<usize> {
         let fd = self.as_raw_fd();
         let amount = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
         if amount < 0 {
-            return Err(io::Error::last_os_error());
+            return Err(std::io::Error::last_os_error());
         }
         Ok(amount as usize)
     }
