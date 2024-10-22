@@ -29,6 +29,12 @@ pub struct PlatformConfig {
     pub(crate) packet_information: bool,
     /// root privileges required or not
     pub(crate) ensure_root_privileges: bool,
+
+    /// Enable IFF_NAPI
+    pub(crate) napi: bool,
+
+    /// Enable IFF_VNET_HDR
+    pub(crate) vnet_hdr: bool,
 }
 
 /// `packet_information` is default to be `false` and `ensure_root_privileges` is default to be `true`.
@@ -37,6 +43,8 @@ impl Default for PlatformConfig {
         PlatformConfig {
             packet_information: false,
             ensure_root_privileges: true,
+            napi: false,
+            vnet_hdr: false,
         }
     }
 }
@@ -59,6 +67,18 @@ impl PlatformConfig {
     /// since some operations need it such as assigning IP/netmask/destination etc.
     pub fn ensure_root_privileges(&mut self, value: bool) -> &mut Self {
         self.ensure_root_privileges = value;
+        self
+    }
+
+    /// Enable / Disable IFF_NAPI flag.
+    pub fn napi(&mut self, value: bool) -> &mut Self {
+        self.napi = value;
+        self
+    }
+
+    /// Enable / Disable IFF_VNET_HDR flag.
+    pub fn vnet_hdr(&mut self, value: bool) -> &mut Self {
+        self.vnet_hdr = value;
         self
     }
 }
