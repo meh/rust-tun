@@ -37,10 +37,9 @@ impl Device {
     pub fn new(config: &Configuration) -> Result<Self> {
         let wintun = unsafe { wintun::load()? };
         let tun_name = config.name.as_deref().unwrap_or("wintun");
-        let guid = Some(9099482345783245345345_u128);
         let adapter = match wintun::Adapter::open(&wintun, tun_name) {
             Ok(a) => a,
-            Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, guid)?,
+            Err(_) => wintun::Adapter::create(&wintun, tun_name, tun_name, None)?,
         };
 
         let address = config.address.unwrap_or(Ipv4Addr::new(10, 1, 0, 2));
