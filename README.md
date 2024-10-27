@@ -6,18 +6,8 @@ TUN interfaces
 
 This crate allows the creation and usage of TUN interfaces, the aim is to make this cross-platform.
 
-> Since the original maintainer @meh is no longer interested in continuing to maintain
-> [tun](https://crates.io/crates/tun) at [repo](https://github.com/meh/rust-tun),
-> We (@ssrlive, @xmh0511) created the [tun2](https://github.com/ssrlive/rust-tun) branch repo and
-> continued to actively update. Welcome to any interested contributor.
-> If you want to be a co-contributor and publisher of [tun2](https://crates.io/crates/tun2),
-> please contact me in [issues](https://github.com/ssrlive/rust-tun/issues).
->
-> For me, a submitted PR has not been reviewed for a long time,
-> cannot be merged to the main branch, and cannot be published.
-> It is like a patient who has not been sutured on the operating table for a long time.
-> This is a bad experience.
-> I believe that many people feel the same.
+<b>Now that I (@ssrlive) am a co-contributor of the [tun](https://crates.io/crates/tun) crate,
+this crate is no longer maintained and all code is merged into the [tun](https://crates.io/crates/tun) crate.</b>
 
 Usage
 -----
@@ -25,14 +15,14 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun2 = "3"
+tun2 = "4"
 ```
 
 If you want to use the TUN interface with mio/tokio, you need to enable the `async` feature:
 
 ```toml
 [dependencies]
-tun2 = { version = "3", features = ["async"] }
+tun2 = { version = "4", features = ["async"] }
 ```
 
 Example
