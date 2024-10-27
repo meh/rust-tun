@@ -94,6 +94,6 @@ pub trait AbstractDevice: Read + Write {
 
     /// Return whether the underlying tun device on the platform has packet information
     ///
-    /// [Note: This value is not used to specify whether the packets delivered from/to tun2 have packet information. -- end note]
+    /// [Note: This value is not used to specify whether the packets delivered from/to tun have packet information. -- end note]
     fn packet_information(&self) -> bool;
 }

@@ -1,13 +1,10 @@
 TUN interfaces 
 ==============
-[![Crates.io](https://img.shields.io/crates/v/tun2.svg)](https://crates.io/crates/tun2)
-![tun2](https://docs.rs/tun2/badge.svg)
+[![Crates.io](https://img.shields.io/crates/v/tun.svg)](https://crates.io/crates/tun)
+![tun](https://docs.rs/tun/badge.svg)
 ![WTFPL](http://img.shields.io/badge/license-WTFPL-blue.svg)
 
 This crate allows the creation and usage of TUN interfaces, the aim is to make this cross-platform.
-
-<b>Now that I (@ssrlive) am a co-contributor of the [tun](https://crates.io/crates/tun) crate,
-this crate is no longer maintained and all code is merged into the [tun](https://crates.io/crates/tun) crate.</b>
 
 Usage
 -----
@@ -15,14 +12,14 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun2 = "4"
+tun = "0.7"
 ```
 
 If you want to use the TUN interface with mio/tokio, you need to enable the `async` feature:
 
 ```toml
 [dependencies]
-tun2 = { version = "4", features = ["async"] }
+tun = { version = "0.7", features = ["async"] }
 ```
 
 Example
@@ -34,7 +31,7 @@ packets from it.
 use std::io::Read;
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let mut config = tun2::Configuration::default();
+    let mut config = tun::Configuration::default();
     config
         .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
@@ -47,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
         config.ensure_root_privileges(true);
     });
 
-    let mut dev = tun2::create(&config)?;
+    let mut dev = tun::create(&config)?;
     let mut buf = [0; 4096];
 
     loop {
@@ -76,15 +73,15 @@ interfaces.
 
 macOS & FreeBSD
 -----
-`tun2` will automatically set up a route according to the provided configuration, which does a similar thing like this:
+`tun` will automatically set up a route according to the provided configuration, which does a similar thing like this:
 > sudo route -n add -net 10.0.0.0/24 10.0.0.1
 
 
 iOS
 ----
-You can pass the file descriptor of the TUN device to `tun2` to create the interface.
+You can pass the file descriptor of the TUN device to `tun` to create the interface.
 
-Here is an example to create the TUN device on iOS and pass the `fd` to `tun2`:
+Here is an example to create the TUN device on iOS and pass the `fd` to `tun`:
 ```swift
 // Swift
 class PacketTunnelProvider: NEPacketTunnelProvider {
@@ -107,13 +104,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
 pub extern "C" fn start_tun(fd: std::os::raw::c_int) {
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut cfg = tun2::Configuration::default();
+        let mut cfg = tun::Configuration::default();
         cfg.raw_fd(fd);
         #[cfg(target_os = "ios")]
         cfg.platform_config(|p_cfg| {
             p_cfg.packet_information(true);
         });
-        let mut tun = tun2::create_as_async(&cfg).unwrap();
+        let mut tun = tun::create_as_async(&cfg).unwrap();
         let mut framed = tun.into_framed();
         while let Some(packet) = framed.next().await {
             ...

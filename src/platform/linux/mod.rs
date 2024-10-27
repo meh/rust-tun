@@ -53,17 +53,17 @@ impl PlatformConfig {
     /// Enable or disable packet information, the first 4 bytes of
     /// each packet delivered from/to Linux underlying API is a header with flags and protocol type when enabled.
     ///
-    /// [Note: This configuration just applies to the Linux underlying API and is a no-op on tun2(i.e. the packets delivered from/to tun2 always contain no packet information) -- end note].
+    /// [Note: This configuration just applies to the Linux underlying API and is a no-op on tun(i.e. the packets delivered from/to tun always contain no packet information) -- end note].
     #[deprecated(
         since = "1.0.0",
-        note = "No effect applies to the packets delivered from/to tun2 since the packets always contain no header on all platforms."
+        note = "No effect applies to the packets delivered from/to tun since the packets always contain no header on all platforms."
     )]
     pub fn packet_information(&mut self, value: bool) -> &mut Self {
         self.packet_information = value;
         self
     }
 
-    /// Indicated whether tun2 running in root privilege,
+    /// Indicated whether tun running in root privilege,
     /// since some operations need it such as assigning IP/netmask/destination etc.
     pub fn ensure_root_privileges(&mut self, value: bool) -> &mut Self {
         self.ensure_root_privileges = value;

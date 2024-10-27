@@ -175,7 +175,7 @@ impl Configuration {
         self
     }
     /// Set whether to close the received raw file descriptor on drop or not.
-    /// The default behaviour is to close the received or tun2 generated file descriptor.
+    /// The default behaviour is to close the received or tun generated file descriptor.
     /// Note: If this is set to false, it is up to the caller to ensure the
     /// file descriptor that they pass via [Configuration::raw_fd] is properly closed.
     #[cfg(unix)]

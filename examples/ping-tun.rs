@@ -15,7 +15,7 @@
 use futures::{SinkExt, StreamExt};
 use packet::{builder::Builder, icmp, ip, Packet};
 use tokio::sync::mpsc::Receiver;
-use tun2::{self, BoxError, Configuration};
+use tun::{self, BoxError, Configuration};
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
@@ -52,7 +52,7 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
         config.device_guid(9099482345783245345345_u128);
     });
 
-    let dev = tun2::create_as_async(&config)?;
+    let dev = tun::create_as_async(&config)?;
 
     let mut framed = dev.into_framed();
 

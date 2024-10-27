@@ -15,7 +15,7 @@
 use packet::{builder::Builder, icmp, ip, Packet};
 use std::io::{Read, Write};
 use std::{net::Ipv4Addr, sync::mpsc::Receiver};
-use tun2::{AbstractDevice, BoxError};
+use tun::{AbstractDevice, BoxError};
 
 fn main() -> Result<(), BoxError> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
@@ -33,7 +33,7 @@ fn main() -> Result<(), BoxError> {
 }
 
 fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
-    let mut config = tun2::Configuration::default();
+    let mut config = tun::Configuration::default();
 
     config
         .address((10, 0, 0, 9))
@@ -46,7 +46,7 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
         config.ensure_root_privileges(true);
     });
 
-    let mut dev = tun2::create(&config)?;
+    let mut dev = tun::create(&config)?;
 
     let r = dev.tun_index()?;
     println!("Index: {:?}", r);
