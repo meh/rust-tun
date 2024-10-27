@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
 license = "WTFPL"
 description = "TUN device creation and handling."
-repository = "https://github.com/ssrlive/rust-tun"
+repository = "https://github.com/meh/rust-tun"
 keywords = ["tun", "network", "tunnel", "bindings"]
 
 [lib]
