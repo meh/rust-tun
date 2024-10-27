@@ -48,6 +48,9 @@ pub trait AbstractDevice: Read + Write {
         Ok(())
     }
 
+    /// Get the device index.
+    fn tun_index(&self) -> Result<i32>;
+
     /// Get the device tun name.
     fn tun_name(&self) -> Result<String>;
 

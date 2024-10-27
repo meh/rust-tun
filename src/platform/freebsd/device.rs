@@ -277,6 +277,11 @@ impl Write for Device {
 }
 
 impl AbstractDevice for Device {
+    fn tun_index(&self) -> Result<i32> {
+        let name = self.tun_name()?;
+        Ok(posix::tun_name_to_index(name)? as i32)
+    }
+
     fn tun_name(&self) -> Result<String> {
         Ok(self.tun_name.clone())
     }

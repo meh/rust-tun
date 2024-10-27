@@ -47,14 +47,18 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     });
 
     let mut dev = tun2::create(&config)?;
+
+    let r = dev.tun_index()?;
+    println!("Index: {:?}", r);
+
     let r = dev.address()?;
-    println!("{:?}", r);
+    println!("Address: {:?}", r);
 
     let r = dev.destination()?;
-    println!("{:?}", r);
+    println!("Destination: {:?}", r);
 
     let r = dev.netmask()?;
-    println!("{:?}", r);
+    println!("Netmask: {:?}", r);
 
     dev.set_address(std::net::IpAddr::V4(Ipv4Addr::new(10, 0, 0, 20)))?;
     dev.set_destination(std::net::IpAddr::V4(Ipv4Addr::new(10, 0, 0, 66)))?;

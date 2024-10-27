@@ -138,6 +138,13 @@ impl Write for Device {
 }
 
 impl AbstractDevice for Device {
+    fn tun_index(&self) -> Result<i32> {
+        match &self.driver {
+            Driver::Tun(tun) => Ok(tun.session.get_adapter().get_adapter_index()? as i32),
+            Driver::Tap(_tap) => Err(Error::NotImplemented),
+        }
+    }
+
     fn tun_name(&self) -> Result<String> {
         match &self.driver {
             Driver::Tun(tun) => Ok(tun.session.get_adapter().get_name()?),

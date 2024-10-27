@@ -107,6 +107,10 @@ impl Write for Device {
 }
 
 impl AbstractDevice for Device {
+    fn tun_index(&self) -> Result<i32> {
+        Err(Error::NotImplemented)
+    }
+
     fn tun_name(&self) -> Result<String> {
         Ok("".to_string())
     }

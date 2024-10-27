@@ -81,7 +81,7 @@ Platforms
 
 Linux
 -----
-You will need the `tun2` module to be loaded and root is required to create
+You will need the `tun` module to be loaded and root is required to create
 interfaces.
 
 macOS & FreeBSD

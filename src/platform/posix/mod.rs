@@ -26,3 +26,16 @@ pub(crate) use self::fd::Fd;
 
 mod split;
 pub use self::split::{Reader, Tun, Writer};
+
+#[allow(dead_code)]
+pub fn tun_name_to_index(name: impl AsRef<str>) -> std::io::Result<u32> {
+    let name_cstr = std::ffi::CString::new(name.as_ref()).map_err(|_| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid interface name")
+    })?;
+    let result = unsafe { libc::if_nametoindex(name_cstr.as_ptr()) };
+    if result == 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(result as _)
+    }
+}
