@@ -1,7 +1,7 @@
 TUN interfaces 
 ==============
 [![Crates.io](https://img.shields.io/crates/v/tun.svg)](https://crates.io/crates/tun)
-![tun](https://docs.rs/tun/badge.svg)
+[![tun](https://docs.rs/tun/badge.svg)](https://docs.rs/tun/latest/tun/)
 ![WTFPL](http://img.shields.io/badge/license-WTFPL-blue.svg)
 
 This crate allows the creation and usage of TUN interfaces, the aim is to make this cross-platform.
