@@ -12,17 +12,14 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io::{Read, Write};
-use std::net::Ipv4Addr;
-
 use crate::configuration::Configuration;
-use crate::error::*;
+use crate::error::Result;
 use crate::route::RouteEntry;
+use std::io::{Read, Write};
+use std::net::IpAddr;
 
-/// A TUN device.
-pub trait Device: Read + Write {
-    type Queue: Read + Write;
-
+/// A TUN abstract device interface.
+pub trait AbstractDevice: Read + Write {
     /// Reconfigure the device.
     fn configure(&mut self, config: &Configuration) -> Result<()> {
         if let Some(ip) = config.address {
@@ -56,48 +53,54 @@ pub trait Device: Read + Write {
         Ok(())
     }
 
-    /// Get the device name.
-    fn name(&self) -> &str;
+    /// Get the device index.
+    fn tun_index(&self) -> Result<i32>;
 
-    /// Set the device name.
-    fn set_name(&mut self, name: &str) -> Result<()>;
+    /// Get the device tun name.
+    fn tun_name(&self) -> Result<String>;
+
+    /// Set the device tun name.
+    fn set_tun_name(&mut self, tun_name: &str) -> Result<()>;
 
     /// Turn on or off the interface.
     fn enabled(&mut self, value: bool) -> Result<()>;
 
     /// Get the address.
-    fn address(&self) -> Result<Ipv4Addr>;
+    fn address(&self) -> Result<IpAddr>;
 
     /// Set the address.
-    fn set_address(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_address(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the destination address.
-    fn destination(&self) -> Result<Ipv4Addr>;
+    fn destination(&self) -> Result<IpAddr>;
 
     /// Set the destination address.
-    fn set_destination(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_destination(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the broadcast address.
-    fn broadcast(&self) -> Result<Ipv4Addr>;
+    fn broadcast(&self) -> Result<IpAddr>;
 
     /// Set the broadcast address.
-    fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_broadcast(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the netmask.
-    fn netmask(&self) -> Result<Ipv4Addr>;
+    fn netmask(&self) -> Result<IpAddr>;
 
     /// Set the netmask.
-    fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()>;
+    fn set_netmask(&mut self, value: IpAddr) -> Result<()>;
 
     /// Get the MTU.
-    fn mtu(&self) -> Result<i32>;
-
-    /// Set the MTU.
-    fn set_mtu(&mut self, value: i32) -> Result<()>;
+    fn mtu(&self) -> Result<u16>;
 
     /// Set routes
-    fn set_routes(&mut self, routes: &Vec<RouteEntry>) -> Result<()>;
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()>;
 
-    /// Get a device queue.
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue>;
+    ///
+    /// [Note: This setting has no effect on the Windows platform due to the mtu of wintun is always 65535. --end note]
+    fn set_mtu(&mut self, value: u16) -> Result<()>;
+
+    /// Return whether the underlying tun device on the platform has packet information
+    ///
+    /// [Note: This value is not used to specify whether the packets delivered from/to tun have packet information. -- end note]
+    fn packet_information(&self) -> bool;
 }

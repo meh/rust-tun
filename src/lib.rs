@@ -13,44 +13,36 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 mod error;
-pub use crate::error::*;
+pub use crate::error::{BoxError, Error, Result};
 
 mod address;
-pub use crate::address::IntoAddress;
+pub use crate::address::ToAddress;
 
 mod device;
-pub use crate::device::Device;
+pub use crate::device::AbstractDevice;
 
 mod configuration;
 pub use crate::configuration::{Configuration, Layer};
 
-pub mod platform;
-pub use crate::platform::create;
-
 pub mod route;
 
-#[cfg(all(
-    feature = "async",
-    any(
-        target_os = "linux",
-        target_os = "macos",
-        target_os = "ios",
-        target_os = "android"
-    )
-))]
-pub mod r#async;
+mod platform;
+pub use crate::platform::*;
 
-#[cfg(all(
-    feature = "async",
-    any(
-        target_os = "linux",
-        target_os = "macos",
-        target_os = "ios",
-        target_os = "android"
-    )
-))]
+pub(crate) mod run_command;
+
+#[cfg(feature = "async")]
+mod r#async;
+#[cfg(feature = "async")]
 pub use r#async::*;
 
 pub fn configure() -> Configuration {
     Configuration::default()
 }
+
+#[cfg(unix)]
+pub const DEFAULT_MTU: u16 = 1500;
+#[cfg(windows)]
+pub const DEFAULT_MTU: u16 = wintun_bindings::MAX_IP_PACKET_SIZE as _; // u16::MAX
+
+pub const PACKET_INFORMATION_LENGTH: usize = 4;

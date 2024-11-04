@@ -15,42 +15,55 @@
 //! Platform specific modules.
 
 #[cfg(unix)]
-pub mod posix;
+pub(crate) mod posix;
 
 #[cfg(target_os = "linux")]
-pub mod linux;
+pub(crate) mod linux;
 #[cfg(target_os = "linux")]
-pub use self::linux::{create, Configuration, Device, Queue};
+pub use self::linux::{create, Device, PlatformConfig};
+
+#[cfg(target_os = "freebsd")]
+pub(crate) mod freebsd;
+#[cfg(target_os = "freebsd")]
+pub use self::freebsd::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "macos")]
-pub mod macos;
+pub(crate) mod macos;
 #[cfg(target_os = "macos")]
-pub use self::macos::{create, Configuration, Device, Queue};
+pub use self::macos::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "ios")]
-pub mod ios;
+pub(crate) mod ios;
 #[cfg(target_os = "ios")]
-pub use self::ios::{create, Configuration, Device, Queue};
+pub use self::ios::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "android")]
-pub mod android;
+pub(crate) mod android;
 #[cfg(target_os = "android")]
-pub use self::android::{create, Configuration, Device, Queue};
+pub use self::android::{create, Device, PlatformConfig};
+
+#[cfg(unix)]
+pub use crate::platform::posix::Tun;
+
+#[cfg(target_os = "windows")]
+pub(crate) mod windows;
+#[cfg(target_os = "windows")]
+pub use self::windows::{create, Device, PlatformConfig, Tun};
 
 #[cfg(test)]
 mod test {
     use crate::configuration::Configuration;
-    use crate::device::Device;
+    use crate::device::AbstractDevice;
     use std::net::Ipv4Addr;
 
     #[test]
     fn create() {
         let dev = super::create(
             Configuration::default()
-                .name("utun6")
+                .tun_name("utun6")
                 .address("192.168.50.1")
                 .netmask("255.255.0.0")
-                .mtu(1400)
+                .mtu(crate::DEFAULT_MTU)
                 .up(),
         )
         .unwrap();
@@ -65,6 +78,6 @@ mod test {
             dev.netmask().unwrap()
         );
 
-        assert_eq!(1400, dev.mtu().unwrap());
+        assert_eq!(crate::DEFAULT_MTU, dev.mtu().unwrap());
     }
 }

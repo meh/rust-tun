@@ -12,10 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::{ffi, io, num};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("invalid configuration")]
     InvalidConfig,
@@ -23,10 +20,10 @@ pub enum Error {
     #[error("not implementated")]
     NotImplemented,
 
-    #[error("device name too long")]
+    #[error("device tun name too long")]
     NameTooLong,
 
-    #[error("invalid device name")]
+    #[error("invalid device tun name")]
     InvalidName,
 
     #[error("invalid address")]
@@ -41,14 +38,53 @@ pub enum Error {
     #[error("invalid queues number")]
     InvalidQueuesNumber,
 
-    #[error(transparent)]
-    Io(#[from] io::Error),
+    #[error("out of range integral type conversion attempted")]
+    TryFromIntError,
 
     #[error(transparent)]
-    Nul(#[from] ffi::NulError),
+    Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    ParseNum(#[from] num::ParseIntError),
+    Nul(#[from] std::ffi::NulError),
+
+    #[error(transparent)]
+    ParseNum(#[from] std::num::ParseIntError),
+
+    #[cfg(target_os = "windows")]
+    #[error(transparent)]
+    WintunError(#[from] wintun_bindings::Error),
+
+    #[error("{0}")]
+    String(String),
 }
 
-pub type Result<T> = ::std::result::Result<T, Error>;
+impl From<&str> for Error {
+    fn from(err: &str) -> Self {
+        Self::String(err.to_string())
+    }
+}
+
+impl From<String> for Error {
+    fn from(err: String) -> Self {
+        Self::String(err)
+    }
+}
+
+impl From<&String> for Error {
+    fn from(err: &String) -> Self {
+        Self::String(err.to_string())
+    }
+}
+
+impl From<Error> for std::io::Error {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::Io(err) => err,
+            _ => std::io::Error::new(std::io::ErrorKind::Other, value),
+        }
+    }
+}
+
+pub type BoxError = Box<dyn std::error::Error + Send + Sync>;
+
+pub type Result<T, E = Error> = ::std::result::Result<T, E>;

@@ -15,7 +15,9 @@
 use bytes::BytesMut;
 use futures::StreamExt;
 use packet::{ip::Packet, Error};
+use tokio::sync::mpsc::Receiver;
 use tokio_util::codec::{Decoder, FramedRead};
+use tun::BoxError;
 
 pub struct IPPacketCodec;
 
@@ -40,22 +42,57 @@ impl Decoder for IPPacketCodec {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), BoxError> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
+    let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
+
+    ctrlc2::set_async_handler(async move {
+        tx.send(()).await.expect("Signal error");
+    })
+    .await;
+
+    main_entry(rx).await?;
+    Ok(())
+}
+
+async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun::Configuration::default();
 
     config
-        .address((10, 0, 0, 1))
+        .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
+        .destination((10, 0, 0, 1))
         .up();
 
-    let dev = tun::create_as_async(&config).unwrap();
+    #[cfg(target_os = "linux")]
+    config.platform_config(|config| {
+        #[allow(deprecated)]
+        config.packet_information(true);
+        config.ensure_root_privileges(true);
+    });
+
+    #[cfg(target_os = "windows")]
+    config.platform_config(|config| {
+        config.device_guid(9099482345783245345345_u128);
+    });
+
+    let dev = tun::create_as_async(&config)?;
 
     let mut stream = FramedRead::new(dev, IPPacketCodec);
 
-    while let Some(packet) = stream.next().await {
-        match packet {
-            Ok(pkt) => println!("pkt: {:#?}", pkt),
-            Err(err) => panic!("Error: {:?}", err),
-        }
+    loop {
+        tokio::select! {
+            _ = quit.recv() => {
+                println!("Quit...");
+                break;
+            }
+            Some(packet) = stream.next() => {
+                match packet {
+                    Ok(pkt) => println!("pkt: {:#?}", pkt),
+                    Err(err) => panic!("Error: {:?}", err),
+                }
+            }
+        };
     }
+    Ok(())
 }

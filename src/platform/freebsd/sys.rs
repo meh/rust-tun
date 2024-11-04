@@ -1,7 +1,7 @@
 //            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-//                    Version 2, December 2004
+//                    Version 2, March 2024
 //
-// Copyleft (ↄ) meh. <meh@schizofreni.co> | http://meh.schizofreni.co
+// Copyleft (ↄ) xmh. <970252187@qq.com>
 //
 // Everyone is permitted to copy and distribute verbatim or modified
 // copies of this license document, and changing it is allowed as long
@@ -12,12 +12,10 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//! Bindings to internal macOS stuff.
+//! Bindings to internal FreeBSD stuff.
 
-use libc::{c_char, c_uint, ifreq, sockaddr, IFNAMSIZ};
+use libc::{c_char, c_int, c_uint, ifreq, sockaddr, IFNAMSIZ};
 use nix::{ioctl_readwrite, ioctl_write_ptr};
-
-pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";
 
 #[allow(non_camel_case_types)]
 #[repr(C)]
@@ -31,13 +29,23 @@ pub struct ctl_info {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ifaliasreq {
-    pub ifra_name: [c_char; IFNAMSIZ],
-    pub ifra_addr: sockaddr,
-    pub ifra_broadaddr: sockaddr,
-    pub ifra_mask: sockaddr,
+    pub ifran: [c_char; IFNAMSIZ],
+    pub addr: sockaddr,
+    pub dstaddr: sockaddr,
+    pub mask: sockaddr,
+    pub ifra_vhid: c_int,
 }
 
-ioctl_readwrite!(ctliocginfo, b'N', 3, ctl_info);
+// #[allow(non_camel_case_types)]
+// #[repr(C)]
+// #[derive(Copy, Clone)]
+// pub struct in_aliasreq  {
+//     pub ifra_name: [c_char; IFNAMSIZ],
+//     pub ifra_addr: sockaddr_in,
+//     pub ifra_dstaddr: sockaddr_in,
+//     pub ifra_mask: sockaddr_in,
+// 	pub ifra_vhid:c_int
+// }
 
 ioctl_write_ptr!(siocsifflags, b'i', 16, ifreq);
 ioctl_readwrite!(siocgifflags, b'i', 17, ifreq);
@@ -57,5 +65,11 @@ ioctl_readwrite!(siocgifnetmask, b'i', 37, ifreq);
 ioctl_write_ptr!(siocsifmtu, b'i', 52, ifreq);
 ioctl_readwrite!(siocgifmtu, b'i', 51, ifreq);
 
-ioctl_write_ptr!(siocaifaddr, b'i', 26, ifaliasreq);
+ioctl_write_ptr!(siocaifaddr, b'i', 43, ifaliasreq);
 ioctl_write_ptr!(siocdifaddr, b'i', 25, ifreq);
+
+ioctl_write_ptr!(siocifcreate, b'i', 122, ifreq);
+
+ioctl_write_ptr!(siocsifphyaddr, b'i', 70, ifaliasreq);
+
+ioctl_write_ptr!(siocsifname, b'i', 40, ifreq);

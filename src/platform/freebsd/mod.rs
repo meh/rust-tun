@@ -12,7 +12,9 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//! Android specific functionality.
+//! Linux specific functionality.
+
+pub mod sys;
 
 mod device;
 pub use self::device::Device;
@@ -20,7 +22,7 @@ pub use self::device::Device;
 use crate::configuration::Configuration;
 use crate::error::Result;
 
-/// Android-only interface configuration.
+/// FreeBSD-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
 pub struct PlatformConfig;
 

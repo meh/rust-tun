@@ -12,27 +12,28 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use futures::{SinkExt, StreamExt};
 use packet::{builder::Builder, icmp, ip, Packet};
-use tokio::sync::mpsc::Receiver;
-use tun::{self, BoxError, Configuration};
+use std::io::{Read, Write};
+use std::sync::mpsc::Receiver;
+use tun::BoxError;
 
-#[tokio::main]
-async fn main() -> Result<(), BoxError> {
+fn main() -> Result<(), BoxError> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
-    let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
+    let (tx, rx) = std::sync::mpsc::channel();
 
-    ctrlc2::set_async_handler(async move {
-        tx.send(()).await.expect("Signal error");
+    let handle = ctrlc2::set_handler(move || {
+        tx.send(()).expect("Signal error.");
+        true
     })
-    .await;
+    .expect("Error setting Ctrl-C handler");
 
-    main_entry(rx).await?;
+    main_entry(rx)?;
+    handle.join().unwrap();
     Ok(())
 }
 
-async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
-    let mut config = Configuration::default();
+fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
+    let mut config = tun::Configuration::default();
 
     config
         .address((10, 0, 0, 9))
@@ -42,29 +43,30 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
 
     #[cfg(target_os = "linux")]
     config.platform_config(|config| {
-        #[allow(deprecated)]
-        config.packet_information(true);
         config.ensure_root_privileges(true);
     });
 
-    #[cfg(target_os = "windows")]
-    config.platform_config(|config| {
-        config.device_guid(9099482345783245345345_u128);
+    let dev = tun::create(&config)?;
+    let (mut reader, mut writer) = dev.split();
+
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    let _t1 = std::thread::spawn(move || {
+        let mut buf = [0; 4096];
+        loop {
+            let size = reader.read(&mut buf)?;
+            let pkt = &buf[..size];
+            use std::io::{Error, ErrorKind::Other};
+            tx.send(pkt.to_vec()).map_err(|e| Error::new(Other, e))?;
+        }
+        #[allow(unreachable_code)]
+        Ok::<(), std::io::Error>(())
     });
 
-    let dev = tun::create_as_async(&config)?;
-
-    let mut framed = dev.into_framed();
-
-    loop {
-        tokio::select! {
-            _ = quit.recv() => {
-                println!("Quit...");
-                break;
-            }
-            Some(packet) = framed.next() => {
-                let pkt: Vec<u8> = packet?;
-                match ip::Packet::new(pkt) {
+    let _t2 = std::thread::spawn(move || {
+        loop {
+            if let Ok(pkt) = rx.recv() {
+                match ip::Packet::new(pkt.as_slice()) {
                     Ok(ip::Packet::V4(pkt)) => {
                         if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
                             if let Ok(icmp) = icmp.echo() {
@@ -81,15 +83,20 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
                                     .sequence(icmp.sequence())?
                                     .payload(icmp.payload())?
                                     .build()?;
-                                framed.send(reply).await?;
+                                writer.write_all(&reply[..])?;
                             }
                         }
                     }
                     Err(err) => println!("Received an invalid packet: {:?}", err),
-                    _ => {}
+                    _ => {
+                        println!("receive pkt {:?}", pkt);
+                    }
                 }
             }
         }
-    }
+        #[allow(unreachable_code)]
+        Ok::<(), packet::Error>(())
+    });
+    quit.recv().expect("Quit error.");
     Ok(())
 }

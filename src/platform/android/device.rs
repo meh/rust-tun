@@ -13,87 +13,100 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 #![allow(unused_variables)]
 
-use std::io::{self, Read, Write};
-use std::net::Ipv4Addr;
+use std::io::{Read, Write};
+use std::net::IpAddr;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::sync::Arc;
 
 use crate::configuration::Configuration;
-use crate::device::Device as D;
-use crate::error::*;
-use crate::platform::posix::{self, Fd};
+use crate::device::AbstractDevice;
+use crate::error::{Error, Result};
+use crate::platform::posix::{self, Fd, Tun};
+use crate::route::RouteEntry;
 
 /// A TUN device for Android.
 pub struct Device {
-    queue: Queue,
+    tun: Tun,
+}
+
+impl AsRef<dyn AbstractDevice + 'static> for Device {
+    fn as_ref(&self) -> &(dyn AbstractDevice + 'static) {
+        self
+    }
+}
+
+impl AsMut<dyn AbstractDevice + 'static> for Device {
+    fn as_mut(&mut self) -> &mut (dyn AbstractDevice + 'static) {
+        self
+    }
 }
 
 impl Device {
     /// Create a new `Device` for the given `Configuration`.
     pub fn new(config: &Configuration) -> Result<Self> {
+        let close_fd_on_drop = config.close_fd_on_drop.unwrap_or(true);
         let fd = match config.raw_fd {
             Some(raw_fd) => raw_fd,
             _ => return Err(Error::InvalidConfig),
         };
         let device = {
-            let tun = Fd::new(fd).map_err(|_| io::Error::last_os_error())?;
+            let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
+            let tun = Fd::new(fd, close_fd_on_drop).map_err(|_| std::io::Error::last_os_error())?;
 
             Device {
-                queue: Queue { tun: tun },
+                tun: Tun::new(tun, mtu, false),
             }
         };
+
         Ok(device)
     }
 
     /// Split the interface into a `Reader` and `Writer`.
     pub fn split(self) -> (posix::Reader, posix::Writer) {
-        let fd = Arc::new(self.queue.tun);
-        (posix::Reader(fd.clone()), posix::Writer(fd.clone()))
-    }
-
-    /// Return whether the device has packet information
-    pub fn has_packet_information(&self) -> bool {
-        self.queue.has_packet_information()
+        (self.tun.reader, self.tun.writer)
     }
 
     /// Set non-blocking mode
-    pub fn set_nonblock(&self) -> io::Result<()> {
-        self.queue.set_nonblock()
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
+        self.tun.set_nonblock()
+    }
+
+    /// Recv a packet from tun device
+    pub fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.tun.recv(buf)
+    }
+
+    /// Send a packet to tun device
+    pub fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
+        self.tun.send(buf)
     }
 }
 
 impl Read for Device {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.queue.tun.read(buf)
-    }
-
-    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        self.queue.tun.read_vectored(bufs)
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.tun.read(buf)
     }
 }
 
 impl Write for Device {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.queue.tun.write(buf)
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.tun.write(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.queue.tun.flush()
-    }
-
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        self.queue.tun.write_vectored(bufs)
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.tun.flush()
     }
 }
 
-impl D for Device {
-    type Queue = Queue;
-
-    fn name(&self) -> &str {
-        return "";
+impl AbstractDevice for Device {
+    fn tun_index(&self) -> Result<i32> {
+        Err(Error::NotImplemented)
     }
 
-    fn set_name(&mut self, value: &str) -> Result<()> {
+    fn tun_name(&self) -> Result<String> {
+        Ok("".to_string())
+    }
+
+    fn set_tun_name(&mut self, value: &str) -> Result<()> {
         Err(Error::NotImplemented)
     }
 
@@ -101,118 +114,66 @@ impl D for Device {
         Ok(())
     }
 
-    fn address(&self) -> Result<Ipv4Addr> {
+    fn address(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_address(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_address(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 
-    fn destination(&self) -> Result<Ipv4Addr> {
+    fn destination(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_destination(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_destination(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 
-    fn broadcast(&self) -> Result<Ipv4Addr> {
+    fn broadcast(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_broadcast(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_broadcast(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 
-    fn netmask(&self) -> Result<Ipv4Addr> {
+    fn netmask(&self) -> Result<IpAddr> {
         Err(Error::NotImplemented)
     }
 
-    fn set_netmask(&mut self, value: Ipv4Addr) -> Result<()> {
+    fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
         Ok(())
     }
 
-    fn mtu(&self) -> Result<i32> {
-        Err(Error::NotImplemented)
+    fn mtu(&self) -> Result<u16> {
+        // TODO: must get the mtu from the underlying device driver
+        Ok(self.tun.mtu())
     }
 
-    fn set_mtu(&mut self, value: i32) -> Result<()> {
+    fn set_mtu(&mut self, value: u16) -> Result<()> {
+        // TODO: must set the mtu to the underlying device driver
+        self.tun.set_mtu(value);
         Ok(())
     }
 
-    fn set_routes(&mut self, routes: &Vec<RouteEntry>) -> Result<()> {
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
         unimplemented!("android routes coming soon...");
     }
 
-    fn queue(&mut self, index: usize) -> Option<&mut Self::Queue> {
-        if index > 0 {
-            return None;
-        }
-
-        Some(&mut self.queue)
+    fn packet_information(&self) -> bool {
+        self.tun.packet_information()
     }
 }
 
 impl AsRawFd for Device {
     fn as_raw_fd(&self) -> RawFd {
-        self.queue.as_raw_fd()
+        self.tun.as_raw_fd()
     }
 }
 
 impl IntoRawFd for Device {
     fn into_raw_fd(self) -> RawFd {
-        self.queue.into_raw_fd()
-    }
-}
-
-pub struct Queue {
-    tun: Fd,
-}
-
-impl Queue {
-    pub fn has_packet_information(&self) -> bool {
-        // on Android this is always the case
-        false
-    }
-
-    pub fn set_nonblock(&self) -> io::Result<()> {
-        self.tun.set_nonblock()
-    }
-}
-
-impl AsRawFd for Queue {
-    fn as_raw_fd(&self) -> RawFd {
-        self.tun.as_raw_fd()
-    }
-}
-
-impl IntoRawFd for Queue {
-    fn into_raw_fd(self) -> RawFd {
         self.tun.into_raw_fd()
-    }
-}
-
-impl Read for Queue {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.tun.read(buf)
-    }
-
-    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        self.tun.read_vectored(bufs)
-    }
-}
-
-impl Write for Queue {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.tun.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.tun.flush()
-    }
-
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        self.tun.write_vectored(bufs)
     }
 }

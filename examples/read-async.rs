@@ -12,31 +12,52 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use futures::StreamExt;
-use packet::ip::Packet;
+use tokio::io::AsyncReadExt;
+use tokio::sync::mpsc::Receiver;
+use tun::{AbstractDevice, BoxError};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), BoxError> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
+    let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
+
+    ctrlc2::set_async_handler(async move {
+        tx.send(()).await.expect("Signal error");
+    })
+    .await;
+
+    main_entry(rx).await?;
+    Ok(())
+}
+
+async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun::Configuration::default();
 
     config
-        .address((10, 0, 0, 1))
+        .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 0))
+        .destination((10, 0, 0, 1))
+        .mtu(tun::DEFAULT_MTU)
         .up();
 
     #[cfg(target_os = "linux")]
-    config.platform(|config| {
-        config.packet_information(true);
+    config.platform_config(|config| {
+        config.ensure_root_privileges(true);
     });
 
-    let dev = tun::create_as_async(&config).unwrap();
-
-    let mut stream = dev.into_framed();
-
-    while let Some(packet) = stream.next().await {
-        match packet {
-            Ok(pkt) => println!("pkt: {:#?}", Packet::unchecked(pkt.get_bytes())),
-            Err(err) => panic!("Error: {:?}", err),
-        }
+    let mut dev = tun::create_as_async(&config)?;
+    let size = dev.mtu()? as usize + tun::PACKET_INFORMATION_LENGTH;
+    let mut buf = vec![0; size];
+    loop {
+        tokio::select! {
+            _ = quit.recv() => {
+                println!("Quit...");
+                break;
+            }
+            len = dev.read(&mut buf) => {
+                println!("pkt: {:?}", &buf[..len?]);
+            }
+        };
     }
+    Ok(())
 }

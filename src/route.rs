@@ -12,8 +12,8 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::net::Ipv4Addr;
-use crate::IntoAddress;
+use crate::ToAddress;
+use std::net::IpAddr;
 
 pub const RTF_UP: u16 = 0x0001;
 pub const RTF_GATEWAY: u16 = 0x0002;
@@ -26,12 +26,12 @@ pub const RTF_WINDOW: u16 = 0x0080;
 pub const RTF_IRTT: u16 = 0x0100;
 pub const RTF_REJECT: u16 = 0x0200;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct RouteEntry {
     rt_pad1: Option<u64>,
-    rt_dst: Option<Ipv4Addr>,
-    rt_gateway: Option<Ipv4Addr>,
-    rt_genmask: Option<Ipv4Addr>,
+    rt_dst: Option<IpAddr>,
+    rt_gateway: Option<IpAddr>,
+    rt_genmask: Option<IpAddr>,
     rt_flags: Option<u16>,
     rt_pad2: Option<i16>,
     rt_pad3: Option<u64>,
@@ -46,25 +46,8 @@ pub struct RouteEntry {
 }
 
 impl RouteEntry {
-
     pub fn new() -> RouteEntry {
-        RouteEntry {
-            rt_pad1: None,
-            rt_dst: None,
-            rt_gateway: None,
-            rt_genmask: None,
-            rt_flags: None,
-            rt_pad2: None,
-            rt_pad3: None,
-            rt_tos: None,
-            rt_class: None,
-            rt_pad4: None,
-            rt_metric: None,
-            rt_dev: None,
-            rt_mtu: None,
-            rt_window: None,
-            rt_irtt: None,
-        }
+        RouteEntry::default()
     }
 
     pub fn set_rt_pad1(mut self, value: u64) -> RouteEntry {
@@ -76,30 +59,30 @@ impl RouteEntry {
         self.rt_pad1
     }
 
-    pub fn set_rt_dst<A: IntoAddress>(mut self, value: A) -> RouteEntry {
-        self.rt_dst = Some(value.into_address().unwrap());
+    pub fn set_rt_dst<A: ToAddress>(mut self, value: A) -> RouteEntry {
+        self.rt_dst = Some(value.to_address().unwrap());
         self
     }
 
-    pub fn rt_dst(&self) -> Option<Ipv4Addr> {
+    pub fn rt_dst(&self) -> Option<IpAddr> {
         self.rt_dst
     }
 
-    pub fn set_rt_gateway<A: IntoAddress>(mut self, value: A) -> RouteEntry {
-        self.rt_gateway = Some(value.into_address().unwrap());
+    pub fn set_rt_gateway<A: ToAddress>(mut self, value: A) -> RouteEntry {
+        self.rt_gateway = Some(value.to_address().unwrap());
         self
     }
 
-    pub fn rt_gateway(&self) -> Option<Ipv4Addr> {
+    pub fn rt_gateway(&self) -> Option<IpAddr> {
         self.rt_gateway
     }
 
-    pub fn set_rt_genmask<A: IntoAddress>(mut self, value: A) -> RouteEntry {
-        self.rt_genmask = Some(value.into_address().unwrap());
+    pub fn set_rt_genmask<A: ToAddress>(mut self, value: A) -> RouteEntry {
+        self.rt_genmask = Some(value.to_address().unwrap());
         self
     }
 
-    pub fn rt_genmask(&self) -> Option<Ipv4Addr> {
+    pub fn rt_genmask(&self) -> Option<IpAddr> {
         self.rt_genmask
     }
 
@@ -201,5 +184,4 @@ impl RouteEntry {
     pub fn rt_irtt(&self) -> Option<u16> {
         self.rt_irtt
     }
-
 }

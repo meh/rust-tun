@@ -1,0 +1,100 @@
+name: Push or PR
+
+on:
+  [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_n_test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: rustfmt
+      if: ${{ !cancelled() }}
+      run: cargo fmt --all -- --check
+    - name: check
+      if: ${{ !cancelled() }}
+      run: cargo check --verbose
+    - name: clippy
+      if: ${{ !cancelled() }}
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    - name: Build
+      if: ${{ !cancelled() }}
+      run: |
+        cargo build --verbose --examples --tests --all-features --features="async tokio/rt-multi-thread"
+        cargo clean
+        cargo build --verbose --examples --tests --no-default-features
+    - name: Abort on error
+      if: ${{ failure() }}
+      run: echo "Some of jobs failed" && false
+
+  build_n_test_android:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install cargo ndk and rust compiler for android target
+      if: ${{ !cancelled() }}
+      run: |
+        cargo install --locked cargo-ndk
+        rustup target add x86_64-linux-android
+    - name: clippy
+      if: ${{ !cancelled() }}
+      run: cargo ndk -t x86_64 clippy --all-features --features="async tokio/rt-multi-thread" -- -D warnings
+    - name: Build
+      if: ${{ !cancelled() }}
+      run: |
+        cargo ndk -t x86_64 rustc --verbose --all-features --features="async tokio/rt-multi-thread" --lib --crate-type=cdylib
+    - name: Abort on error
+      if: ${{ failure() }}
+      run: echo "Android build job failed" && false
+
+  build_n_test_ios:
+    strategy:
+      fail-fast: false
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install cargo lipo and rust compiler for ios target
+      if: ${{ !cancelled() }}
+      run: |
+        cargo install --locked cargo-lipo
+        rustup target add x86_64-apple-ios aarch64-apple-ios
+    - name: clippy
+      if: ${{ !cancelled() }}
+      run: cargo clippy --target x86_64-apple-ios --all-features --features="async tokio/rt-multi-thread" -- -D warnings
+    - name: Build
+      if: ${{ !cancelled() }}
+      run: |
+        cargo lipo --verbose --all-features --features="async tokio/rt-multi-thread"
+    - name: Abort on error
+      if: ${{ failure() }}
+      run: echo "iOs build job failed" && false
+
+  semver:
+    name: Check semver
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check semver
+        if: ${{ !cancelled() }}
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+      - name: Abort on error
+        if: ${{ failure() }}
+        run: echo "Semver check failed" && false

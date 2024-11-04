@@ -13,33 +13,35 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::Read;
-extern crate tun;
 use tun::route::RouteEntry;
 
 fn main() {
-
     let mut config = tun::Configuration::default();
-    config.address((10, 0, 0, 1))
+    config
+        .address((10, 0, 0, 9))
         .netmask((255, 255, 255, 252))
-        .destination((10, 0, 0, 2))
+        .destination((10, 0, 0, 1))
         .up();
 
     #[cfg(target_os = "linux")]
-    config.platform(|config| {
+    config.platform_config(|config| {
+        #[allow(deprecated)]
         config.packet_information(true);
     });
 
     // This sets the default gateway to the other side of the tunnel.
-    config.add_route(RouteEntry::new()
-        .set_rt_dst((0, 0, 0, 0))
-        .set_rt_genmask((0, 0, 0, 0))
-        .set_rt_gateway((10, 0, 0, 2)));
+    config.add_route(
+        RouteEntry::new()
+            .set_rt_dst((0, 0, 0, 0))
+            .set_rt_genmask((0, 0, 0, 0))
+            .set_rt_gateway((10, 0, 0, 1)),
+    );
 
     let mut dev = tun::create(&config).unwrap();
     let mut buf = [0; 4096];
 
     loop {
         let amount = dev.read(&mut buf).unwrap();
-        println!("{:?}", &buf[0 .. amount]);
+        println!("{:?}", &buf[0..amount]);
     }
 }
