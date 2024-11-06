@@ -17,7 +17,7 @@ cfg-if = "1"
 futures-core = { version = "0.3", optional = true }
 libc = { version = "0.2", features = ["extra_traits"] }
 log = "0.4"
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = [
     "net",
     "macros",
