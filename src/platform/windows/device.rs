@@ -65,14 +65,14 @@ impl Device {
             if let Some(dns_servers) = &config.platform_config.dns_servers {
                 adapter.set_dns_servers(dns_servers)?;
             }
-            let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
-
+            if let Some(mtu) = config.mtu {
+                adapter.set_mtu(mtu as _)?;
+            }
             let capacity = config.ring_capacity.unwrap_or(MAX_RING_CAPACITY);
             let session = adapter.start_session(capacity)?;
-            adapter.set_mtu(mtu as _)?;
             let mut device = Device {
                 driver: Driver::Tun(Tun { session }),
-                mtu,
+                mtu: adapter.get_mtu()? as u16,
             };
 
             // This is not needed since we use netsh to set the address.
