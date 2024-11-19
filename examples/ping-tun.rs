@@ -40,7 +40,7 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
         .destination((10, 0, 0, 1))
         .up();
 
-    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+    #[cfg(target_os = "linux")]
     config.platform_config(|config| {
         #[allow(deprecated)]
         config.packet_information(true);

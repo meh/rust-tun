@@ -40,7 +40,7 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
         .mtu(tun::DEFAULT_MTU)
         .up();
 
-    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+    #[cfg(target_os = "linux")]
     config.platform_config(|config| {
         config.ensure_root_privileges(true);
     });
