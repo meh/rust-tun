@@ -20,7 +20,7 @@ pub use self::device::Device;
 use crate::configuration::Configuration;
 use crate::error::Result;
 
-/// Android-only interface configuration.
+/// OpenHarmony-only interface configuration.
 #[derive(Copy, Clone, Default, Debug)]
 pub struct PlatformConfig;
 
