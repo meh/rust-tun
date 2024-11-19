@@ -76,7 +76,7 @@ impl Configuration {
 
     /// Functionally equivalent to `tun_name`
     #[deprecated(
-        since = "1.1.2",
+        since = "0.7.0",
         note = "Since the API `name` may have an easy name conflict when IDE prompts, it is replaced by `tun_name` for better coding experience"
     )]
     pub fn name<S: AsRef<str>>(&mut self, tun_name: S) -> &mut Self {
@@ -142,7 +142,7 @@ impl Configuration {
 
     /// Set the number of queues.
     /// Note: The queues must be 1, otherwise will failed.
-    #[deprecated(since = "1.0.0", note = "The queues will always be 1.")]
+    #[deprecated(since = "0.7.0", note = "The queues will always be 1.")]
     pub fn queues(&mut self, value: usize) -> &mut Self {
         self.queues = Some(value);
         self
