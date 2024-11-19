@@ -26,31 +26,23 @@ use crate::error::Result;
 pub struct PlatformConfig;
 
 impl PlatformConfig {
-    /// Enable or disable packet information, the first 4 bytes of
-    /// each packet delivered from/to Linux underlying API is a header with flags and protocol type when enabled.
-    ///
-    /// [Note: This configuration just applies to the Linux underlying API and is a no-op on tun(i.e. the packets delivered from/to tun always contain no packet information) -- end note].
-    #[deprecated(
-        since = "1.0.0",
-        note = "No effect applies to the packets delivered from/to tun since the packets always contain no header on all platforms."
-    )]
-    pub fn packet_information(&mut self, value: bool) -> &mut Self {
+    /// Dummy functions for compatibility with Linux.
+    pub fn packet_information(&mut self, _value: bool) -> &mut Self {
         self
     }
 
-    /// Indicated whether tun running in root privilege,
-    /// since some operations need it such as assigning IP/netmask/destination etc.
-    pub fn ensure_root_privileges(&mut self, value: bool) -> &mut Self {
+    /// Dummy functions for compatibility with Linux.
+    pub fn ensure_root_privileges(&mut self, _value: bool) -> &mut Self {
         self
     }
 
-    /// Enable / Disable IFF_NAPI flag.
-    pub fn napi(&mut self, value: bool) -> &mut Self {
+    /// Dummy functions for compatibility with Linux.
+    pub fn napi(&mut self, _value: bool) -> &mut Self {
         self
     }
 
-    /// Enable / Disable IFF_VNET_HDR flag.
-    pub fn vnet_hdr(&mut self, value: bool) -> &mut Self {
+    /// Dummy functions for compatibility with Linux.
+    pub fn vnet_hdr(&mut self, _value: bool) -> &mut Self {
         self
     }
 }

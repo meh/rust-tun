@@ -42,6 +42,7 @@ pub(crate) mod android;
 #[cfg(target_os = "android")]
 pub use self::android::{create, Device, PlatformConfig};
 
+// Tip: OpenHarmony is a kind of Linux.
 #[cfg(target_env = "ohos")]
 pub(crate) mod ohos;
 #[cfg(target_env = "ohos")]
