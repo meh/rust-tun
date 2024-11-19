@@ -17,9 +17,9 @@
 #[cfg(unix)]
 pub(crate) mod posix;
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 pub(crate) mod linux;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 pub use self::linux::{create, Device, PlatformConfig};
 
 #[cfg(target_os = "freebsd")]
@@ -41,6 +41,11 @@ pub use self::ios::{create, Device, PlatformConfig};
 pub(crate) mod android;
 #[cfg(target_os = "android")]
 pub use self::android::{create, Device, PlatformConfig};
+
+#[cfg(target_env = "ohos")]
+pub(crate) mod ohos;
+#[cfg(target_env = "ohos")]
+pub use self::ohos::{create, Device, PlatformConfig};
 
 #[cfg(unix)]
 pub use crate::platform::posix::Tun;
