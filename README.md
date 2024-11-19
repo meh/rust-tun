@@ -64,6 +64,7 @@ Platforms
 - [x] FreeBSD
 - [x] Android
 - [x] iOS
+- [x] OpenHarmony
 
 
 Linux
