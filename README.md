@@ -124,3 +124,10 @@ Windows
 -----
 You need to copy the [wintun.dll](https://wintun.net/) file which matches your architecture to 
 the same directory as your executable and run your program as administrator.
+
+## Contributors ✨
+Thanks goes to these wonderful people:
+
+<a href="https://github.com/meh/rust-tun/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=meh/rust-tun" />
+</a>
