@@ -109,7 +109,7 @@ impl Device {
                         }
                         use std::io::ErrorKind::AlreadyExists;
                         let info = "no avaiable file descriptor";
-                        return Err(Error::Io(std::io::Error::new(AlreadyExists, info).into()));
+                        return Err(Error::Io(std::io::Error::new(AlreadyExists, info)));
                     };
                     (tun, device_name)
                 }
@@ -173,7 +173,7 @@ impl Device {
             let route = Route {
                 addr,
                 netmask: mask,
-                dest: dest,
+                dest,
             };
             if let Err(e) = self.set_route(route) {
                 log::warn!("{e:?}");
@@ -344,8 +344,8 @@ impl AbstractDevice for Device {
 
     fn set_address(&mut self, value: IpAddr) -> Result<()> {
         unsafe {
-            let mut req = self.request();
-            if let Err(err) = siocdifaddr(self.ctl.as_raw_fd(), &mut req) {
+            let req = self.request();
+            if let Err(err) = siocdifaddr(self.ctl.as_raw_fd(), &req) {
                 return Err(std::io::Error::from(err).into());
             }
             let previous = self.route.as_ref().ok_or(Error::InvalidConfig)?;
@@ -371,8 +371,8 @@ impl AbstractDevice for Device {
 
     fn set_destination(&mut self, value: IpAddr) -> Result<()> {
         unsafe {
-            let mut req = self.request();
-            if let Err(err) = siocdifaddr(self.ctl.as_raw_fd(), &mut req) {
+            let req = self.request();
+            if let Err(err) = siocdifaddr(self.ctl.as_raw_fd(), &req) {
                 return Err(std::io::Error::from(err).into());
             }
             let previous = self.route.as_ref().ok_or(Error::InvalidConfig)?;
@@ -414,8 +414,8 @@ impl AbstractDevice for Device {
 
     fn set_netmask(&mut self, value: IpAddr) -> Result<()> {
         unsafe {
-            let mut req = self.request();
-            if let Err(err) = siocdifaddr(self.ctl.as_raw_fd(), &mut req) {
+            let req = self.request();
+            if let Err(err) = siocdifaddr(self.ctl.as_raw_fd(), &req) {
                 return Err(std::io::Error::from(err).into());
             }
             let previous = self.route.as_ref().ok_or(Error::InvalidConfig)?;
