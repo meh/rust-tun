@@ -51,7 +51,7 @@ impl ToAddress for str {
     }
 }
 
-impl<'a> ToAddress for &'a str {
+impl ToAddress for &str {
     fn to_address(&self) -> Result<IpAddr> {
         (*self).to_address()
     }
@@ -63,7 +63,7 @@ impl ToAddress for String {
     }
 }
 
-impl<'a> ToAddress for &'a String {
+impl ToAddress for &String {
     fn to_address(&self) -> Result<IpAddr> {
         self.as_str().to_address()
     }
@@ -75,7 +75,7 @@ impl ToAddress for Ipv4Addr {
     }
 }
 
-impl<'a> ToAddress for &'a Ipv4Addr {
+impl ToAddress for &Ipv4Addr {
     fn to_address(&self) -> Result<IpAddr> {
         (*self).to_address()
     }
@@ -87,7 +87,7 @@ impl ToAddress for IpAddr {
     }
 }
 
-impl<'a> ToAddress for &'a IpAddr {
+impl ToAddress for &IpAddr {
     fn to_address(&self) -> Result<IpAddr> {
         (*self).to_address()
     }
@@ -99,7 +99,7 @@ impl ToAddress for SocketAddrV4 {
     }
 }
 
-impl<'a> ToAddress for &'a SocketAddrV4 {
+impl ToAddress for &SocketAddrV4 {
     fn to_address(&self) -> Result<IpAddr> {
         (*self).to_address()
     }
@@ -111,7 +111,7 @@ impl ToAddress for SocketAddr {
     }
 }
 
-impl<'a> ToAddress for &'a SocketAddr {
+impl ToAddress for &SocketAddr {
     fn to_address(&self) -> Result<IpAddr> {
         (*self).to_address()
     }
