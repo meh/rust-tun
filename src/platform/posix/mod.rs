@@ -15,18 +15,8 @@
 //! POSIX compliant support.
 
 mod sockaddr;
-#[cfg(any(
-    all(target_os = "linux", not(target_env = "ohos")),
-    target_os = "freebsd",
-    target_os = "macos"
-))]
-pub(crate) use sockaddr::sockaddr_union;
-
-#[cfg(any(
-    all(target_os = "linux", not(target_env = "ohos")),
-    target_os = "macos"
-))]
-pub(crate) use sockaddr::ipaddr_to_sockaddr;
+#[allow(unused_imports)]
+pub(crate) use sockaddr::{ipaddr_to_sockaddr, sockaddr_union};
 
 mod fd;
 pub(crate) use self::fd::Fd;
