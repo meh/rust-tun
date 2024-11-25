@@ -80,7 +80,38 @@ jobs:
         cargo lipo --verbose --all-features --features="async tokio/rt-multi-thread"
     - name: Abort on error
       if: ${{ failure() }}
-      run: echo "iOs build job failed" && false
+      run: echo "iOS build job failed" && false
+
+  build_n_test_openharmony:
+    strategy:
+      matrix:
+        target: [aarch64-unknown-linux-ohos, armv7-unknown-linux-ohos, x86_64-unknown-linux-ohos]
+      fail-fast: false
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: openharmony-rs/setup-ohos-sdk@v0.1
+      id: setup-ohos
+      with:
+        version: "5.0"
+    - name: Install ohrs and rust compiler for ohos target
+      if: ${{ !cancelled() }}
+      run: |
+        cargo install --locked ohrs
+        rustup target add ${{ matrix.target }}
+    - name: fmt & clippy
+      if: ${{ !cancelled() }}
+      run: |
+        ohrs cargo --disable-target -- fmt --all -- --check
+        ohrs cargo --disable-target -- clippy --target ${{matrix.target}} --all-features --features="async tokio/rt-multi-thread" -- -D warnings
+    - name: Build
+      if: ${{ !cancelled() }}
+      run: |
+        ohrs cargo --disable-target -- rustc --target ${{matrix.target}} --verbose --all-features --features="async tokio/rt-multi-thread" --lib --crate-type=cdylib
+    - name: Abort on error
+      if: ${{ failure() }}
+      run: echo "OpenHarmony build job failed" && false
 
   semver:
     name: Check semver
