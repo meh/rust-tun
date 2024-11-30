@@ -20,7 +20,7 @@ use crate::configuration::Configuration;
 use crate::error::Result;
 #[cfg(feature = "async")]
 pub use device::Driver;
-pub use device::{Device, Tun};
+pub use device::{Device, Reader, Tun, Writer};
 use std::ffi::OsString;
 
 /// Windows-only interface configuration.
