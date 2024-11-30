@@ -21,6 +21,7 @@ use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
 use crate::platform::posix::{self, Fd, Tun};
+use crate::route::RouteEntry;
 
 /// A TUN device for Android.
 pub struct Device {
@@ -154,6 +155,10 @@ impl AbstractDevice for Device {
         // TODO: must set the mtu to the underlying device driver
         self.tun.set_mtu(value);
         Ok(())
+    }
+
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+        unimplemented!("android routes coming soon...");
     }
 
     fn packet_information(&self) -> bool {

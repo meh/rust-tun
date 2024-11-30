@@ -31,6 +31,7 @@ use crate::{
     error::{Error, Result},
     platform::linux::sys::*,
     platform::posix::{self, ipaddr_to_sockaddr, sockaddr_union, Fd, Tun},
+    route::RouteEntry,
 };
 
 const OVERWRITE_SIZE: usize = std::mem::size_of::<libc::__c_anonymous_ifr_ifru>();
@@ -409,6 +410,15 @@ impl AbstractDevice for Device {
             self.tun.set_mtu(value);
             Ok(())
         }
+    }
+
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+        for r in routes.iter() {
+            if let Err(err) = unsafe { siocaddrt(self.ctl.as_raw_fd(), &libc::rtentry::from(r)) } {
+                return Err(std::io::Error::from(err).into());
+            }
+        }
+        Ok(())
     }
 
     fn packet_information(&self) -> bool {

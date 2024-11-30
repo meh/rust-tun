@@ -19,6 +19,7 @@ use std::sync::Arc;
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
+use crate::route::RouteEntry;
 use crate::run_command::run_command;
 use crate::Layer;
 use wintun_bindings::{load_from_path, Adapter, Session, MAX_RING_CAPACITY};
@@ -275,6 +276,10 @@ impl AbstractDevice for Device {
             }
             Driver::Tap(_tap) => unimplemented!(),
         }
+    }
+
+    fn set_routes(&mut self, _routes: &[RouteEntry]) -> Result<()> {
+        unimplemented!("windows routes coming soon...");
     }
 
     fn packet_information(&self) -> bool {

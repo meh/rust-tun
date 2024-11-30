@@ -14,6 +14,7 @@
 
 use crate::configuration::Configuration;
 use crate::error::Result;
+use crate::route::RouteEntry;
 use std::io::{Read, Write};
 use std::net::IpAddr;
 
@@ -43,6 +44,10 @@ pub trait AbstractDevice: Read + Write {
 
         if let Some(enabled) = config.enabled {
             self.enabled(enabled)?;
+        }
+
+        if let Some(routes) = config.routes.as_ref() {
+            self.set_routes(routes)?;
         }
 
         Ok(())
@@ -87,7 +92,9 @@ pub trait AbstractDevice: Read + Write {
     /// Get the MTU.
     fn mtu(&self) -> Result<u16>;
 
-    /// Set the MTU.
+    /// Set routes
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()>;
+
     ///
     /// [Note: This setting has no effect on the Windows platform due to the mtu of wintun is always 65535. --end note]
     fn set_mtu(&mut self, value: u16) -> Result<()>;
