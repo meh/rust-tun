@@ -53,9 +53,10 @@ impl PlatformConfig {
     /// Enable or disable packet information, the first 4 bytes of
     /// each packet delivered from/to Linux underlying API is a header with flags and protocol type when enabled.
     ///
-    /// [Note: This configuration just applies to the Linux underlying API and is a no-op on tun(i.e. the packets delivered from/to tun always contain no packet information) -- end note].
+    /// [Note: This configuration just applies to the Linux underlying API and is a no-op on `tun` crate
+    /// (i.e. the packets delivered from/to `tun` crate must always NOT contain packet information) -- end note].
     #[deprecated(
-        since = "1.0.0",
+        since = "0.7.0",
         note = "No effect applies to the packets delivered from/to tun since the packets always contain no header on all platforms."
     )]
     pub fn packet_information(&mut self, value: bool) -> &mut Self {

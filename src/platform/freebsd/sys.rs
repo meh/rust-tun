@@ -17,7 +17,7 @@
 use libc::{c_char, c_int, c_uint, ifreq, sockaddr, IFNAMSIZ};
 use nix::{ioctl_readwrite, ioctl_write_ptr};
 
-#[allow(non_camel_case_types)]
+#[allow(non_camel_case_types, dead_code)]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ctl_info {

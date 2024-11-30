@@ -16,6 +16,8 @@
 
 #[cfg(unix)]
 pub(crate) mod posix;
+#[cfg(unix)]
+pub use posix::{Reader, Writer};
 
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 pub(crate) mod linux;
@@ -54,7 +56,7 @@ pub use crate::platform::posix::Tun;
 #[cfg(target_os = "windows")]
 pub(crate) mod windows;
 #[cfg(target_os = "windows")]
-pub use self::windows::{create, Device, PlatformConfig, Tun};
+pub use self::windows::{create, Device, PlatformConfig, Reader, Tun, Writer};
 
 #[cfg(test)]
 mod test {
