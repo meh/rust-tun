@@ -117,7 +117,7 @@ impl Device {
                 | if queues_num > 1 { iff_multi_queue } else { 0 };
 
             let tun_fd = {
-                let fd = libc::open(b"/dev/net/tun\0".as_ptr() as *const _, O_RDWR);
+                let fd = libc::open(c"/dev/net/tun".as_ptr() as *const _, O_RDWR);
                 let tun_fd = Fd::new(fd, true).map_err(|_| std::io::Error::last_os_error())?;
 
                 if let Err(err) = tunsetiff(tun_fd.inner, &mut req as *mut _ as *mut _) {
