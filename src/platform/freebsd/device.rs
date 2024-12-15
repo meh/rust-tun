@@ -30,6 +30,7 @@ use crate::{
     error::{Error, Result},
     platform::freebsd::sys::*,
     platform::posix::{self, sockaddr_union, Fd, Tun},
+    route::RouteEntry,
     run_command::run_command,
 };
 
@@ -450,6 +451,10 @@ impl AbstractDevice for Device {
             self.tun.set_mtu(value);
             Ok(())
         }
+    }
+
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+        unimplemented!("android routes coming soon...");
     }
 
     fn packet_information(&self) -> bool {
