@@ -125,6 +125,48 @@ Windows
 You need to copy the [wintun.dll](https://wintun.net/) file which matches your architecture to 
 the same directory as your executable and run your program as administrator.
 
+
+OpenHarmony
+-----
+You can pass the file descriptor of the TUN device to `tun` to create the interface. You can see the detail [VPN document](https://developer.huawei.com/consumer/en/doc/harmonyos-references-V5/js-apis-net-vpnextension-V5).
+
+Here is an example to create the TUN device on OpenHarmony/HarmonyNext and pass the `fd` to `tun`:
+```ts
+// ArkTS
+import vpnExtension from '@ohos.net.vpnExtension';
+import vpnClient from 'libvpn_client.so';
+
+const VpnConnection: vpnExtension.VpnConnection = vpnExtension.createVpnConnection(this.context);
+
+async function setup() {
+    const fd = await VpnConnection.create(config);
+    vpnClient.setup(fd);
+}
+```
+
+```rust
+// use ohos-rs to bind rust for arkts
+use napi_derive_ohos::napi;
+
+#[napi]
+async fn setup(fd: i32) {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut cfg = tun::Configuration::default();
+        cfg.raw_fd(fd);
+        #[cfg(target_os = "ios")]
+        cfg.platform_config(|p_cfg| {
+            p_cfg.packet_information(true);
+        });
+        let mut tun = tun::create_as_async(&cfg).unwrap();
+        let mut framed = tun.into_framed();
+        while let Some(packet) = framed.next().await {
+            ...
+        }
+    });
+}
+```
+
 ## Contributors ✨
 Thanks goes to these wonderful people:
 
