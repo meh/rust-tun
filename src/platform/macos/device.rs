@@ -21,6 +21,7 @@ use crate::{
         macos::sys::*,
         posix::{self, ipaddr_to_sockaddr, sockaddr_union, Fd},
     },
+    route::RouteEntry,
     run_command::run_command,
 };
 
@@ -492,6 +493,10 @@ impl AbstractDevice for Device {
             self.tun.set_mtu(value);
             Ok(())
         }
+    }
+
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+        unimplemented!("macos routes coming soon...");
     }
 
     fn packet_information(&self) -> bool {

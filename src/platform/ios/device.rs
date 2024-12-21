@@ -18,6 +18,7 @@ use crate::{
     device::AbstractDevice,
     error::{Error, Result},
     platform::posix::{self, Fd, Tun},
+    route::RouteEntry,
 };
 use std::{
     io::{Read, Write},
@@ -164,6 +165,10 @@ impl AbstractDevice for Device {
         // TODO: must set the mtu to the underlying device driver
         self.tun.set_mtu(value);
         Ok(())
+    }
+
+    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+        unimplemented!("ios routes coming soon...");
     }
 
     fn packet_information(&self) -> bool {

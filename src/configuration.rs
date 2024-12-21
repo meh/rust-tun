@@ -18,6 +18,7 @@ use std::os::unix::io::RawFd;
 
 use crate::address::ToAddress;
 use crate::platform::PlatformConfig;
+use crate::route::RouteEntry;
 
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
@@ -62,6 +63,7 @@ pub struct Configuration {
     pub(crate) metric: Option<u16>,
     #[cfg(unix)]
     pub(crate) close_fd_on_drop: Option<bool>,
+    pub(crate) routes: Option<Vec<RouteEntry>>,
 }
 
 impl Configuration {
@@ -154,6 +156,18 @@ impl Configuration {
         self.raw_fd = Some(fd);
         self
     }
+
+    /// Add a route to the configuration
+    pub fn add_route(&mut self, route: RouteEntry) -> &mut Self {
+        match self.routes {
+            Some(ref mut routes) => routes.push(route),
+            None => {
+                self.routes = Some(vec![route]);
+            }
+        }
+        self
+    }
+
     #[cfg(not(unix))]
     pub fn raw_fd(&mut self, fd: i32) -> &mut Self {
         self.raw_fd = Some(fd);
