@@ -45,7 +45,10 @@ impl Device {
             let guid = config.platform_config.device_guid;
             let adapter = match Adapter::open(&wintun, tun_name) {
                 Ok(a) => a,
-                Err(_) => Adapter::create(&wintun, tun_name, tun_name, guid)?,
+                Err(e) => {
+                    log::debug!("failed to open adapter: {}", e);
+                    Adapter::create(&wintun, tun_name, tun_name, guid)?
+                }
             };
             if let Some(metric) = config.metric {
                 // command: netsh interface ip set interface {index} metric={metric}
