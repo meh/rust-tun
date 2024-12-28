@@ -66,6 +66,8 @@ wintun-bindings = { version = "^0.7.7", features = [
     "panic_on_unsent_packets",
     "verify_binary_signature",
     "async",
+    "enable_inner_logging",
+    "winreg",
 ] }
 
 [target.'cfg(any(target_os = "macos", target_os = "freebsd"))'.dependencies]
