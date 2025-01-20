@@ -20,6 +20,7 @@ use tokio_util::codec::{Decoder, Encoder};
 
 /// A packet protocol IP version
 #[derive(Debug, Clone, Copy, Default)]
+#[allow(dead_code)]
 enum PacketProtocol {
     #[default]
     IPv4,
