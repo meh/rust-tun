@@ -49,7 +49,7 @@ struct Route {
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
     tun_name: Option<String>,
-    tun: posix::Tun,
+    pub(crate) tun: posix::Tun,
     ctl: Option<posix::Fd>,
     route: Option<Route>,
 }

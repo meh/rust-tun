@@ -41,6 +41,7 @@ impl Fd {
         }
     }
 
+    #[inline]
     pub fn read(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         let fd = self.as_raw_fd();
         let amount = unsafe { libc::read(fd, buf.as_mut_ptr() as *mut _, buf.len()) };
@@ -50,9 +51,48 @@ impl Fd {
         Ok(amount as usize)
     }
 
+    #[allow(dead_code)]
+    #[inline]
+    fn readv(&self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize> {
+        if bufs.len() > max_iov() {
+            return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
+        }
+        let amount = unsafe {
+            libc::readv(
+                self.as_raw_fd(),
+                bufs.as_mut_ptr() as *mut libc::iovec as *const libc::iovec,
+                bufs.len() as libc::c_int,
+            )
+        };
+        if amount < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        Ok(amount as usize)
+    }
+
+    #[inline]
     pub fn write(&self, buf: &[u8]) -> std::io::Result<usize> {
         let fd = self.as_raw_fd();
         let amount = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
+        if amount < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        Ok(amount as usize)
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    pub fn writev(&self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+        if bufs.len() > max_iov() {
+            return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
+        }
+        let amount = unsafe {
+            libc::writev(
+                self.as_raw_fd(),
+                bufs.as_ptr() as *const libc::iovec,
+                bufs.len() as libc::c_int,
+            )
+        };
         if amount < 0 {
             return Err(std::io::Error::last_os_error());
         }
@@ -80,4 +120,25 @@ impl Drop for Fd {
             unsafe { libc::close(self.inner) };
         }
     }
+}
+
+#[cfg(any(
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd",
+    target_vendor = "apple",
+))]
+pub(crate) const fn max_iov() -> usize {
+    libc::IOV_MAX as usize
+}
+
+#[cfg(any(
+    target_os = "android",
+    target_os = "emscripten",
+    target_os = "linux",
+    target_os = "nto",
+))]
+pub(crate) const fn max_iov() -> usize {
+    libc::UIO_MAXIOV as usize
 }

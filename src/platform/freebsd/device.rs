@@ -43,7 +43,7 @@ struct Route {
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
     tun_name: String,
-    tun: Tun,
+    pub(crate) tun: Tun,
     ctl: Fd,
     route: Option<Route>,
 }

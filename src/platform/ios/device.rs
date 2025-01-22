@@ -27,7 +27,7 @@ use std::{
 
 /// A TUN device for iOS.
 pub struct Device {
-    tun: Tun,
+    pub(crate) tun: Tun,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {

@@ -16,7 +16,6 @@ all-features = true
 crate-type = ["staticlib", "lib"]
 
 [features]
-default = []
 # default = ["async"]
 async = [
     "tokio",

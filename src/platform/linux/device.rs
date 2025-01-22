@@ -38,7 +38,7 @@ const OVERWRITE_SIZE: usize = std::mem::size_of::<libc::__c_anonymous_ifr_ifru>(
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
     tun_name: String,
-    tun: Tun,
+    pub(crate) tun: Tun,
     ctl: Fd,
 }
 

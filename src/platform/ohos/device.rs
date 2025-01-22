@@ -24,7 +24,7 @@ use crate::platform::posix::{self, Fd, Tun};
 
 /// A TUN device for OpenHarmony.
 pub struct Device {
-    tun: Tun,
+    pub(crate) tun: Tun,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {

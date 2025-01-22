@@ -21,10 +21,10 @@ use tokio::io::Interest;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
-use super::TunPacketCodec;
 use crate::device::AbstractDevice;
 use crate::platform::posix::{Reader, Writer};
 use crate::platform::Device;
+use crate::r#async::TunPacketCodec;
 
 /// An async TUN device wrapper around a TUN device.
 pub struct AsyncDevice {
