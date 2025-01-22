@@ -14,7 +14,6 @@
 
 use super::TunPacketCodec;
 use crate::device::AbstractDevice;
-use crate::platform::windows::Driver;
 use crate::platform::Device;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -48,18 +47,13 @@ impl core::ops::DerefMut for AsyncDevice {
 impl AsyncDevice {
     /// Create a new `AsyncDevice` wrapping around a `Device`.
     pub fn new(device: Device) -> std::io::Result<AsyncDevice> {
-        match &device.driver {
-            Driver::Tun(tun) => {
-                let session_reader = DeviceReader::new(tun.get_session().into())?;
-                let session_writer = DeviceWriter::new(tun.get_session().into())?;
-                Ok(AsyncDevice {
-                    inner: device,
-                    session_reader,
-                    session_writer,
-                })
-            }
-            Driver::Tap(_) => unimplemented!(),
-        }
+        let session_reader = DeviceReader::new(device.tun.get_session().into())?;
+        let session_writer = DeviceWriter::new(device.tun.get_session().into())?;
+        Ok(AsyncDevice {
+            inner: device,
+            session_reader,
+            session_writer,
+        })
     }
 
     /// Consumes this AsyncDevice and return a Framed object (unified Stream and Sink interface)

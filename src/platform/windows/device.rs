@@ -23,14 +23,9 @@ use crate::run_command::run_command;
 use crate::Layer;
 use wintun_bindings::{load_from_path, Adapter, Session, MAX_RING_CAPACITY};
 
-pub enum Driver {
-    Tun(Tun),
-    #[allow(dead_code)]
-    Tap(()),
-}
 /// A TUN device using the wintun driver.
 pub struct Device {
-    pub(crate) driver: Driver,
+    pub(crate) tun: Tun,
     mtu: u16,
 }
 
@@ -73,7 +68,7 @@ impl Device {
             let capacity = config.ring_capacity.unwrap_or(MAX_RING_CAPACITY);
             let session = adapter.start_session(capacity)?;
             let mut device = Device {
-                driver: Driver::Tun(Tun { session }),
+                tun: Tun { session },
                 mtu: adapter.get_mtu()? as u16,
             };
 
@@ -89,80 +84,48 @@ impl Device {
     }
 
     pub fn split(self) -> (Reader, Writer) {
-        match self.driver {
-            Driver::Tun(tun) => {
-                let tun = Arc::new(tun);
-                (Reader(tun.clone()), Writer(tun))
-            }
-            Driver::Tap(_) => unimplemented!(),
-        }
+        let tun = Arc::new(self.tun);
+        (Reader(tun.clone()), Writer(tun))
     }
 
     /// Recv a packet from tun device
     pub fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
-        match &self.driver {
-            Driver::Tun(tun) => tun.recv(buf),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun.recv(buf)
     }
 
     /// Send a packet to tun device
     pub fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
-        match &self.driver {
-            Driver::Tun(tun) => tun.send(buf),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun.send(buf)
     }
 }
 
 impl Read for Device {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        match &mut self.driver {
-            Driver::Tun(tun) => tun.read(buf),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun.read(buf)
     }
 }
 
 impl Write for Device {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        match &mut self.driver {
-            Driver::Tun(tun) => tun.write(buf),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun.write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        match &mut self.driver {
-            Driver::Tun(tun) => tun.flush(),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun.flush()
     }
 }
 
 impl AbstractDevice for Device {
     fn tun_index(&self) -> Result<i32> {
-        match &self.driver {
-            Driver::Tun(tun) => Ok(tun.session.get_adapter().get_adapter_index()? as i32),
-            Driver::Tap(_tap) => Err(Error::NotImplemented),
-        }
+        Ok(self.tun.session.get_adapter().get_adapter_index()? as i32)
     }
 
     fn tun_name(&self) -> Result<String> {
-        match &self.driver {
-            Driver::Tun(tun) => Ok(tun.session.get_adapter().get_name()?),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        Ok(self.tun.session.get_adapter().get_name()?)
     }
 
     fn set_tun_name(&mut self, value: &str) -> Result<()> {
-        match &self.driver {
-            Driver::Tun(tun) => {
-                tun.session.get_adapter().set_name(value)?;
-                Ok(())
-            }
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        Ok(self.tun.session.get_adapter().set_name(value)?)
     }
 
     fn enabled(&mut self, _value: bool) -> Result<()> {
@@ -170,49 +133,35 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        match &self.driver {
-            Driver::Tun(tun) => {
-                let addresses = tun.session.get_adapter().get_addresses()?;
-                addresses
-                    .iter()
-                    .find_map(|a| match a {
-                        std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
-                        _ => None,
-                    })
-                    .ok_or(Error::InvalidConfig)
-            }
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        let addresses = self.tun.session.get_adapter().get_addresses()?;
+        addresses
+            .iter()
+            .find_map(|a| match a {
+                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
+                _ => None,
+            })
+            .ok_or(Error::InvalidConfig)
     }
 
     fn set_address(&mut self, value: IpAddr) -> Result<()> {
         let IpAddr::V4(value) = value else {
             unimplemented!("do not support IPv6 yet")
         };
-        match &self.driver {
-            Driver::Tun(tun) => {
-                tun.session.get_adapter().set_address(value)?;
-                Ok(())
-            }
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        Ok(self.tun.session.get_adapter().set_address(value)?)
     }
 
     fn destination(&self) -> Result<IpAddr> {
         // It's just the default gateway in windows.
-        match &self.driver {
-            Driver::Tun(tun) => tun
-                .session
-                .get_adapter()
-                .get_gateways()?
-                .iter()
-                .find_map(|a| match a {
-                    std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
-                    _ => None,
-                })
-                .ok_or(Error::InvalidConfig),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun
+            .session
+            .get_adapter()
+            .get_gateways()?
+            .iter()
+            .find_map(|a| match a {
+                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
+                _ => None,
+            })
+            .ok_or(Error::InvalidConfig)
     }
 
     fn set_destination(&mut self, value: IpAddr) -> Result<()> {
@@ -220,13 +169,7 @@ impl AbstractDevice for Device {
             unimplemented!("do not support IPv6 yet")
         };
         // It's just set the default gateway in windows.
-        match &self.driver {
-            Driver::Tun(tun) => {
-                tun.session.get_adapter().set_gateway(Some(value))?;
-                Ok(())
-            }
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        Ok(self.tun.session.get_adapter().set_gateway(Some(value))?)
     }
 
     fn broadcast(&self) -> Result<IpAddr> {
@@ -240,27 +183,18 @@ impl AbstractDevice for Device {
 
     fn netmask(&self) -> Result<IpAddr> {
         let current_addr = self.address()?;
-        match &self.driver {
-            Driver::Tun(tun) => tun
-                .session
-                .get_adapter()
-                .get_netmask_of_address(&current_addr)
-                .map_err(Error::WintunError),
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun
+            .session
+            .get_adapter()
+            .get_netmask_of_address(&current_addr)
+            .map_err(Error::WintunError)
     }
 
     fn set_netmask(&mut self, value: IpAddr) -> Result<()> {
         let IpAddr::V4(value) = value else {
             unimplemented!("do not support IPv6 yet")
         };
-        match &self.driver {
-            Driver::Tun(tun) => {
-                tun.session.get_adapter().set_netmask(value)?;
-                Ok(())
-            }
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        Ok(self.tun.session.get_adapter().set_netmask(value)?)
     }
 
     /// The return value is always `Ok(65535)` due to wintun
@@ -270,14 +204,9 @@ impl AbstractDevice for Device {
 
     /// This setting has no effect since the mtu of wintun is always 65535
     fn set_mtu(&mut self, mtu: u16) -> Result<()> {
-        match &self.driver {
-            Driver::Tun(tun) => {
-                tun.session.get_adapter().set_mtu(mtu as _)?;
-                self.mtu = mtu;
-                Ok(())
-            }
-            Driver::Tap(_tap) => unimplemented!(),
-        }
+        self.tun.session.get_adapter().set_mtu(mtu as _)?;
+        self.mtu = mtu;
+        Ok(())
     }
 
     fn packet_information(&self) -> bool {
