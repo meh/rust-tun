@@ -63,6 +63,12 @@ impl AsyncDevice {
         // associate mtu with the capacity of ReadBuf
         Framed::with_capacity(self, codec, mtu as usize)
     }
+
+    /// Split the device into a reader and writer
+    #[deprecated(
+        since = "0.7.11",
+        note = "After testing, the split function is not working as expected via #108. So use into_framed() instead"
+    )]
     pub fn split(self) -> std::io::Result<(DeviceWriter, DeviceReader)> {
         let device = self.inner.into_inner();
         let (reader, writer) = device.split();
