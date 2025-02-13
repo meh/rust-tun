@@ -26,14 +26,14 @@ use crate::error::Result;
 #[derive(Copy, Clone, Debug)]
 pub struct PlatformConfig {
     pub(crate) packet_information: bool,
-    pub(crate) disable_routing: bool,
+    pub(crate) enable_routing: bool,
 }
 
 impl Default for PlatformConfig {
     fn default() -> Self {
         PlatformConfig {
             packet_information: true, // default is true in macOS
-            disable_routing: false,
+            enable_routing: true,
         }
     }
 }
@@ -59,9 +59,9 @@ impl PlatformConfig {
         self
     }
 
-    /// Do not setup route for utun interface automatically
-    pub fn disable_routing(&mut self, value: bool) -> &mut Self {
-        self.disable_routing = value;
+    /// Do set or not setup route for utun interface automatically
+    pub fn enable_routing(&mut self, value: bool) -> &mut Self {
+        self.enable_routing = value;
         self
     }
 }
