@@ -91,10 +91,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: openharmony-rs/setup-ohos-sdk@v0.2
+    - uses: openharmony-rs/setup-ohos-sdk@v0.2.1
       id: setup-ohos
       with:
-        version: "5.0"
+        version: "5.0.1"
     - name: Install ohrs and rust compiler for ohos target
       if: ${{ !cancelled() }}
       run: |
