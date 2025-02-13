@@ -172,6 +172,7 @@ impl Device {
             config
                 .netmask
                 .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0))),
+            config.platform_config.disable_routing,
         )?;
 
         Ok(device)
@@ -192,7 +193,13 @@ impl Device {
     }
 
     /// Set the IPv4 alias of the device.
-    fn set_alias(&mut self, addr: IpAddr, broadaddr: IpAddr, mask: IpAddr) -> Result<()> {
+    fn set_alias(
+        &mut self,
+        addr: IpAddr,
+        broadaddr: IpAddr,
+        mask: IpAddr,
+        disable_routing: bool,
+    ) -> Result<()> {
         let IpAddr::V4(addr) = addr else {
             unimplemented!("do not support IPv6 yet")
         };
@@ -219,13 +226,15 @@ impl Device {
             if let Err(err) = siocaifaddr(ctl.as_raw_fd(), &req) {
                 return Err(std::io::Error::from(err).into());
             }
-            let route = Route {
-                addr,
-                netmask: mask,
-                dest: broadaddr,
-            };
-            if let Err(e) = self.set_route(route) {
-                log::warn!("{e:?}");
+            if !disable_routing {
+                let route = Route {
+                    addr,
+                    netmask: mask,
+                    dest: broadaddr,
+                };
+                if let Err(e) = self.set_route(route) {
+                    log::warn!("{e:?}");
+                }
             }
             Ok(())
         }
