@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use crate::error::{Error, Result};
-use libc::{self, fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
+use libc::{self, F_GETFL, F_SETFL, O_NONBLOCK, fcntl};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 /// POSIX file descriptor support for `io` traits.

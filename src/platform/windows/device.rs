@@ -16,12 +16,12 @@ use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 
+use crate::Layer;
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
 use crate::run_command::run_command;
-use crate::Layer;
-use wintun_bindings::{load_from_path, Adapter, Session, MAX_RING_CAPACITY};
+use wintun_bindings::{Adapter, MAX_RING_CAPACITY, Session, load_from_path};
 
 /// A TUN device using the wintun driver.
 pub struct Device {
@@ -57,7 +57,7 @@ impl Device {
             let mask = config
                 .netmask
                 .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
-            let gateway = config.destination.map(IpAddr::from);
+            let gateway = config.destination;
             adapter.set_network_addresses_tuple(address, mask, gateway)?;
             if let Some(dns_servers) = &config.platform_config.dns_servers {
                 adapter.set_dns_servers(dns_servers)?;

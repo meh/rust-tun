@@ -19,7 +19,7 @@ use crate::{
     error::{Error, Result},
     platform::{
         macos::sys::*,
-        posix::{self, ipaddr_to_sockaddr, sockaddr_union, Fd},
+        posix::{self, Fd, ipaddr_to_sockaddr, sockaddr_union},
     },
     run_command::run_command,
 };
@@ -27,8 +27,8 @@ use crate::{
 const OVERWRITE_SIZE: usize = std::mem::size_of::<libc::__c_anonymous_ifr_ifru>();
 
 use libc::{
-    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_SYSTEM, AF_SYS_CONTROL,
-    IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL, UTUN_OPT_IFNAME,
+    self, AF_INET, AF_SYS_CONTROL, AF_SYSTEM, IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM,
+    SYSPROTO_CONTROL, UTUN_OPT_IFNAME, c_char, c_short, c_uint, c_void, sockaddr, socklen_t,
 };
 use std::{
     ffi::CStr,
@@ -182,12 +182,14 @@ impl Device {
     /// # Safety
     unsafe fn request(&self) -> Result<libc::ifreq> {
         let tun_name = self.tun_name.as_ref().ok_or(Error::InvalidConfig)?;
-        let mut req: libc::ifreq = mem::zeroed();
-        ptr::copy_nonoverlapping(
-            tun_name.as_ptr() as *const c_char,
-            req.ifr_name.as_mut_ptr(),
-            tun_name.len(),
-        );
+        let mut req: libc::ifreq = unsafe { mem::zeroed() };
+        unsafe {
+            ptr::copy_nonoverlapping(
+                tun_name.as_ptr() as *const c_char,
+                req.ifr_name.as_mut_ptr(),
+                tun_name.len(),
+            )
+        };
 
         Ok(req)
     }
