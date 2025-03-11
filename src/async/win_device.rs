@@ -12,9 +12,9 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+use crate::r#async::TunPacketCodec;
 use crate::device::AbstractDevice;
 use crate::platform::Device;
-use crate::r#async::TunPacketCodec;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};

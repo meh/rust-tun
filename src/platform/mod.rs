@@ -22,33 +22,33 @@ pub use posix::{Reader, Writer};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 pub(crate) mod linux;
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-pub use self::linux::{create, Device, PlatformConfig};
+pub use self::linux::{Device, PlatformConfig, create};
 
 #[cfg(target_os = "freebsd")]
 pub(crate) mod freebsd;
 #[cfg(target_os = "freebsd")]
-pub use self::freebsd::{create, Device, PlatformConfig};
+pub use self::freebsd::{Device, PlatformConfig, create};
 
 #[cfg(target_os = "macos")]
 pub(crate) mod macos;
 #[cfg(target_os = "macos")]
-pub use self::macos::{create, Device, PlatformConfig};
+pub use self::macos::{Device, PlatformConfig, create};
 
 #[cfg(any(target_os = "ios", target_os = "tvos"))]
 pub(crate) mod ios;
 #[cfg(any(target_os = "ios", target_os = "tvos"))]
-pub use self::ios::{create, Device, PlatformConfig};
+pub use self::ios::{Device, PlatformConfig, create};
 
 #[cfg(target_os = "android")]
 pub(crate) mod android;
 #[cfg(target_os = "android")]
-pub use self::android::{create, Device, PlatformConfig};
+pub use self::android::{Device, PlatformConfig, create};
 
 // Tip: OpenHarmony is a kind of Linux.
 #[cfg(target_env = "ohos")]
 pub(crate) mod ohos;
 #[cfg(target_env = "ohos")]
-pub use self::ohos::{create, Device, PlatformConfig};
+pub use self::ohos::{Device, PlatformConfig, create};
 
 #[cfg(unix)]
 pub use crate::platform::posix::Tun;
@@ -56,7 +56,7 @@ pub use crate::platform::posix::Tun;
 #[cfg(target_os = "windows")]
 pub(crate) mod windows;
 #[cfg(target_os = "windows")]
-pub use self::windows::{create, Device, PlatformConfig, Reader, Tun, Writer};
+pub use self::windows::{Device, PlatformConfig, Reader, Tun, Writer, create};
 
 #[cfg(test)]
 mod test {
