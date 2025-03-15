@@ -16,7 +16,6 @@
 use std::io::{Read, Write};
 use std::net::IpAddr;
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
@@ -25,6 +24,8 @@ use crate::platform::posix::{self, Fd, Tun};
 /// A TUN device for Android.
 pub struct Device {
     pub(crate) tun: Tun,
+    pub(crate) address: Option<IpAddr>,
+    pub(crate) netmask: Option<IpAddr>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -45,7 +46,9 @@ impl Device {
         let close_fd_on_drop = config.close_fd_on_drop.unwrap_or(true);
         let fd = match config.raw_fd {
             Some(raw_fd) => raw_fd,
-            _ => return Err(Error::InvalidConfig),
+            _ => {
+                return Err(Error::InvalidConfig)
+            },
         };
         let device = {
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
@@ -53,6 +56,8 @@ impl Device {
 
             Device {
                 tun: Tun::new(tun, mtu, false),
+                address: config.address,
+                netmask: config.netmask,
             }
         };
 
@@ -114,7 +119,7 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.address.ok_or(Error::NotImplemented)
     }
 
     fn set_address(&mut self, _value: IpAddr) -> Result<()> {
@@ -138,7 +143,7 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.netmask.ok_or(Error::NotImplemented)
     }
 
     fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
