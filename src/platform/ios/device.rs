@@ -28,6 +28,8 @@ use std::{
 /// A TUN device for iOS.
 pub struct Device {
     pub(crate) tun: Tun,
+    pub(crate) address: Option<IpAddr>,
+    pub(crate) netmask: Option<IpAddr>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -55,6 +57,8 @@ impl Device {
             let fd = Fd::new(fd, close_fd_on_drop).map_err(|_| std::io::Error::last_os_error())?;
             Device {
                 tun: Tun::new(fd, mtu, config.platform_config.packet_information),
+                address: config.address,
+                netmask: config.netmask,
             }
         };
 
@@ -124,7 +128,7 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.address.ok_or_else(|| Error::NotImplemented)
     }
 
     fn set_address(&mut self, _value: IpAddr) -> Result<()> {
@@ -148,7 +152,7 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.netmask.ok_or_else(|| Error::NotImplemented)
     }
 
     fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
