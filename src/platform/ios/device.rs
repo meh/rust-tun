@@ -30,6 +30,7 @@ pub struct Device {
     pub(crate) tun: Tun,
     pub(crate) address: Option<IpAddr>,
     pub(crate) netmask: Option<IpAddr>,
+    pub(crate) tun_name: Option<String>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -59,6 +60,7 @@ impl Device {
                 tun: Tun::new(fd, mtu, config.platform_config.packet_information),
                 address: config.address,
                 netmask: config.netmask,
+                tun_name: config.tun_name.clone(),
             }
         };
 
@@ -116,7 +118,10 @@ impl AbstractDevice for Device {
     }
 
     fn tun_name(&self) -> Result<String> {
-        Ok("".to_string())
+        match self.tun_name {
+            Some(ref name) => Ok(name.clone()),
+            None => Ok("".to_string()),
+        }
     }
 
     fn set_tun_name(&mut self, value: &str) -> Result<()> {
@@ -128,7 +133,7 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        self.address.ok_or_else(|| Error::NotImplemented)
+        self.address.ok_or_else(|| Error::String("no address".to_string()))
     }
 
     fn set_address(&mut self, _value: IpAddr) -> Result<()> {
@@ -152,7 +157,7 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        self.netmask.ok_or_else(|| Error::NotImplemented)
+        self.netmask.ok_or_else(|| Error::String("no netmask".to_string()))
     }
 
     fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
