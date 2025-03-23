@@ -114,7 +114,7 @@ impl Write for Device {
 
 impl AbstractDevice for Device {
     fn tun_index(&self) -> Result<i32> {
-        Err(Error::NotImplemented)
+        Err(Error::String("no tun_index".to_string()))
     }
 
     fn tun_name(&self) -> Result<String> {
@@ -125,7 +125,7 @@ impl AbstractDevice for Device {
     }
 
     fn set_tun_name(&mut self, value: &str) -> Result<()> {
-        Err(Error::NotImplemented)
+        Err(Error::String("set_tun_name".to_string()))
     }
 
     fn enabled(&mut self, value: bool) -> Result<()> {
@@ -141,7 +141,7 @@ impl AbstractDevice for Device {
     }
 
     fn destination(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        Err(Error::String("no destination".to_string()))
     }
 
     fn set_destination(&mut self, _value: IpAddr) -> Result<()> {
@@ -149,7 +149,7 @@ impl AbstractDevice for Device {
     }
 
     fn broadcast(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        Err(Error::String("no broadcast".to_string()))
     }
 
     fn set_broadcast(&mut self, _value: IpAddr) -> Result<()> {
