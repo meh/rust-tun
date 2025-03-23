@@ -17,6 +17,8 @@
 mod sys;
 
 mod device;
+
+use log::info;
 pub use self::device::Device;
 
 use crate::configuration::Configuration;
@@ -86,5 +88,6 @@ impl PlatformConfig {
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {
+    info!("<< creating linux device");
     Device::new(configuration)
 }

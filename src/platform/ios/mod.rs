@@ -15,6 +15,8 @@
 //! iOS specific functionality.
 
 mod device;
+
+use log::info;
 pub use device::Device;
 
 use crate::configuration::Configuration;
@@ -55,5 +57,6 @@ impl PlatformConfig {
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {
+    info!("<< Creating IOS device >>");
     Device::new(configuration)
 }
