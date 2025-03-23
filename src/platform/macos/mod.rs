@@ -70,6 +70,5 @@ impl PlatformConfig {
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {
-    info!("<< creating a macos device");
     Device::new(configuration)
 }

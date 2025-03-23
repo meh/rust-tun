@@ -30,6 +30,5 @@ pub struct PlatformConfig;
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {
-    info!("<< creating freebsd device >>");
     Device::new(configuration)
 }
