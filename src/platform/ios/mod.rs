@@ -15,8 +15,6 @@
 //! iOS specific functionality.
 
 mod device;
-
-use log::info;
 pub use device::Device;
 
 use crate::configuration::Configuration;

@@ -20,7 +20,6 @@ use crate::configuration::Configuration;
 use crate::error::Result;
 pub use device::{Device, Reader, Tun, Writer};
 use std::ffi::OsString;
-use log::info;
 
 /// Windows-only interface configuration.
 #[derive(Clone, Debug)]
@@ -62,6 +61,5 @@ impl PlatformConfig {
 
 /// Create a TUN device with the given name.
 pub fn create(configuration: &Configuration) -> Result<Device> {
-    info!("Creating Windows Device");
     Device::new(configuration)
 }

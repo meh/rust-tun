@@ -46,9 +46,7 @@ impl Device {
         let close_fd_on_drop = config.close_fd_on_drop.unwrap_or(true);
         let fd = match config.raw_fd {
             Some(raw_fd) => raw_fd,
-            _ => {
-                return Err(Error::InvalidConfig)
-            },
+            _ => return Err(Error::InvalidConfig),
         };
         let device = {
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);

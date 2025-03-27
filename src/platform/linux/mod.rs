@@ -17,8 +17,6 @@
 mod sys;
 
 mod device;
-
-use log::info;
 pub use self::device::Device;
 
 use crate::configuration::Configuration;

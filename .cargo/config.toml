@@ -2,7 +2,7 @@
 protocol = "sparse"
 
 [build]
-#target = "aarch64-apple-tvos"
+# target = "aarch64-apple-tvos"
 # target = ["x86_64-unknown-linux-musl"]
 # target = ["x86_64-unknown-linux-gnu"]
 # target = ["aarch64-linux-android"]
