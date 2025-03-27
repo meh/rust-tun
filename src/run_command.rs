@@ -19,7 +19,7 @@ pub fn run_command(command: &str, args: &[&str]) -> std::io::Result<Vec<u8>> {
         });
         let info = format!("Run command: \"{full_cmd}\" failed with {err}");
         log::error!("{}", info);
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, info));
+        return Err(std::io::Error::other(info));
     }
     Ok(out.stdout)
 }

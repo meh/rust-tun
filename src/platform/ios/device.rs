@@ -133,7 +133,8 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        self.address.ok_or_else(|| Error::String("no address".to_string()))
+        self.address
+            .ok_or_else(|| Error::String("no address".to_string()))
     }
 
     fn set_address(&mut self, _value: IpAddr) -> Result<()> {
@@ -157,7 +158,8 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        self.netmask.ok_or_else(|| Error::String("no netmask".to_string()))
+        self.netmask
+            .ok_or_else(|| Error::String("no netmask".to_string()))
     }
 
     fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {

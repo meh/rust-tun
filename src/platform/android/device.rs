@@ -13,13 +13,13 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 #![allow(unused_variables)]
 
-use std::io::{Read, Write};
-use std::net::IpAddr;
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
 use crate::platform::posix::{self, Fd, Tun};
+use std::io::{Read, Write};
+use std::net::IpAddr;
+use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 /// A TUN device for Android.
 pub struct Device {
