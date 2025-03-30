@@ -85,6 +85,29 @@ jobs:
       if: ${{ failure() }}
       run: echo "iOS build job failed" && false
 
+  build_n_test_tvos:
+    strategy:
+      matrix:
+        target: [aarch64-apple-tvos, aarch64-apple-tvos-sim, x86_64-apple-tvos]
+      fail-fast: false
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: clippy, rust-src
+    - name: clippy
+      if: ${{ !cancelled() }}
+      run: cargo +nightly clippy -Zbuild-std --target ${{matrix.target}} --all-features --features="async tokio/rt-multi-thread" -- -D warnings
+    - name: Build
+      if: ${{ !cancelled() }}
+      run: |
+        cargo +nightly build -Zbuild-std --verbose --target ${{matrix.target}} --all-features --features="async tokio/rt-multi-thread"
+    - name: Abort on error
+      if: ${{ failure() }}
+      run: echo "tvOS build job failed" && false
+
   build_n_test_openharmony:
     strategy:
       matrix:

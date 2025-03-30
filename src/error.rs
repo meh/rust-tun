@@ -80,7 +80,7 @@ impl From<Error> for std::io::Error {
     fn from(value: Error) -> Self {
         match value {
             Error::Io(err) => err,
-            _ => std::io::Error::new(std::io::ErrorKind::Other, value),
+            _ => std::io::Error::other(value),
         }
     }
 }
