@@ -114,18 +114,15 @@ impl Write for Device {
 
 impl AbstractDevice for Device {
     fn tun_index(&self) -> Result<i32> {
-        Err(Error::String("no tun_index".to_string()))
+        Err("no tun_index".into())
     }
 
     fn tun_name(&self) -> Result<String> {
-        match self.tun_name {
-            Some(ref name) => Ok(name.clone()),
-            None => Ok("".to_string()),
-        }
+        Ok(self.tun_name.clone().unwrap_or("".to_string()))
     }
 
     fn set_tun_name(&mut self, value: &str) -> Result<()> {
-        Err(Error::String("set_tun_name".to_string()))
+        Err("set_tun_name".into())
     }
 
     fn enabled(&mut self, value: bool) -> Result<()> {
@@ -133,8 +130,7 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        self.address
-            .ok_or_else(|| Error::String("no address".to_string()))
+        self.address.ok_or("no address".into())
     }
 
     fn set_address(&mut self, _value: IpAddr) -> Result<()> {
@@ -142,7 +138,7 @@ impl AbstractDevice for Device {
     }
 
     fn destination(&self) -> Result<IpAddr> {
-        Err(Error::String("no destination".to_string()))
+        Err("no destination".into())
     }
 
     fn set_destination(&mut self, _value: IpAddr) -> Result<()> {
@@ -150,7 +146,7 @@ impl AbstractDevice for Device {
     }
 
     fn broadcast(&self) -> Result<IpAddr> {
-        Err(Error::String("no broadcast".to_string()))
+        Err("no broadcast".into())
     }
 
     fn set_broadcast(&mut self, _value: IpAddr) -> Result<()> {
@@ -158,8 +154,7 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        self.netmask
-            .ok_or_else(|| Error::String("no netmask".to_string()))
+        self.netmask.ok_or("no netmask".into())
     }
 
     fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
