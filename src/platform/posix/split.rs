@@ -28,7 +28,7 @@ pub(crate) fn is_ipv6(buf: &[u8]) -> std::io::Result<bool> {
     match buf[0] >> 4 {
         4 => Ok(false),
         6 => Ok(true),
-        p => Err(Error::new(InvalidData, format!("IP version {}", p))),
+        p => Err(Error::new(InvalidData, format!("IP version {p}"))),
     }
 }
 
