@@ -56,8 +56,7 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
         loop {
             let size = reader.read(&mut buf)?;
             let pkt = &buf[..size];
-            use std::io::{Error, ErrorKind::Other};
-            tx.send(pkt.to_vec()).map_err(|e| Error::new(Other, e))?;
+            tx.send(pkt.to_vec()).map_err(std::io::Error::other)?;
         }
         #[allow(unreachable_code)]
         Ok::<(), std::io::Error>(())
