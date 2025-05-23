@@ -45,6 +45,10 @@ pub trait AbstractDevice: Read + Write {
             self.enabled(enabled)?;
         }
 
+        if let Some(routes) = config.routes.as_ref() {
+            self.set_routes(routes)?;
+        }
+
         Ok(())
     }
 
@@ -91,6 +95,9 @@ pub trait AbstractDevice: Read + Write {
     ///
     /// [Note: This setting has no effect on the Windows platform due to the mtu of wintun is always 65535. --end note]
     fn set_mtu(&mut self, value: u16) -> Result<()>;
+
+    /// Set routes
+    fn set_routes(&mut self, routes: &[crate::route::RouteEntry]) -> Result<()>;
 
     /// Return whether the underlying tun device on the platform has packet information
     ///
