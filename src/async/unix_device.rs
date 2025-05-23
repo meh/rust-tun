@@ -16,15 +16,15 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 use std::io::{IoSlice, Read, Write};
-use tokio::io::unix::AsyncFd;
 use tokio::io::Interest;
+use tokio::io::unix::AsyncFd;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::Framed;
 
-use super::TunPacketCodec;
+use crate::r#async::TunPacketCodec;
 use crate::device::AbstractDevice;
-use crate::platform::posix::{Reader, Writer};
 use crate::platform::Device;
+use crate::platform::posix::{Reader, Writer};
 
 /// An async TUN device wrapper around a TUN device.
 pub struct AsyncDevice {
@@ -63,6 +63,12 @@ impl AsyncDevice {
         // associate mtu with the capacity of ReadBuf
         Framed::with_capacity(self, codec, mtu as usize)
     }
+
+    /// Split the device into a reader and writer
+    #[deprecated(
+        since = "0.7.11",
+        note = "After testing, the split function is not working as expected via #108. So use into_framed() instead"
+    )]
     pub fn split(self) -> std::io::Result<(DeviceWriter, DeviceReader)> {
         let device = self.inner.into_inner();
         let (reader, writer) = device.split();

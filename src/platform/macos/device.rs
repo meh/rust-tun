@@ -19,17 +19,16 @@ use crate::{
     error::{Error, Result},
     platform::{
         macos::sys::*,
-        posix::{self, ipaddr_to_sockaddr, sockaddr_union, Fd},
+        posix::{self, Fd, ipaddr_to_sockaddr, sockaddr_union},
     },
-    route::RouteEntry,
     run_command::run_command,
 };
 
 const OVERWRITE_SIZE: usize = std::mem::size_of::<libc::__c_anonymous_ifr_ifru>();
 
 use libc::{
-    self, c_char, c_short, c_uint, c_void, sockaddr, socklen_t, AF_INET, AF_SYSTEM, AF_SYS_CONTROL,
-    IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL, UTUN_OPT_IFNAME,
+    self, AF_INET, AF_SYS_CONTROL, AF_SYSTEM, IFF_RUNNING, IFF_UP, IFNAMSIZ, PF_SYSTEM, SOCK_DGRAM,
+    SYSPROTO_CONTROL, UTUN_OPT_IFNAME, c_char, c_short, c_uint, c_void, sockaddr, socklen_t,
 };
 use std::{
     ffi::CStr,
@@ -50,7 +49,7 @@ struct Route {
 /// A TUN device using the TUN macOS driver.
 pub struct Device {
     tun_name: Option<String>,
-    tun: posix::Tun,
+    pub(crate) tun: posix::Tun,
     ctl: Option<posix::Fd>,
     route: Option<Route>,
 }
@@ -173,6 +172,7 @@ impl Device {
             config
                 .netmask
                 .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0))),
+            config.platform_config.enable_routing,
         )?;
 
         Ok(device)
@@ -182,18 +182,26 @@ impl Device {
     /// # Safety
     unsafe fn request(&self) -> Result<libc::ifreq> {
         let tun_name = self.tun_name.as_ref().ok_or(Error::InvalidConfig)?;
-        let mut req: libc::ifreq = mem::zeroed();
-        ptr::copy_nonoverlapping(
-            tun_name.as_ptr() as *const c_char,
-            req.ifr_name.as_mut_ptr(),
-            tun_name.len(),
-        );
+        let mut req: libc::ifreq = unsafe { mem::zeroed() };
+        unsafe {
+            ptr::copy_nonoverlapping(
+                tun_name.as_ptr() as *const c_char,
+                req.ifr_name.as_mut_ptr(),
+                tun_name.len(),
+            )
+        };
 
         Ok(req)
     }
 
     /// Set the IPv4 alias of the device.
-    fn set_alias(&mut self, addr: IpAddr, broadaddr: IpAddr, mask: IpAddr) -> Result<()> {
+    fn set_alias(
+        &mut self,
+        addr: IpAddr,
+        broadaddr: IpAddr,
+        mask: IpAddr,
+        enable_routing: bool,
+    ) -> Result<()> {
         let IpAddr::V4(addr) = addr else {
             unimplemented!("do not support IPv6 yet")
         };
@@ -220,13 +228,15 @@ impl Device {
             if let Err(err) = siocaifaddr(ctl.as_raw_fd(), &req) {
                 return Err(std::io::Error::from(err).into());
             }
-            let route = Route {
-                addr,
-                netmask: mask,
-                dest: broadaddr,
-            };
-            if let Err(e) = self.set_route(route) {
-                log::warn!("{e:?}");
+            if enable_routing {
+                let route = Route {
+                    addr,
+                    netmask: mask,
+                    dest: broadaddr,
+                };
+                if let Err(e) = self.set_route(route) {
+                    log::warn!("{e:?}");
+                }
             }
             Ok(())
         }
@@ -495,7 +505,7 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+    fn set_routes(&mut self, _routes: &[crate::route::RouteEntry]) -> Result<()> {
         unimplemented!("macos routes coming soon...");
     }
 

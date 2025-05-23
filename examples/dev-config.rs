@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use packet::{builder::Builder, icmp, ip, Packet};
+use packet::{Packet, builder::Builder, icmp, ip};
 use std::io::{Read, Write};
 use std::{net::Ipv4Addr, sync::mpsc::Receiver};
 use tun::{AbstractDevice, BoxError};

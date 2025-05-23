@@ -18,7 +18,6 @@ use crate::{
     device::AbstractDevice,
     error::{Error, Result},
     platform::posix::{self, Fd, Tun},
-    route::RouteEntry,
 };
 use std::{
     io::{Read, Write},
@@ -28,7 +27,10 @@ use std::{
 
 /// A TUN device for iOS.
 pub struct Device {
-    tun: Tun,
+    pub(crate) tun: Tun,
+    pub(crate) address: Option<IpAddr>,
+    pub(crate) netmask: Option<IpAddr>,
+    pub(crate) tun_name: Option<String>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -56,6 +58,9 @@ impl Device {
             let fd = Fd::new(fd, close_fd_on_drop).map_err(|_| std::io::Error::last_os_error())?;
             Device {
                 tun: Tun::new(fd, mtu, config.platform_config.packet_information),
+                address: config.address,
+                netmask: config.netmask,
+                tun_name: config.tun_name.clone(),
             }
         };
 
@@ -109,15 +114,15 @@ impl Write for Device {
 
 impl AbstractDevice for Device {
     fn tun_index(&self) -> Result<i32> {
-        Err(Error::NotImplemented)
+        Err("no tun_index".into())
     }
 
     fn tun_name(&self) -> Result<String> {
-        Ok("".to_string())
+        Ok(self.tun_name.clone().unwrap_or("".to_string()))
     }
 
     fn set_tun_name(&mut self, value: &str) -> Result<()> {
-        Err(Error::NotImplemented)
+        Err("set_tun_name".into())
     }
 
     fn enabled(&mut self, value: bool) -> Result<()> {
@@ -125,7 +130,7 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.address.ok_or("no address".into())
     }
 
     fn set_address(&mut self, _value: IpAddr) -> Result<()> {
@@ -133,7 +138,7 @@ impl AbstractDevice for Device {
     }
 
     fn destination(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        Err("no destination".into())
     }
 
     fn set_destination(&mut self, _value: IpAddr) -> Result<()> {
@@ -141,7 +146,7 @@ impl AbstractDevice for Device {
     }
 
     fn broadcast(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        Err("no broadcast".into())
     }
 
     fn set_broadcast(&mut self, _value: IpAddr) -> Result<()> {
@@ -149,7 +154,7 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.netmask.ok_or("no netmask".into())
     }
 
     fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
@@ -167,7 +172,7 @@ impl AbstractDevice for Device {
         Ok(())
     }
 
-    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+    fn set_routes(&mut self, _routes: &[crate::route::RouteEntry]) -> Result<()> {
         unimplemented!("ios routes coming soon...");
     }
 

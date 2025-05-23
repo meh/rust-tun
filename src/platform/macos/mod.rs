@@ -26,12 +26,14 @@ use crate::error::Result;
 #[derive(Copy, Clone, Debug)]
 pub struct PlatformConfig {
     pub(crate) packet_information: bool,
+    pub(crate) enable_routing: bool,
 }
 
 impl Default for PlatformConfig {
     fn default() -> Self {
         PlatformConfig {
             packet_information: true, // default is true in macOS
+            enable_routing: true,
         }
     }
 }
@@ -54,6 +56,12 @@ impl PlatformConfig {
     ///     and write packet via `[NEPacketTunnelProvider::packetFlow writePackets:withProtocols:]`, there is no PI.
     pub fn packet_information(&mut self, value: bool) -> &mut Self {
         self.packet_information = value;
+        self
+    }
+
+    /// Do set or not setup route for utun interface automatically
+    pub fn enable_routing(&mut self, value: bool) -> &mut Self {
+        self.enable_routing = value;
         self
     }
 }

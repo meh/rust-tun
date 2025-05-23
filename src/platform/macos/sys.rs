@@ -14,7 +14,7 @@
 
 //! Bindings to internal macOS stuff.
 
-use libc::{c_char, c_uint, ifreq, sockaddr, IFNAMSIZ};
+use libc::{IFNAMSIZ, c_char, c_uint, ifreq, sockaddr};
 use nix::{ioctl_readwrite, ioctl_write_ptr};
 
 pub const UTUN_CONTROL_NAME: &str = "com.apple.net.utun_control";

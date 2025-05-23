@@ -64,6 +64,7 @@ Platforms
 - [x] FreeBSD
 - [x] Android
 - [x] iOS
+- [x] tvOS
 - [x] OpenHarmony
 
 
@@ -154,10 +155,6 @@ async fn setup(fd: i32) {
     rt.block_on(async {
         let mut cfg = tun::Configuration::default();
         cfg.raw_fd(fd);
-        #[cfg(target_os = "ios")]
-        cfg.platform_config(|p_cfg| {
-            p_cfg.packet_information(true);
-        });
         let mut tun = tun::create_as_async(&cfg).unwrap();
         let mut framed = tun.into_framed();
         while let Some(packet) = framed.next().await {

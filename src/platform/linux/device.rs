@@ -13,8 +13,8 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use libc::{
-    self, c_char, c_short, ifreq, AF_INET, IFF_MULTI_QUEUE, IFF_NAPI, IFF_NO_PI, IFF_RUNNING,
-    IFF_TAP, IFF_TUN, IFF_UP, IFF_VNET_HDR, IFNAMSIZ, O_RDWR, SOCK_DGRAM,
+    self, AF_INET, IFF_MULTI_QUEUE, IFF_NAPI, IFF_NO_PI, IFF_RUNNING, IFF_TAP, IFF_TUN, IFF_UP,
+    IFF_VNET_HDR, IFNAMSIZ, O_RDWR, SOCK_DGRAM, c_char, c_short, ifreq,
 };
 use std::{
     ffi::{CStr, CString},
@@ -30,8 +30,7 @@ use crate::{
     device::AbstractDevice,
     error::{Error, Result},
     platform::linux::sys::*,
-    platform::posix::{self, ipaddr_to_sockaddr, sockaddr_union, Fd, Tun},
-    route::RouteEntry,
+    platform::posix::{self, Fd, Tun, ipaddr_to_sockaddr, sockaddr_union},
 };
 
 const OVERWRITE_SIZE: usize = std::mem::size_of::<libc::__c_anonymous_ifr_ifru>();
@@ -39,7 +38,7 @@ const OVERWRITE_SIZE: usize = std::mem::size_of::<libc::__c_anonymous_ifr_ifru>(
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
     tun_name: String,
-    tun: Tun,
+    pub(crate) tun: Tun,
     ctl: Fd,
 }
 
@@ -151,12 +150,14 @@ impl Device {
 
     /// Prepare a new request.
     unsafe fn request(&self) -> ifreq {
-        let mut req: ifreq = mem::zeroed();
-        ptr::copy_nonoverlapping(
-            self.tun_name.as_ptr() as *const c_char,
-            req.ifr_name.as_mut_ptr(),
-            self.tun_name.len(),
-        );
+        let mut req: ifreq = unsafe { mem::zeroed() };
+        unsafe {
+            ptr::copy_nonoverlapping(
+                self.tun_name.as_ptr() as *const c_char,
+                req.ifr_name.as_mut_ptr(),
+                self.tun_name.len(),
+            )
+        };
 
         req
     }
@@ -412,7 +413,7 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+    fn set_routes(&mut self, routes: &[crate::route::RouteEntry]) -> Result<()> {
         for r in routes.iter() {
             if let Err(err) = unsafe { siocaddrt(self.ctl.as_raw_fd(), &libc::rtentry::from(r)) } {
                 return Err(std::io::Error::from(err).into());

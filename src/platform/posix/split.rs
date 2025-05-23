@@ -12,8 +12,8 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use crate::platform::posix::Fd;
 use crate::PACKET_INFORMATION_LENGTH as PIL;
+use crate::platform::posix::Fd;
 use bytes::BufMut;
 use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
@@ -28,7 +28,7 @@ pub(crate) fn is_ipv6(buf: &[u8]) -> std::io::Result<bool> {
     match buf[0] >> 4 {
         4 => Ok(false),
         6 => Ok(true),
-        p => Err(Error::new(InvalidData, format!("IP version {}", p))),
+        p => Err(Error::new(InvalidData, format!("IP version {p}"))),
     }
 }
 
@@ -41,9 +41,9 @@ pub(crate) fn generate_packet_information(
     #[cfg(any(target_os = "linux", target_os = "android"))]
     const TUN_PROTO_IP4: [u8; PIL] = (libc::ETH_P_IP as u32).to_be_bytes();
 
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
     const TUN_PROTO_IP6: [u8; PIL] = (libc::AF_INET6 as u32).to_be_bytes();
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
     const TUN_PROTO_IP4: [u8; PIL] = (libc::AF_INET as u32).to_be_bytes();
 
     // FIXME: Currently, the FreeBSD we test (FreeBSD-14.0-RELEASE) seems to have no PI. Here just a dummy.

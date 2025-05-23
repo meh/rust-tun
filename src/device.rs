@@ -14,7 +14,6 @@
 
 use crate::configuration::Configuration;
 use crate::error::Result;
-use crate::route::RouteEntry;
 use std::io::{Read, Write};
 use std::net::IpAddr;
 
@@ -92,12 +91,13 @@ pub trait AbstractDevice: Read + Write {
     /// Get the MTU.
     fn mtu(&self) -> Result<u16>;
 
-    /// Set routes
-    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()>;
-
+    /// Set the MTU.
     ///
     /// [Note: This setting has no effect on the Windows platform due to the mtu of wintun is always 65535. --end note]
     fn set_mtu(&mut self, value: u16) -> Result<()>;
+
+    /// Set routes
+    fn set_routes(&mut self, routes: &[crate::route::RouteEntry]) -> Result<()>;
 
     /// Return whether the underlying tun device on the platform has packet information
     ///

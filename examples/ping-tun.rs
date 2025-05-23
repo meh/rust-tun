@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use futures::{SinkExt, StreamExt};
-use packet::{builder::Builder, icmp, ip, Packet};
+use packet::{Packet, builder::Builder, icmp, ip};
 use tokio::sync::mpsc::Receiver;
 use tun::{self, BoxError, Configuration};
 

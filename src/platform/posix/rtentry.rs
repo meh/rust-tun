@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use crate::posix::sockaddr::sockaddr_union;
-use crate::route::{RouteEntry, RTF_GATEWAY, RTF_UP};
+use crate::route::{RTF_GATEWAY, RTF_UP, RouteEntry};
 
 impl From<&RouteEntry> for libc::rtentry {
     fn from(value: &RouteEntry) -> libc::rtentry {
@@ -27,7 +27,19 @@ impl From<&RouteEntry> for libc::rtentry {
 
         let rt_genmask = value.rt_genmask().expect("Route subnet mask is required.");
 
-        let rt_dev: *mut i8 = std::ptr::null_mut();
+        let rt_dev: *mut libc::c_char = std::ptr::null_mut();
+
+        let rt_pad4 = {
+            cfg_if::cfg_if! {
+                if #[cfg(all(target_arch = "arm", target_env = "ohos"))] {
+                    [value.rt_pad4().unwrap_or(0)]
+                } else if #[cfg(target_pointer_width = "64")] {
+                    value.rt_pad4().unwrap_or([0, 0, 0])
+                } else {
+                    value.rt_pad4().unwrap_or(0 as libc::c_short)
+                }
+            }
+        };
 
         libc::rtentry {
             rt_pad1: value.rt_pad1().unwrap_or(0),
@@ -39,7 +51,7 @@ impl From<&RouteEntry> for libc::rtentry {
             rt_pad3: value.rt_pad3().unwrap_or(0),
             rt_tos: value.rt_tos().unwrap_or(0),
             rt_class: value.rt_class().unwrap_or(0),
-            rt_pad4: value.rt_pad4().unwrap_or([0, 0, 0]),
+            rt_pad4,
             rt_metric: value.rt_metric().unwrap_or(0),
             rt_dev: value.rt_dev().unwrap_or(rt_dev),
             rt_mtu: value.rt_mtu().unwrap_or(1500),

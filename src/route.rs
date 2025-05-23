@@ -28,20 +28,23 @@ pub const RTF_REJECT: u16 = 0x0200;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct RouteEntry {
-    rt_pad1: Option<u64>,
+    rt_pad1: Option<libc::c_ulong>,
     rt_dst: Option<IpAddr>,
     rt_gateway: Option<IpAddr>,
     rt_genmask: Option<IpAddr>,
     rt_flags: Option<u16>,
     rt_pad2: Option<i16>,
-    rt_pad3: Option<u64>,
+    rt_pad3: Option<libc::c_ulong>,
     rt_tos: Option<u8>,
     rt_class: Option<u8>,
-    rt_pad4: Option<[i16; 3]>,
+    #[cfg(target_pointer_width = "64")]
+    rt_pad4: Option<[libc::c_short; 3]>,
+    #[cfg(not(target_pointer_width = "64"))]
+    rt_pad4: Option<libc::c_short>,
     rt_metric: Option<i16>,
-    rt_dev: Option<*mut i8>,
-    rt_mtu: Option<u64>,
-    rt_window: Option<u64>,
+    rt_dev: Option<*mut libc::c_char>,
+    rt_mtu: Option<libc::c_ulong>,
+    rt_window: Option<libc::c_ulong>,
     rt_irtt: Option<u16>,
 }
 
@@ -50,12 +53,12 @@ impl RouteEntry {
         RouteEntry::default()
     }
 
-    pub fn set_rt_pad1(mut self, value: u64) -> RouteEntry {
+    pub fn set_rt_pad1(mut self, value: libc::c_ulong) -> RouteEntry {
         self.rt_pad1 = Some(value);
         self
     }
 
-    pub fn rt_pad1(&self) -> Option<u64> {
+    pub fn rt_pad1(&self) -> Option<libc::c_ulong> {
         self.rt_pad1
     }
 
@@ -104,12 +107,12 @@ impl RouteEntry {
         self.rt_pad2
     }
 
-    pub fn set_rt_pad3(mut self, value: u64) -> RouteEntry {
+    pub fn set_rt_pad3(mut self, value: libc::c_ulong) -> RouteEntry {
         self.rt_pad3 = Some(value);
         self
     }
 
-    pub fn rt_pad3(&self) -> Option<u64> {
+    pub fn rt_pad3(&self) -> Option<libc::c_ulong> {
         self.rt_pad3
     }
 
@@ -131,12 +134,25 @@ impl RouteEntry {
         self.rt_class
     }
 
-    pub fn set_rt_pad4(mut self, value: [i16; 3]) -> RouteEntry {
+    #[cfg(target_pointer_width = "64")]
+    pub fn set_rt_pad4(mut self, value: [libc::c_short; 3]) -> RouteEntry {
         self.rt_pad4 = Some(value);
         self
     }
 
-    pub fn rt_pad4(&self) -> Option<[i16; 3]> {
+    #[cfg(target_pointer_width = "64")]
+    pub fn rt_pad4(&self) -> Option<[libc::c_short; 3]> {
+        self.rt_pad4
+    }
+
+    #[cfg(not(target_pointer_width = "64"))]
+    pub fn set_rt_pad4(mut self, value: libc::c_short) -> RouteEntry {
+        self.rt_pad4 = Some(value);
+        self
+    }
+
+    #[cfg(not(target_pointer_width = "64"))]
+    pub fn rt_pad4(&self) -> Option<libc::c_short> {
         self.rt_pad4
     }
 
@@ -149,30 +165,30 @@ impl RouteEntry {
         self.rt_metric
     }
 
-    pub fn set_rt_dev(mut self, value: *mut i8) -> RouteEntry {
+    pub fn set_rt_dev(mut self, value: *mut libc::c_char) -> RouteEntry {
         self.rt_dev = Some(value);
         self
     }
 
-    pub fn rt_dev(&self) -> Option<*mut i8> {
+    pub fn rt_dev(&self) -> Option<*mut libc::c_char> {
         self.rt_dev
     }
 
-    pub fn set_rt_mtu(mut self, value: u64) -> RouteEntry {
+    pub fn set_rt_mtu(mut self, value: libc::c_ulong) -> RouteEntry {
         self.rt_mtu = Some(value);
         self
     }
 
-    pub fn rt_mtu(&self) -> Option<u64> {
+    pub fn rt_mtu(&self) -> Option<libc::c_ulong> {
         self.rt_mtu
     }
 
-    pub fn set_rt_window(mut self, value: u64) -> RouteEntry {
+    pub fn set_rt_window(mut self, value: libc::c_ulong) -> RouteEntry {
         self.rt_window = Some(value);
         self
     }
 
-    pub fn rt_window(&self) -> Option<u64> {
+    pub fn rt_window(&self) -> Option<libc::c_ulong> {
         self.rt_window
     }
 

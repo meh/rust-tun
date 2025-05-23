@@ -14,7 +14,7 @@
 
 use bytes::BytesMut;
 use futures::StreamExt;
-use packet::{ip::Packet, Error};
+use packet::{Error, ip::Packet};
 use tokio::sync::mpsc::Receiver;
 use tokio_util::codec::{Decoder, FramedRead};
 use tun::BoxError;

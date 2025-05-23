@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use libc::{
-    self, c_char, c_short, ifreq, AF_INET, IFF_RUNNING, IFF_UP, IFNAMSIZ, O_RDWR, SOCK_DGRAM,
+    self, AF_INET, IFF_RUNNING, IFF_UP, IFNAMSIZ, O_RDWR, SOCK_DGRAM, c_char, c_short, ifreq,
 };
 use std::{
     // ffi::{CStr, CString},
@@ -29,8 +29,7 @@ use crate::{
     device::AbstractDevice,
     error::{Error, Result},
     platform::freebsd::sys::*,
-    platform::posix::{self, sockaddr_union, Fd, Tun},
-    route::RouteEntry,
+    platform::posix::{self, Fd, Tun, sockaddr_union},
     run_command::run_command,
 };
 
@@ -44,7 +43,7 @@ struct Route {
 /// A TUN device using the TUN/TAP Linux driver.
 pub struct Device {
     tun_name: String,
-    tun: Tun,
+    pub(crate) tun: Tun,
     ctl: Fd,
     route: Option<Route>,
 }
@@ -186,12 +185,14 @@ impl Device {
 
     /// Prepare a new request.
     unsafe fn request(&self) -> ifreq {
-        let mut req: ifreq = mem::zeroed();
-        ptr::copy_nonoverlapping(
-            self.tun_name.as_ptr() as *const c_char,
-            req.ifr_name.as_mut_ptr(),
-            self.tun_name.len(),
-        );
+        let mut req: ifreq = unsafe { mem::zeroed() };
+        unsafe {
+            ptr::copy_nonoverlapping(
+                self.tun_name.as_ptr() as *const c_char,
+                req.ifr_name.as_mut_ptr(),
+                self.tun_name.len(),
+            )
+        };
 
         req
     }
@@ -295,10 +296,10 @@ impl AbstractDevice for Device {
             }
             let mut req = self.request();
             let tun_name = CString::new(value)?;
-            let mut tun_name: Vec<i8> = tun_name
+            let mut tun_name: Vec<c_char> = tun_name
                 .into_bytes_with_nul()
                 .into_iter()
-                .map(|c| c as i8)
+                .map(|c| c as c_char)
                 .collect::<_>();
             req.ifr_ifru.ifru_data = tun_name.as_mut_ptr();
             if let Err(err) = siocsifname(self.ctl.as_raw_fd(), &req) {
@@ -453,8 +454,8 @@ impl AbstractDevice for Device {
         }
     }
 
-    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
-        unimplemented!("android routes coming soon...");
+    fn set_routes(&mut self, _routes: &[crate::route::RouteEntry]) -> Result<()> {
+        unimplemented!("freebsd routes coming soon...");
     }
 
     fn packet_information(&self) -> bool {

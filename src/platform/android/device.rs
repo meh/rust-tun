@@ -13,19 +13,19 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 #![allow(unused_variables)]
 
-use std::io::{Read, Write};
-use std::net::IpAddr;
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
 use crate::platform::posix::{self, Fd, Tun};
-use crate::route::RouteEntry;
+use std::io::{Read, Write};
+use std::net::IpAddr;
+use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 /// A TUN device for Android.
 pub struct Device {
-    tun: Tun,
+    pub(crate) tun: Tun,
+    pub(crate) address: Option<IpAddr>,
+    pub(crate) netmask: Option<IpAddr>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -54,6 +54,8 @@ impl Device {
 
             Device {
                 tun: Tun::new(tun, mtu, false),
+                address: config.address,
+                netmask: config.netmask,
             }
         };
 
@@ -115,7 +117,7 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.address.ok_or(Error::NotImplemented)
     }
 
     fn set_address(&mut self, _value: IpAddr) -> Result<()> {
@@ -139,7 +141,7 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        self.netmask.ok_or(Error::NotImplemented)
     }
 
     fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
@@ -157,7 +159,7 @@ impl AbstractDevice for Device {
         Ok(())
     }
 
-    fn set_routes(&mut self, routes: &[RouteEntry]) -> Result<()> {
+    fn set_routes(&mut self, _routes: &[crate::route::RouteEntry]) -> Result<()> {
         unimplemented!("android routes coming soon...");
     }
 
