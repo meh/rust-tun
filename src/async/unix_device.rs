@@ -24,7 +24,6 @@ use tokio_util::codec::Framed;
 use crate::r#async::TunPacketCodec;
 use crate::device::AbstractDevice;
 use crate::platform::Device;
-use crate::platform::posix::{Reader, Writer};
 
 /// An async TUN device wrapper around a TUN device.
 pub struct AsyncDevice {
@@ -65,13 +64,10 @@ impl AsyncDevice {
     }
 
     /// Split the device into a reader and writer
-    #[deprecated(
-        since = "0.7.11",
-        note = "After testing, the split function is not working as expected via #108. So use into_framed() instead"
-    )]
     pub fn split(self) -> std::io::Result<(DeviceWriter, DeviceReader)> {
         let device = self.inner.into_inner();
-        let (reader, writer) = device.split();
+        let reader = std::sync::Arc::new(AsyncFd::new(device)?);
+        let writer = reader.clone();
         Ok((DeviceWriter::new(writer)?, DeviceReader::new(reader)?))
     }
 
@@ -159,25 +155,23 @@ impl AsyncWrite for AsyncDevice {
     }
 }
 pub struct DeviceReader {
-    inner: AsyncFd<Reader>,
+    inner: std::sync::Arc<AsyncFd<Device>>,
 }
 impl DeviceReader {
-    fn new(reader: Reader) -> std::io::Result<Self> {
-        Ok(Self {
-            inner: AsyncFd::new(reader)?,
-        })
+    fn new(inner: std::sync::Arc<AsyncFd<Device>>) -> std::io::Result<Self> {
+        Ok(Self { inner })
     }
 }
 impl AsyncRead for DeviceReader {
     fn poll_read(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf,
     ) -> Poll<std::io::Result<()>> {
         loop {
-            let mut guard = ready!(self.inner.poll_read_ready_mut(cx))?;
+            let mut guard = ready!(self.inner.poll_read_ready(cx))?;
             let rbuf = buf.initialize_unfilled();
-            match guard.try_io(|inner| inner.get_mut().read(rbuf)) {
+            match guard.try_io(|inner| inner.get_ref().recv(rbuf)) {
                 Ok(res) => return Poll::Ready(res.map(|n| buf.advance(n))),
                 Err(_wb) => continue,
             }
@@ -186,60 +180,34 @@ impl AsyncRead for DeviceReader {
 }
 
 pub struct DeviceWriter {
-    inner: AsyncFd<Writer>,
+    inner: std::sync::Arc<AsyncFd<Device>>,
 }
 impl DeviceWriter {
-    fn new(writer: Writer) -> std::io::Result<Self> {
-        Ok(Self {
-            inner: AsyncFd::new(writer)?,
-        })
+    fn new(inner: std::sync::Arc<AsyncFd<Device>>) -> std::io::Result<Self> {
+        Ok(Self { inner })
     }
 }
 
 impl AsyncWrite for DeviceWriter {
     fn poll_write(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<std::io::Result<usize>> {
         loop {
-            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
-            match guard.try_io(|inner| inner.get_mut().write(buf)) {
+            let mut guard = ready!(self.inner.poll_write_ready(cx))?;
+            match guard.try_io(|inner| inner.get_ref().send(buf)) {
                 Ok(res) => return Poll::Ready(res),
                 Err(_wb) => continue,
             }
         }
     }
 
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
-        loop {
-            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
-            match guard.try_io(|inner| inner.get_mut().flush()) {
-                Ok(res) => return Poll::Ready(res),
-                Err(_wb) => continue,
-            }
-        }
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        Poll::Ready(Ok(()))
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         Poll::Ready(Ok(()))
-    }
-
-    fn poll_write_vectored(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        bufs: &[IoSlice<'_>],
-    ) -> Poll<std::io::Result<usize>> {
-        loop {
-            let mut guard = ready!(self.inner.poll_write_ready_mut(cx))?;
-            match guard.try_io(|inner| inner.get_mut().write_vectored(bufs)) {
-                Ok(res) => return Poll::Ready(res),
-                Err(_wb) => continue,
-            }
-        }
-    }
-
-    fn is_write_vectored(&self) -> bool {
-        true
     }
 }
