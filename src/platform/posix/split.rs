@@ -169,7 +169,7 @@ impl Writer {
             if let Some(header) = generate_packet_information(true, ipv6) {
                 (&mut local_buf[..self.offset]).put_slice(header.as_ref());
                 (&mut local_buf[self.offset..in_buf_len]).put_slice(in_buf);
-                local_buf
+                &local_buf[..in_buf_len]
             } else {
                 in_buf
             }
