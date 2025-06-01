@@ -73,10 +73,7 @@ async fn main_entry(cancel_token: tokio_util::sync::CancellationToken) -> Result
         loop {
             let pkt = tokio::select! {
                 _ = t2_token.cancelled() => break,
-                opt = rx.recv() => match opt {
-                    Some(pkt) => pkt,
-                    None => return Err(packet::Error::Io(std::io::Error::other("Channel closed"))),
-                },
+                opt = rx.recv() => opt.ok_or(packet::Error::Io(std::io::Error::other("Channel closed")))?,
             };
             match ip::Packet::new(pkt.as_slice()) {
                 Ok(ip::Packet::V4(pkt)) => {
