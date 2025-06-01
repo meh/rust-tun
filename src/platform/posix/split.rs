@@ -101,6 +101,10 @@ impl Reader {
             &mut *in_buf
         };
         let amount = self.fd.read(either_buf)?;
+        if amount < self.offset {
+            let e = format!("Read amount {amount} is less than offset {}", self.offset);
+            return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, e));
+        }
         if self.offset != 0 {
             in_buf.put_slice(&local_buf[self.offset..amount]);
         }
@@ -120,6 +124,10 @@ impl Read for Reader {
             &mut *buf
         };
         let amount = self.fd.read(either_buf)?;
+        if amount < self.offset {
+            let e = format!("Read amount {amount} is less than offset {}", self.offset);
+            return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, e));
+        }
         if self.offset != 0 {
             buf.put_slice(&self.buf[self.offset..amount]);
         }
@@ -177,6 +185,10 @@ impl Writer {
             in_buf
         };
         let amount = self.fd.write(either_buf)?;
+        if amount < self.offset {
+            let e = format!("write returned {amount} less than offset {}", self.offset);
+            return Err(std::io::Error::other(e));
+        }
         Ok(amount - self.offset)
     }
 }
@@ -200,6 +212,10 @@ impl Write for Writer {
             buf
         };
         let amount = self.fd.write(buf)?;
+        if amount < self.offset {
+            let e = format!("write returned {amount} less than offset {}", self.offset);
+            return Err(std::io::Error::other(e));
+        }
         Ok(amount - self.offset)
     }
 

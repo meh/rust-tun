@@ -12,6 +12,8 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+// You can test this example with command `ping 10.0.3.1`.
+
 use packet::{Packet, builder::Builder, icmp, ip};
 use std::io::{Read, Write};
 use std::sync::mpsc::Receiver;
@@ -36,9 +38,9 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun::Configuration::default();
 
     config
-        .address((10, 0, 0, 9))
+        .address((10, 0, 3, 9))
         .netmask((255, 255, 255, 0))
-        .destination((10, 0, 0, 1))
+        .destination((10, 0, 3, 1))
         .up();
 
     #[cfg(target_os = "linux")]
