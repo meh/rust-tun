@@ -50,9 +50,6 @@ pub(crate) mod ohos;
 #[cfg(target_env = "ohos")]
 pub use self::ohos::{Device, PlatformConfig, create};
 
-#[cfg(unix)]
-pub use crate::platform::posix::Tun;
-
 #[cfg(target_os = "windows")]
 pub(crate) mod windows;
 #[cfg(target_os = "windows")]
