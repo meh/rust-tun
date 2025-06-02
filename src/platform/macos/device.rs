@@ -506,6 +506,10 @@ impl AbstractDevice for Device {
         }
     }
 
+    fn set_routes(&mut self, _routes: &[crate::route::RouteEntry]) -> Result<()> {
+        unimplemented!("macos routes coming soon...");
+    }
+
     fn packet_information(&self) -> bool {
         self.tun.packet_information()
     }

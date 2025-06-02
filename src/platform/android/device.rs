@@ -160,6 +160,10 @@ impl AbstractDevice for Device {
         Ok(())
     }
 
+    fn set_routes(&mut self, _routes: &[crate::route::RouteEntry]) -> Result<()> {
+        unimplemented!("android routes coming soon...");
+    }
+
     fn packet_information(&self) -> bool {
         self.tun.packet_information()
     }
