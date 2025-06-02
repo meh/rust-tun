@@ -34,7 +34,7 @@ impl Fd {
     }
 
     /// Enable non-blocking mode
-    pub fn set_nonblock(&self) -> std::io::Result<()> {
+    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
         match unsafe { fcntl(self.inner, F_SETFL, fcntl(self.inner, F_GETFL) | O_NONBLOCK) } {
             0 => Ok(()),
             _ => Err(std::io::Error::last_os_error()),

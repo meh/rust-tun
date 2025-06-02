@@ -259,7 +259,8 @@ impl Tun {
         }
     }
 
-    pub fn set_nonblock(&self) -> std::io::Result<()> {
+    #[allow(dead_code)]
+    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
         self.reader.fd.set_nonblock()
     }
 
@@ -269,6 +270,7 @@ impl Tun {
         self.writer.set_mtu(value);
     }
 
+    #[allow(dead_code)]
     pub fn mtu(&self) -> u16 {
         self.mtu
     }
