@@ -68,12 +68,12 @@ impl AsyncDevice {
         Ok((self.session_writer, self.session_reader))
     }
 
-    /// Recv a packet from tun device - Not implemented for windows
+    /// Recv a packet from tun device
     pub async fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.session_reader.session.recv(buf).await
     }
 
-    /// Send a packet to tun device - Not implemented for windows
+    /// Send a packet to tun device
     pub async fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
         self.session_writer.session.send(buf).await
     }
