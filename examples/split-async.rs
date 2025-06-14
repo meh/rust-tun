@@ -25,13 +25,13 @@ async fn main() -> Result<(), BoxError> {
     let cancel_token = tokio_util::sync::CancellationToken::new();
     let cancel_token_clone = cancel_token.clone();
 
-    let handle = ctrlc2::set_async_handler(async move {
+    let ctrlc = ctrlc2::AsyncCtrlC::new(move || {
         cancel_token_clone.cancel();
-    })
-    .await;
+        true
+    })?;
 
     main_entry(cancel_token).await?;
-    handle.await?;
+    ctrlc.await?;
     Ok(())
 }
 
