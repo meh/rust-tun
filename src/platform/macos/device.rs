@@ -265,7 +265,7 @@ impl Device {
                 "-n",
                 "delete",
                 "-net",
-                &format!("{}/{}", network, prefix_len),
+                &format!("{network}/{prefix_len}"),
                 &v.dest.to_string(),
             ];
             run_command("route", &args)?;

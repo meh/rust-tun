@@ -91,7 +91,7 @@ impl Device {
 
             let (tun, tun_name) = {
                 if let Some(name) = dev.as_ref() {
-                    let device_path = format!("/dev/{}\0", name);
+                    let device_path = format!("/dev/{name}\0");
                     let fd = libc::open(device_path.as_ptr() as *const _, O_RDWR);
                     let tun = Fd::new(fd, true).map_err(|_| std::io::Error::last_os_error())?;
                     (tun, name.clone())

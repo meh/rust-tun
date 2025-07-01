@@ -36,7 +36,7 @@ impl Decoder for IPPacketCodec {
         Ok(match Packet::no_payload(buf) {
             Ok(pkt) => Some(pkt),
             Err(err) => {
-                println!("error {:?}", err);
+                println!("error {err:?}");
                 None
             }
         })
@@ -92,8 +92,8 @@ async fn main_entry(token: CancellationToken) -> Result<(), BoxError> {
             }
             Some(packet) = stream.next() => {
                 match packet {
-                    Ok(pkt) => println!("pkt: {:#?}", pkt),
-                    Err(err) => panic!("Error: {:?}", err),
+                    Ok(pkt) => println!("pkt: {pkt:#?}"),
+                    Err(err) => panic!("Error: {err:?}"),
                 }
             }
         };

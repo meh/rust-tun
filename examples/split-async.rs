@@ -77,27 +77,27 @@ async fn main_entry(cancel_token: tokio_util::sync::CancellationToken) -> Result
             };
             match ip::Packet::new(pkt.as_slice()) {
                 Ok(ip::Packet::V4(pkt)) => {
-                    if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
-                        if let Ok(icmp) = icmp.echo() {
-                            println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
-                            let reply = ip::v4::Builder::default()
-                                .id(0x42)?
-                                .ttl(64)?
-                                .source(pkt.destination())?
-                                .destination(pkt.source())?
-                                .icmp()?
-                                .echo()?
-                                .reply()?
-                                .identifier(icmp.identifier())?
-                                .sequence(icmp.sequence())?
-                                .payload(icmp.payload())?
-                                .build()?;
-                            writer.write_all(&reply[..]).await?;
-                        }
+                    if let Ok(icmp) = icmp::Packet::new(pkt.payload())
+                        && let Ok(icmp) = icmp.echo()
+                    {
+                        println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                        let reply = ip::v4::Builder::default()
+                            .id(0x42)?
+                            .ttl(64)?
+                            .source(pkt.destination())?
+                            .destination(pkt.source())?
+                            .icmp()?
+                            .echo()?
+                            .reply()?
+                            .identifier(icmp.identifier())?
+                            .sequence(icmp.sequence())?
+                            .payload(icmp.payload())?
+                            .build()?;
+                        writer.write_all(&reply[..]).await?;
                     }
                 }
-                Err(err) => println!("Received an invalid packet: {:?}", err),
-                _ => println!("receive pkt {:?}", pkt),
+                Err(err) => println!("Received an invalid packet: {err:?}"),
+                _ => println!("receive pkt {pkt:?}"),
             }
         }
         Ok::<(), packet::Error>(())

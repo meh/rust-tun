@@ -55,27 +55,27 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
             let pkt = &buf[0..amount];
             match ip::Packet::new(pkt) {
                 Ok(ip::Packet::V4(pkt)) => {
-                    if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
-                        if let Ok(icmp) = icmp.echo() {
-                            println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
-                            let reply = ip::v4::Builder::default()
-                                .id(0x42)?
-                                .ttl(64)?
-                                .source(pkt.destination())?
-                                .destination(pkt.source())?
-                                .icmp()?
-                                .echo()?
-                                .reply()?
-                                .identifier(icmp.identifier())?
-                                .sequence(icmp.sequence())?
-                                .payload(icmp.payload())?
-                                .build()?;
-                            let size = dev.write(&reply[..])?;
-                            println!("write {size} len {}", reply.len());
-                        }
+                    if let Ok(icmp) = icmp::Packet::new(pkt.payload())
+                        && let Ok(icmp) = icmp.echo()
+                    {
+                        println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                        let reply = ip::v4::Builder::default()
+                            .id(0x42)?
+                            .ttl(64)?
+                            .source(pkt.destination())?
+                            .destination(pkt.source())?
+                            .icmp()?
+                            .echo()?
+                            .reply()?
+                            .identifier(icmp.identifier())?
+                            .sequence(icmp.sequence())?
+                            .payload(icmp.payload())?
+                            .build()?;
+                        let size = dev.write(&reply[..])?;
+                        println!("write {size} len {}", reply.len());
                     }
                 }
-                Err(err) => println!("Received an invalid packet: {:?}", err),
+                Err(err) => println!("Received an invalid packet: {err:?}"),
                 _ => {}
             }
         }

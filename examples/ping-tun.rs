@@ -68,26 +68,26 @@ async fn main_entry(token: CancellationToken) -> Result<(), BoxError> {
                 let pkt: Vec<u8> = packet?;
                 match ip::Packet::new(pkt) {
                     Ok(ip::Packet::V4(pkt)) => {
-                        if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
-                            if let Ok(icmp) = icmp.echo() {
-                                println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
-                                let reply = ip::v4::Builder::default()
-                                    .id(0x42)?
-                                    .ttl(64)?
-                                    .source(pkt.destination())?
-                                    .destination(pkt.source())?
-                                    .icmp()?
-                                    .echo()?
-                                    .reply()?
-                                    .identifier(icmp.identifier())?
-                                    .sequence(icmp.sequence())?
-                                    .payload(icmp.payload())?
-                                    .build()?;
-                                framed.send(reply).await?;
-                            }
+                        if let Ok(icmp) = icmp::Packet::new(pkt.payload())
+                            && let Ok(icmp) = icmp.echo()
+                        {
+                            println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                            let reply = ip::v4::Builder::default()
+                                .id(0x42)?
+                                .ttl(64)?
+                                .source(pkt.destination())?
+                                .destination(pkt.source())?
+                                .icmp()?
+                                .echo()?
+                                .reply()?
+                                .identifier(icmp.identifier())?
+                                .sequence(icmp.sequence())?
+                                .payload(icmp.payload())?
+                                .build()?;
+                            framed.send(reply).await?;
                         }
                     }
-                    Err(err) => println!("Received an invalid packet: {:?}", err),
+                    Err(err) => println!("Received an invalid packet: {err:?}"),
                     _ => {}
                 }
             }

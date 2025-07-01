@@ -69,28 +69,28 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
             if let Ok(pkt) = rx.recv() {
                 match ip::Packet::new(pkt.as_slice()) {
                     Ok(ip::Packet::V4(pkt)) => {
-                        if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
-                            if let Ok(icmp) = icmp.echo() {
-                                println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
-                                let reply = ip::v4::Builder::default()
-                                    .id(0x42)?
-                                    .ttl(64)?
-                                    .source(pkt.destination())?
-                                    .destination(pkt.source())?
-                                    .icmp()?
-                                    .echo()?
-                                    .reply()?
-                                    .identifier(icmp.identifier())?
-                                    .sequence(icmp.sequence())?
-                                    .payload(icmp.payload())?
-                                    .build()?;
-                                writer.write_all(&reply[..])?;
-                            }
+                        if let Ok(icmp) = icmp::Packet::new(pkt.payload())
+                            && let Ok(icmp) = icmp.echo()
+                        {
+                            println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                            let reply = ip::v4::Builder::default()
+                                .id(0x42)?
+                                .ttl(64)?
+                                .source(pkt.destination())?
+                                .destination(pkt.source())?
+                                .icmp()?
+                                .echo()?
+                                .reply()?
+                                .identifier(icmp.identifier())?
+                                .sequence(icmp.sequence())?
+                                .payload(icmp.payload())?
+                                .build()?;
+                            writer.write_all(&reply[..])?;
                         }
                     }
-                    Err(err) => println!("Received an invalid packet: {:?}", err),
+                    Err(err) => println!("Received an invalid packet: {err:?}"),
                     _ => {
-                        println!("receive pkt {:?}", pkt);
+                        println!("receive pkt {pkt:?}");
                     }
                 }
             }
