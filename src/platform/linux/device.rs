@@ -414,6 +414,15 @@ impl AbstractDevice for Device {
         }
     }
 
+    fn set_routes(&mut self, routes: &[crate::route::RouteEntry]) -> Result<()> {
+        for r in routes.iter() {
+            if let Err(err) = unsafe { siocaddrt(self.ctl.as_raw_fd(), &libc::rtentry::from(r)) } {
+                return Err(std::io::Error::from(err).into());
+            }
+        }
+        Ok(())
+    }
+
     fn packet_information(&self) -> bool {
         self.tun.packet_information()
     }

@@ -24,6 +24,8 @@ pub use crate::device::AbstractDevice;
 mod configuration;
 pub use crate::configuration::{Configuration, Layer};
 
+pub mod route;
+
 mod platform;
 pub use crate::platform::*;
 
