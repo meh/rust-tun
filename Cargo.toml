@@ -1,6 +1,6 @@
 [package]
 name = "tun"
-version = "0.8.0"
+version = "0.8.3"
 edition = "2024"
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
 license = "WTFPL"
@@ -44,7 +44,7 @@ ipnet = "2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 futures = { version = "0.3", optional = true }
-windows-sys = { version = "0.59", features = [
+windows-sys = { version = "0.60", features = [
     "Win32_Foundation",
     "Win32_Security",
     "Win32_Security_WinTrust",
@@ -65,7 +65,7 @@ wintun-bindings = { version = "^0.7.7", features = [
 nix = { version = "0.30", features = ["ioctl"] }
 
 [dev-dependencies]
-ctrlc2 = { version = "3", features = ["tokio", "termination"] }
+ctrlc2 = { version = "3.6.5", features = ["async", "termination"] }
 env_logger = "0.11"
 futures = "0.3"
 packet = "0.1"

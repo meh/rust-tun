@@ -73,7 +73,8 @@ impl Device {
     }
 
     /// Set non-blocking mode
-    pub fn set_nonblock(&self) -> std::io::Result<()> {
+    #[allow(dead_code)]
+    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
         self.tun.set_nonblock()
     }
 

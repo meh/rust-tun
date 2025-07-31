@@ -101,6 +101,10 @@ impl Reader {
             &mut *in_buf
         };
         let amount = self.fd.read(either_buf)?;
+        if amount < self.offset {
+            let e = format!("Read amount {amount} is less than offset {}", self.offset);
+            return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, e));
+        }
         if self.offset != 0 {
             in_buf.put_slice(&local_buf[self.offset..amount]);
         }
@@ -120,6 +124,10 @@ impl Read for Reader {
             &mut *buf
         };
         let amount = self.fd.read(either_buf)?;
+        if amount < self.offset {
+            let e = format!("Read amount {amount} is less than offset {}", self.offset);
+            return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, e));
+        }
         if self.offset != 0 {
             buf.put_slice(&self.buf[self.offset..amount]);
         }
@@ -169,7 +177,7 @@ impl Writer {
             if let Some(header) = generate_packet_information(true, ipv6) {
                 (&mut local_buf[..self.offset]).put_slice(header.as_ref());
                 (&mut local_buf[self.offset..in_buf_len]).put_slice(in_buf);
-                local_buf
+                &local_buf[..in_buf_len]
             } else {
                 in_buf
             }
@@ -177,6 +185,10 @@ impl Writer {
             in_buf
         };
         let amount = self.fd.write(either_buf)?;
+        if amount < self.offset {
+            let e = format!("write returned {amount} less than offset {}", self.offset);
+            return Err(std::io::Error::other(e));
+        }
         Ok(amount - self.offset)
     }
 }
@@ -200,6 +212,10 @@ impl Write for Writer {
             buf
         };
         let amount = self.fd.write(buf)?;
+        if amount < self.offset {
+            let e = format!("write returned {amount} less than offset {}", self.offset);
+            return Err(std::io::Error::other(e));
+        }
         Ok(amount - self.offset)
     }
 
@@ -243,7 +259,8 @@ impl Tun {
         }
     }
 
-    pub fn set_nonblock(&self) -> std::io::Result<()> {
+    #[allow(dead_code)]
+    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
         self.reader.fd.set_nonblock()
     }
 
@@ -253,6 +270,7 @@ impl Tun {
         self.writer.set_mtu(value);
     }
 
+    #[allow(dead_code)]
     pub fn mtu(&self) -> u16 {
         self.mtu
     }

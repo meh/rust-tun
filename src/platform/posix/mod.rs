@@ -22,7 +22,8 @@ mod fd;
 pub(crate) use self::fd::Fd;
 
 mod split;
-pub use self::split::{Reader, Tun, Writer};
+pub(crate) use self::split::Tun;
+pub use self::split::{Reader, Writer};
 
 #[cfg(target_os = "linux")]
 mod rtentry;

@@ -91,7 +91,7 @@ impl Device {
 
             let (tun, tun_name) = {
                 if let Some(name) = dev.as_ref() {
-                    let device_path = format!("/dev/{}\0", name);
+                    let device_path = format!("/dev/{name}\0");
                     let fd = libc::open(device_path.as_ptr() as *const _, O_RDWR);
                     let tun = Fd::new(fd, true).map_err(|_| std::io::Error::last_os_error())?;
                     (tun, name.clone())
@@ -203,7 +203,8 @@ impl Device {
     }
 
     /// Set non-blocking mode
-    pub fn set_nonblock(&self) -> std::io::Result<()> {
+    #[allow(dead_code)]
+    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
         self.tun.set_nonblock()
     }
 

@@ -248,7 +248,8 @@ impl Device {
     }
 
     /// Set non-blocking mode
-    pub fn set_nonblock(&self) -> std::io::Result<()> {
+    #[allow(dead_code)]
+    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
         self.tun.set_nonblock()
     }
 
@@ -264,7 +265,7 @@ impl Device {
                 "-n",
                 "delete",
                 "-net",
-                &format!("{}/{}", network, prefix_len),
+                &format!("{network}/{prefix_len}"),
                 &v.dest.to_string(),
             ];
             run_command("route", &args)?;

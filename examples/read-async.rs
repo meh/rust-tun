@@ -13,24 +13,26 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use tokio::io::AsyncReadExt;
-use tokio::sync::mpsc::Receiver;
+use tokio_util::sync::CancellationToken;
 use tun::{AbstractDevice, BoxError};
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
-    let (tx, rx) = tokio::sync::mpsc::channel::<()>(1);
+    let token = CancellationToken::new();
+    let token_clone = token.clone();
 
-    ctrlc2::set_async_handler(async move {
-        tx.send(()).await.expect("Signal error");
-    })
-    .await;
+    let ctrlc = ctrlc2::AsyncCtrlC::new(move || {
+        token_clone.cancel();
+        true
+    })?;
 
-    main_entry(rx).await?;
+    main_entry(token).await?;
+    ctrlc.await?;
     Ok(())
 }
 
-async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
+async fn main_entry(token: CancellationToken) -> Result<(), BoxError> {
     let mut config = tun::Configuration::default();
 
     config
@@ -50,7 +52,7 @@ async fn main_entry(mut quit: Receiver<()>) -> Result<(), BoxError> {
     let mut buf = vec![0; size];
     loop {
         tokio::select! {
-            _ = quit.recv() => {
+            _ = token.cancelled() => {
                 println!("Quit...");
                 break;
             }

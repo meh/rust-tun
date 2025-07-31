@@ -25,13 +25,13 @@ async fn main() -> Result<(), BoxError> {
     let cancel_token = tokio_util::sync::CancellationToken::new();
     let cancel_token_clone = cancel_token.clone();
 
-    let handle = ctrlc2::set_async_handler(async move {
+    let ctrlc = ctrlc2::AsyncCtrlC::new(move || {
         cancel_token_clone.cancel();
-    })
-    .await;
+        true
+    })?;
 
     main_entry(cancel_token).await?;
-    handle.await?;
+    ctrlc.await?;
     Ok(())
 }
 
@@ -73,34 +73,31 @@ async fn main_entry(cancel_token: tokio_util::sync::CancellationToken) -> Result
         loop {
             let pkt = tokio::select! {
                 _ = t2_token.cancelled() => break,
-                opt = rx.recv() => match opt {
-                    Some(pkt) => pkt,
-                    None => return Err(packet::Error::Io(std::io::Error::other("Channel closed"))),
-                },
+                opt = rx.recv() => opt.ok_or(packet::Error::Io(std::io::Error::other("Channel closed")))?,
             };
             match ip::Packet::new(pkt.as_slice()) {
                 Ok(ip::Packet::V4(pkt)) => {
-                    if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
-                        if let Ok(icmp) = icmp.echo() {
-                            println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
-                            let reply = ip::v4::Builder::default()
-                                .id(0x42)?
-                                .ttl(64)?
-                                .source(pkt.destination())?
-                                .destination(pkt.source())?
-                                .icmp()?
-                                .echo()?
-                                .reply()?
-                                .identifier(icmp.identifier())?
-                                .sequence(icmp.sequence())?
-                                .payload(icmp.payload())?
-                                .build()?;
-                            writer.write_all(&reply[..]).await?;
-                        }
+                    if let Ok(icmp) = icmp::Packet::new(pkt.payload())
+                        && let Ok(icmp) = icmp.echo()
+                    {
+                        println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                        let reply = ip::v4::Builder::default()
+                            .id(0x42)?
+                            .ttl(64)?
+                            .source(pkt.destination())?
+                            .destination(pkt.source())?
+                            .icmp()?
+                            .echo()?
+                            .reply()?
+                            .identifier(icmp.identifier())?
+                            .sequence(icmp.sequence())?
+                            .payload(icmp.payload())?
+                            .build()?;
+                        writer.write_all(&reply[..]).await?;
                     }
                 }
-                Err(err) => println!("Received an invalid packet: {:?}", err),
-                _ => println!("receive pkt {:?}", pkt),
+                Err(err) => println!("Received an invalid packet: {err:?}"),
+                _ => println!("receive pkt {pkt:?}"),
             }
         }
         Ok::<(), packet::Error>(())

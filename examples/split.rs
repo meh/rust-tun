@@ -12,6 +12,8 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+// You can test this example with command `ping 10.0.3.1`.
+
 use packet::{Packet, builder::Builder, icmp, ip};
 use std::io::{Read, Write};
 use std::sync::mpsc::Receiver;
@@ -36,9 +38,9 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun::Configuration::default();
 
     config
-        .address((10, 0, 0, 9))
+        .address((10, 0, 3, 9))
         .netmask((255, 255, 255, 0))
-        .destination((10, 0, 0, 1))
+        .destination((10, 0, 3, 1))
         .up();
 
     #[cfg(target_os = "linux")]
@@ -67,28 +69,28 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
             if let Ok(pkt) = rx.recv() {
                 match ip::Packet::new(pkt.as_slice()) {
                     Ok(ip::Packet::V4(pkt)) => {
-                        if let Ok(icmp) = icmp::Packet::new(pkt.payload()) {
-                            if let Ok(icmp) = icmp.echo() {
-                                println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
-                                let reply = ip::v4::Builder::default()
-                                    .id(0x42)?
-                                    .ttl(64)?
-                                    .source(pkt.destination())?
-                                    .destination(pkt.source())?
-                                    .icmp()?
-                                    .echo()?
-                                    .reply()?
-                                    .identifier(icmp.identifier())?
-                                    .sequence(icmp.sequence())?
-                                    .payload(icmp.payload())?
-                                    .build()?;
-                                writer.write_all(&reply[..])?;
-                            }
+                        if let Ok(icmp) = icmp::Packet::new(pkt.payload())
+                            && let Ok(icmp) = icmp.echo()
+                        {
+                            println!("{:?} - {:?}", icmp.sequence(), pkt.destination());
+                            let reply = ip::v4::Builder::default()
+                                .id(0x42)?
+                                .ttl(64)?
+                                .source(pkt.destination())?
+                                .destination(pkt.source())?
+                                .icmp()?
+                                .echo()?
+                                .reply()?
+                                .identifier(icmp.identifier())?
+                                .sequence(icmp.sequence())?
+                                .payload(icmp.payload())?
+                                .build()?;
+                            writer.write_all(&reply[..])?;
                         }
                     }
-                    Err(err) => println!("Received an invalid packet: {:?}", err),
+                    Err(err) => println!("Received an invalid packet: {err:?}"),
                     _ => {
-                        println!("receive pkt {:?}", pkt);
+                        println!("receive pkt {pkt:?}");
                     }
                 }
             }
