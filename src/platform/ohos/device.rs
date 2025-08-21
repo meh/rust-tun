@@ -160,6 +160,10 @@ impl AbstractDevice for Device {
     fn packet_information(&self) -> bool {
         self.tun.packet_information()
     }
+
+    fn set_routes(&mut self, _routes: &[crate::route::RouteEntry]) -> Result<()> {
+        unimplemented!("freebsd routes coming soon...");
+    }
 }
 
 impl AsRawFd for Device {

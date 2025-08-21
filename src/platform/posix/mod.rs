@@ -25,6 +25,9 @@ mod split;
 pub(crate) use self::split::Tun;
 pub use self::split::{Reader, Writer};
 
+#[cfg(target_os = "linux")]
+mod rtentry;
+
 #[allow(dead_code)]
 pub fn tun_name_to_index(name: impl AsRef<str>) -> std::io::Result<u32> {
     let name_cstr = std::ffi::CString::new(name.as_ref()).map_err(|_| {

@@ -14,7 +14,7 @@
 
 //! Bindings to internal Linux stuff.
 
-use libc::{c_int, ifreq};
+use libc::{c_int, ifreq, rtentry};
 use nix::{ioctl_read_bad, ioctl_write_ptr, ioctl_write_ptr_bad};
 
 ioctl_read_bad!(siocgifflags, 0x8913, ifreq);
@@ -30,6 +30,7 @@ ioctl_write_ptr_bad!(siocsifnetmask, 0x891c, ifreq);
 ioctl_read_bad!(siocgifmtu, 0x8921, ifreq);
 ioctl_write_ptr_bad!(siocsifmtu, 0x8922, ifreq);
 ioctl_write_ptr_bad!(siocsifname, 0x8923, ifreq);
+ioctl_write_ptr_bad!(siocaddrt, 0x890B, rtentry);
 
 ioctl_write_ptr!(tunsetiff, b'T', 202, c_int);
 ioctl_write_ptr!(tunsetpersist, b'T', 203, c_int);

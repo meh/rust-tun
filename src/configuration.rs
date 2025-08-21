@@ -62,6 +62,7 @@ pub struct Configuration {
     pub(crate) metric: Option<u16>,
     #[cfg(unix)]
     pub(crate) close_fd_on_drop: Option<bool>,
+    pub(crate) routes: Option<Vec<crate::route::RouteEntry>>,
 }
 
 impl Configuration {
@@ -154,6 +155,18 @@ impl Configuration {
         self.raw_fd = Some(fd);
         self
     }
+
+    /// Add a route to the configuration
+    pub fn add_route(&mut self, route: crate::route::RouteEntry) -> &mut Self {
+        match self.routes {
+            Some(ref mut routes) => routes.push(route),
+            None => {
+                self.routes = Some(vec![route]);
+            }
+        }
+        self
+    }
+
     #[cfg(not(unix))]
     pub fn raw_fd(&mut self, fd: i32) -> &mut Self {
         self.raw_fd = Some(fd);
