@@ -16,6 +16,7 @@ use libc::{
     self, AF_INET, IFF_MULTI_QUEUE, IFF_NAPI, IFF_NO_PI, IFF_RUNNING, IFF_TAP, IFF_TUN, IFF_UP,
     IFF_VNET_HDR, IFNAMSIZ, O_RDWR, SOCK_DGRAM, c_char, c_short, ifreq,
 };
+use nix::sys::ioctl::ioctl_param_type;
 use std::{
     ffi::{CStr, CString},
     io::{Read, Write},
@@ -165,7 +166,7 @@ impl Device {
     /// Make the device persistent.
     pub fn persist(&mut self) -> Result<()> {
         unsafe {
-            if let Err(err) = tunsetpersist(self.as_raw_fd(), &1) {
+            if let Err(err) = tunsetpersist(self.as_raw_fd(), 1) {
                 Err(std::io::Error::from(err).into())
             } else {
                 Ok(())
@@ -176,7 +177,7 @@ impl Device {
     /// Set the owner of the device.
     pub fn user(&mut self, value: i32) -> Result<()> {
         unsafe {
-            if let Err(err) = tunsetowner(self.as_raw_fd(), &value) {
+            if let Err(err) = tunsetowner(self.as_raw_fd(), value as ioctl_param_type) {
                 Err(std::io::Error::from(err).into())
             } else {
                 Ok(())
@@ -187,7 +188,7 @@ impl Device {
     /// Set the group of the device.
     pub fn group(&mut self, value: i32) -> Result<()> {
         unsafe {
-            if let Err(err) = tunsetgroup(self.as_raw_fd(), &value) {
+            if let Err(err) = tunsetgroup(self.as_raw_fd(), value as ioctl_param_type) {
                 Err(std::io::Error::from(err).into())
             } else {
                 Ok(())

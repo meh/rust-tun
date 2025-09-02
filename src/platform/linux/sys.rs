@@ -15,7 +15,7 @@
 //! Bindings to internal Linux stuff.
 
 use libc::{c_int, ifreq};
-use nix::{ioctl_read_bad, ioctl_write_ptr, ioctl_write_ptr_bad};
+use nix::{ioctl_read_bad, ioctl_write_int, ioctl_write_ptr, ioctl_write_ptr_bad};
 
 ioctl_read_bad!(siocgifflags, 0x8913, ifreq);
 ioctl_write_ptr_bad!(siocsifflags, 0x8914, ifreq);
@@ -32,6 +32,6 @@ ioctl_write_ptr_bad!(siocsifmtu, 0x8922, ifreq);
 ioctl_write_ptr_bad!(siocsifname, 0x8923, ifreq);
 
 ioctl_write_ptr!(tunsetiff, b'T', 202, c_int);
-ioctl_write_ptr!(tunsetpersist, b'T', 203, c_int);
-ioctl_write_ptr!(tunsetowner, b'T', 204, c_int);
-ioctl_write_ptr!(tunsetgroup, b'T', 206, c_int);
+ioctl_write_int!(tunsetpersist, b'T', 203);
+ioctl_write_int!(tunsetowner, b'T', 204);
+ioctl_write_int!(tunsetgroup, b'T', 206);
