@@ -53,7 +53,7 @@ pub use self::ohos::{Device, PlatformConfig, create};
 #[cfg(target_os = "windows")]
 pub(crate) mod windows;
 #[cfg(target_os = "windows")]
-pub use self::windows::{Device, PlatformConfig, Reader, Tun, Writer, create};
+pub use self::windows::{AbstractDeviceExt, Device, PlatformConfig, Reader, Tun, Writer, create};
 
 #[cfg(test)]
 mod test {

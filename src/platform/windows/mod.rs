@@ -16,10 +16,15 @@
 
 mod device;
 
-use crate::configuration::Configuration;
 use crate::error::Result;
+use crate::{AbstractDevice, configuration::Configuration};
 pub use device::{Device, Reader, Tun, Writer};
 use std::ffi::OsString;
+
+/// Platform-specific extensions for the abstract device.
+pub trait AbstractDeviceExt: AbstractDevice {
+    fn tun_luid(&self) -> u64;
+}
 
 /// Windows-only interface configuration.
 #[derive(Clone, Debug)]
