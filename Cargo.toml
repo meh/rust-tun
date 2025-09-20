@@ -16,7 +16,7 @@ all-features = true
 crate-type = ["staticlib", "lib"]
 
 [features]
-# default = ["async"]
+# default = ["async", "verify_binary_signature"]
 async = [
     "tokio",
     "futures-core",
@@ -24,6 +24,7 @@ async = [
     "tokio-util",
     "wintun-bindings/async",
 ]
+verify_binary_signature = ["wintun-bindings/verify_binary_signature"]
 
 [dependencies]
 bytes = { version = "1" }
@@ -55,7 +56,6 @@ windows-sys = { version = "0.61", features = [
 ] }
 wintun-bindings = { version = "^0.7.7", features = [
     "panic_on_unsent_packets",
-    "verify_binary_signature",
     "async",
     "enable_inner_logging",
     "winreg",
