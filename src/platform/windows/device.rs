@@ -46,12 +46,6 @@ impl Device {
                     Adapter::create(&wintun, tun_name, tun_name, guid)?
                 }
             };
-            if let Some(metric) = config.metric {
-                // SAFETY: LUID is always a u64
-                let luid = unsafe { adapter.get_luid().Value };
-                set_interface_metric(luid, metric.into(), false)?;
-                set_interface_metric(luid, metric.into(), true)?;
-            }
             let address = config
                 .address
                 .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 1, 0, 2)));
@@ -60,6 +54,12 @@ impl Device {
                 .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
             let gateway = config.destination;
             adapter.set_network_addresses_tuple(address, mask, gateway)?;
+            if let Some(metric) = config.metric {
+                // SAFETY: LUID is always a u64
+                let luid = unsafe { adapter.get_luid().Value };
+                set_interface_metric(luid, metric.into(), false)?;
+                set_interface_metric(luid, metric.into(), true)?;
+            }
             if let Some(dns_servers) = &config.platform_config.dns_servers {
                 adapter.set_dns_servers(dns_servers)?;
             }
