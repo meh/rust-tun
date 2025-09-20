@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 
@@ -20,8 +20,8 @@ use crate::Layer;
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
-use crate::run_command::run_command;
 use crate::windows::AbstractDeviceExt;
+use windows_sys::Win32::NetworkManagement::IpHelper::SetIpInterfaceEntry;
 use wintun_bindings::{Adapter, MAX_RING_CAPACITY, Session, load_from_path};
 
 /// A TUN device using the wintun driver.
@@ -47,10 +47,10 @@ impl Device {
                 }
             };
             if let Some(metric) = config.metric {
-                // command: netsh interface ip set interface {index} metric={metric}
-                let i = adapter.get_adapter_index()?.to_string();
-                let m = format!("metric={metric}");
-                run_command("netsh", &["interface", "ip", "set", "interface", &i, &m])?;
+                // SAFETY: LUID is always a u64
+                let luid = unsafe { adapter.get_luid().Value };
+                set_interface_metric(luid, metric.into(), false)?;
+                set_interface_metric(luid, metric.into(), true)?;
             }
             let address = config
                 .address
@@ -312,4 +312,43 @@ impl Write for Writer {
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
+}
+
+fn set_interface_metric(luid: u64, metric: u32, ipv6: bool) -> io::Result<()> {
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        GetIpInterfaceEntry, MIB_IPINTERFACE_ROW,
+    };
+    use windows_sys::Win32::NetworkManagement::Ndis::NET_LUID_LH;
+    use windows_sys::Win32::Networking::WinSock::{AF_INET, AF_INET6};
+
+    let luid = NET_LUID_LH { Value: luid };
+
+    let family = if ipv6 { AF_INET6 } else { AF_INET };
+
+    let mut row = MIB_IPINTERFACE_ROW {
+        InterfaceLuid: luid,
+        Family: family,
+        ..Default::default()
+    };
+
+    // SAFETY: `row` is initialized and has luid set
+    let status = unsafe { GetIpInterfaceEntry(&mut row) };
+    if status != 0 {
+        log::error!("GetIpInterfaceEntry failed with error: {status}");
+        return Err(io::Error::from_raw_os_error(status as i32));
+    }
+
+    // `SitePrefixLength` must be zeroed and not modified
+    row.SitePrefixLength = 0;
+    row.Metric = metric;
+    row.UseAutomaticMetric = false;
+
+    // SAFETY: `row` is initialized and has luid set
+    let status = unsafe { SetIpInterfaceEntry(&mut row) };
+    if status != 0 {
+        log::error!("SetIpInterfaceEntry failed with error: {status}");
+        return Err(io::Error::from_raw_os_error(status as i32));
+    }
+
+    Ok(())
 }
