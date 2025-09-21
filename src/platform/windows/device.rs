@@ -21,6 +21,7 @@ use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
 use crate::run_command::run_command;
+use crate::windows::AbstractDeviceExt;
 use wintun_bindings::{Adapter, MAX_RING_CAPACITY, Session, load_from_path};
 
 /// A TUN device using the wintun driver.
@@ -212,6 +213,13 @@ impl AbstractDevice for Device {
     fn packet_information(&self) -> bool {
         // Note: wintun does not support packet information
         false
+    }
+}
+
+impl AbstractDeviceExt for Device {
+    fn tun_luid(&self) -> u64 {
+        // SAFETY: LUID is always a u64
+        unsafe { self.tun.session.get_adapter().get_luid().Value }
     }
 }
 
