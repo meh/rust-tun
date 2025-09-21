@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 
@@ -20,8 +20,8 @@ use crate::Layer;
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
-use crate::run_command::run_command;
 use crate::windows::AbstractDeviceExt;
+use windows_sys::Win32::NetworkManagement::IpHelper::SetIpInterfaceEntry;
 use wintun_bindings::{Adapter, MAX_RING_CAPACITY, Session, load_from_path};
 
 /// A TUN device using the wintun driver.
@@ -46,12 +46,6 @@ impl Device {
                     Adapter::create(&wintun, tun_name, tun_name, guid)?
                 }
             };
-            if let Some(metric) = config.metric {
-                // command: netsh interface ip set interface {index} metric={metric}
-                let i = adapter.get_adapter_index()?.to_string();
-                let m = format!("metric={metric}");
-                run_command("netsh", &["interface", "ip", "set", "interface", &i, &m])?;
-            }
             let address = config
                 .address
                 .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 1, 0, 2)));
@@ -60,6 +54,12 @@ impl Device {
                 .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
             let gateway = config.destination;
             adapter.set_network_addresses_tuple(address, mask, gateway)?;
+            if let Some(metric) = config.metric {
+                // SAFETY: LUID is always a u64
+                let luid = unsafe { adapter.get_luid().Value };
+                set_interface_metric(luid, metric.into(), false)?;
+                set_interface_metric(luid, metric.into(), true)?;
+            }
             if let Some(dns_servers) = &config.platform_config.dns_servers {
                 adapter.set_dns_servers(dns_servers)?;
             }
@@ -312,4 +312,43 @@ impl Write for Writer {
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
+}
+
+fn set_interface_metric(luid: u64, metric: u32, ipv6: bool) -> io::Result<()> {
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        GetIpInterfaceEntry, MIB_IPINTERFACE_ROW,
+    };
+    use windows_sys::Win32::NetworkManagement::Ndis::NET_LUID_LH;
+    use windows_sys::Win32::Networking::WinSock::{AF_INET, AF_INET6};
+
+    let luid = NET_LUID_LH { Value: luid };
+
+    let family = if ipv6 { AF_INET6 } else { AF_INET };
+
+    let mut row = MIB_IPINTERFACE_ROW {
+        InterfaceLuid: luid,
+        Family: family,
+        ..Default::default()
+    };
+
+    // SAFETY: `row` is initialized and has luid set
+    let status = unsafe { GetIpInterfaceEntry(&mut row) };
+    if status != 0 {
+        log::error!("GetIpInterfaceEntry failed with error: {status}");
+        return Err(io::Error::from_raw_os_error(status as i32));
+    }
+
+    // `SitePrefixLength` must be zeroed and not modified
+    row.SitePrefixLength = 0;
+    row.Metric = metric;
+    row.UseAutomaticMetric = false;
+
+    // SAFETY: `row` is initialized and has luid set
+    let status = unsafe { SetIpInterfaceEntry(&mut row) };
+    if status != 0 {
+        log::error!("SetIpInterfaceEntry failed with error: {status}");
+        return Err(io::Error::from_raw_os_error(status as i32));
+    }
+
+    Ok(())
 }

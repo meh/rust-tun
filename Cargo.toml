@@ -47,6 +47,9 @@ ipnet = "2"
 futures = { version = "0.3", optional = true }
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
+    "Win32_Networking_WinSock",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_NetworkManagement_IpHelper",
     "Win32_Security",
     "Win32_Security_WinTrust",
     "Win32_Security_Cryptography",
