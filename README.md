@@ -12,14 +12,14 @@ First, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tun = "0.7"
+tun = "0.8"
 ```
 
 If you want to use the TUN interface with mio/tokio, you need to enable the `async` feature:
 
 ```toml
 [dependencies]
-tun = { version = "0.7", features = ["async"] }
+tun = { version = "0.8", features = ["async"] }
 ```
 
 Example
