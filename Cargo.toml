@@ -65,7 +65,7 @@ wintun-bindings = { version = "^0.7.7", features = [
 ] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.30", features = ["ioctl"] }
+nix = { version = "0.31", features = ["ioctl"] }
 
 [dev-dependencies]
 ctrlc2 = { version = "3.6.5", features = ["async", "termination"] }
@@ -78,7 +78,7 @@ tokio-util = { version = "0.7", features = [] }
 
 [target.'cfg(unix)'.dev-dependencies]
 futures = "0.3"
-nix = { version = "0.30", features = ["ioctl"] }
+nix = { version = "0.31", features = ["ioctl"] }
 
 [[example]]
 name = "read-async"
