@@ -31,7 +31,7 @@ bytes = { version = "1" }
 cfg-if = "1"
 futures-core = { version = "0.3", optional = true }
 libc = { version = "0.2", features = ["extra_traits"] }
-log = "0.4"
+log = "0.4.22"
 thiserror = "2"
 tokio = { version = "1", features = [
     "net",
@@ -41,7 +41,7 @@ tokio = { version = "1", features = [
 tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
 [target.'cfg(any(target_os = "macos", target_os = "freebsd"))'.dependencies]
-ipnet = "2"
+ipnet = "2.6.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 futures = { version = "0.3", optional = true }
