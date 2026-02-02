@@ -26,6 +26,7 @@ use crate::error::Result;
 #[derive(Copy, Clone, Debug)]
 pub struct PlatformConfig {
     pub(crate) packet_information: bool,
+    pub(crate) set_ipv4_alias: bool,
     pub(crate) enable_routing: bool,
 }
 
@@ -33,6 +34,7 @@ impl Default for PlatformConfig {
     fn default() -> Self {
         PlatformConfig {
             packet_information: true, // default is true in macOS
+            set_ipv4_alias: true,
             enable_routing: true,
         }
     }
@@ -59,7 +61,15 @@ impl PlatformConfig {
         self
     }
 
+    /// Do set IPv4 aliases for utun interface.
+    pub fn do_set_ipv4_alias(&mut self, value: bool) -> &mut Self {
+        self.set_ipv4_alias = value;
+        self
+    }
+
     /// Do set or not setup route for utun interface automatically
+    ///
+    /// This requires [`self.set_ipv4_alias`] to be true to have any effect.
     pub fn enable_routing(&mut self, value: bool) -> &mut Self {
         self.enable_routing = value;
         self
