@@ -162,18 +162,21 @@ impl Device {
         };
 
         device.configure(config)?;
-        device.set_alias(
-            config
-                .address
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))),
-            config
-                .destination
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 255))),
-            config
-                .netmask
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0))),
-            config.platform_config.enable_routing,
-        )?;
+
+        if config.platform_config.set_ipv4_alias {
+            device.set_alias(
+                config
+                    .address
+                    .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))),
+                config
+                    .destination
+                    .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 255))),
+                config
+                    .netmask
+                    .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0))),
+                config.platform_config.enable_routing,
+            )?;
+        }
 
         Ok(device)
     }
