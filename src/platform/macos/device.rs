@@ -162,18 +162,9 @@ impl Device {
         };
 
         device.configure(config)?;
-        device.set_alias(
-            config
-                .address
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))),
-            config
-                .destination
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 255))),
-            config
-                .netmask
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0))),
-            config.platform_config.enable_routing,
-        )?;
+        if let (Some(a), Some(b), Some(m)) = (config.address, config.destination, config.netmask) {
+            device.set_alias(a, b, m, config.platform_config.enable_routing)?;
+        }
 
         Ok(device)
     }
@@ -201,7 +192,10 @@ impl Device {
         broadaddr: IpAddr,
         mask: IpAddr,
         enable_routing: bool,
-    ) -> Result<()> {
+    ) -> Result<bool> {
+        if !enable_routing {
+            return Ok(false);
+        }
         let IpAddr::V4(addr) = addr else {
             unimplemented!("do not support IPv6 yet")
         };
@@ -228,17 +222,16 @@ impl Device {
             if let Err(err) = siocaifaddr(ctl.as_raw_fd(), &req) {
                 return Err(std::io::Error::from(err).into());
             }
-            if enable_routing {
-                let route = Route {
-                    addr,
-                    netmask: mask,
-                    dest: broadaddr,
-                };
-                if let Err(e) = self.set_route(route) {
-                    log::warn!("{e:?}");
-                }
+            let route = Route {
+                addr,
+                netmask: mask,
+                dest: broadaddr,
+            };
+            if let Err(e) = self.set_route(route) {
+                log::warn!("{e:?}");
+                return Ok(false);
             }
-            Ok(())
+            Ok(true)
         }
     }
 
