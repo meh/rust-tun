@@ -30,7 +30,7 @@ verify_binary_signature = ["wintun-bindings/verify_binary_signature"]
 bytes = { version = "1.11.1" }
 cfg-if = "1.0.4"
 futures-core = { version = "0.3.31", optional = true }
-libc = { version = "=0.2.180", features = ["extra_traits"] }
+libc = { version = "=0.2.181", features = ["extra_traits"] }
 log = "0.4.29"
 thiserror = "2.0.18"
 tokio = { version = "1.49.0", features = [
