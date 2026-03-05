@@ -162,8 +162,11 @@ impl Device {
         };
 
         device.configure(config)?;
-        if let (Some(a), Some(b), Some(m)) = (config.address, config.destination, config.netmask) {
-            device.set_alias(a, b, m, config.platform_config.enable_routing)?;
+        if config.platform_config.enable_routing
+            && let (Some(a), Some(dest), Some(m)) =
+                (config.address, config.destination, config.netmask)
+        {
+            device.set_alias(a, dest, m)?;
         }
 
         Ok(device)
@@ -186,16 +189,7 @@ impl Device {
     }
 
     /// Set the IPv4 alias of the device.
-    fn set_alias(
-        &mut self,
-        addr: IpAddr,
-        broadaddr: IpAddr,
-        mask: IpAddr,
-        enable_routing: bool,
-    ) -> Result<bool> {
-        if !enable_routing {
-            return Ok(false);
-        }
+    fn set_alias(&mut self, addr: IpAddr, broadaddr: IpAddr, mask: IpAddr) -> Result<bool> {
         let IpAddr::V4(addr) = addr else {
             unimplemented!("do not support IPv6 yet")
         };
