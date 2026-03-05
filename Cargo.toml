@@ -30,7 +30,7 @@ verify_binary_signature = ["wintun-bindings/verify_binary_signature"]
 bytes = { version = "1.11.1" }
 cfg-if = "1.0.4"
 futures-core = { version = "0.3.31", optional = true }
-libc = { version = "=0.2.180", features = ["extra_traits"] }
+libc = { version = "0.2", features = ["extra_traits"] }
 log = "0.4.29"
 thiserror = "2.0.18"
 tokio = { version = "1.49.0", features = [
@@ -65,7 +65,7 @@ wintun-bindings = { version = "^0.7.34", features = [
 ] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31.1", features = ["ioctl"] }
+nix = { version = "0.31.2", features = ["ioctl"] }
 
 [dev-dependencies]
 ctrlc2 = { version = "3.7.3", features = ["async", "termination"] }
@@ -78,7 +78,7 @@ tokio-util = { version = "0.7.18", features = [] }
 
 [target.'cfg(unix)'.dev-dependencies]
 futures = "0.3.31"
-nix = { version = "0.31.1", features = ["ioctl"] }
+nix = { version = "0.31.2", features = ["ioctl"] }
 
 [[example]]
 name = "read-async"
