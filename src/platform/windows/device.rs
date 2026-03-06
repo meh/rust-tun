@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::{self, Read, Write};
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use std::sync::Arc;
 
 use crate::Layer;
@@ -46,14 +46,10 @@ impl Device {
                     Adapter::create(&wintun, tun_name, tun_name, guid)?
                 }
             };
-            let address = config
-                .address
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(10, 1, 0, 2)));
-            let mask = config
-                .netmask
-                .unwrap_or(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0)));
-            let gateway = config.destination;
-            adapter.set_network_addresses_tuple(address, mask, gateway)?;
+            if let (Some(address), Some(mask)) = (config.address, config.netmask) {
+                let gateway = config.destination;
+                adapter.set_network_addresses_tuple(address, mask, gateway)?;
+            }
             if let Some(metric) = config.metric {
                 // SAFETY: LUID is always a u64
                 let luid = unsafe { adapter.get_luid().Value };
