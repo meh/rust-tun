@@ -117,7 +117,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-    - uses: openharmony-rs/setup-ohos-sdk@v0.2.4
+    - uses: openharmony-rs/setup-ohos-sdk@v1.0.0
       id: setup-ohos
       with:
         version: "6.0"
