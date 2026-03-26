@@ -135,6 +135,7 @@ impl AsyncRead for DeviceReader {
     }
 }
 
+#[derive(Clone)]
 pub struct DeviceWriter {
     session: AsyncSession,
 }

@@ -179,6 +179,7 @@ impl AsyncRead for DeviceReader {
     }
 }
 
+#[derive(Clone)]
 pub struct DeviceWriter {
     inner: std::sync::Arc<AsyncFd<Device>>,
 }
