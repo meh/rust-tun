@@ -13,7 +13,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::io::{self, Read, Write};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 
 use crate::Layer;
@@ -48,7 +48,18 @@ impl Device {
             };
             if let (Some(address), Some(mask)) = (config.address, config.netmask) {
                 let gateway = config.destination;
-                adapter.set_network_addresses_tuple(address, mask, gateway)?;
+                let luid_value = unsafe { adapter.get_luid().Value };
+                match (address, mask) {
+                    (IpAddr::V4(addr), IpAddr::V4(mask_v4)) => {
+                        set_unicast_address(luid_value, addr, mask_v4)?;
+                        if let Some(IpAddr::V4(gw)) = gateway {
+                            set_default_route(luid_value, gw)?;
+                        }
+                    }
+                    _ => {
+                        adapter.set_network_addresses_tuple(address, mask, gateway)?;
+                    }
+                }
             }
             if let Some(metric) = config.metric {
                 // SAFETY: LUID is always a u64
@@ -64,13 +75,14 @@ impl Device {
             }
             let capacity = config.ring_capacity.unwrap_or(MAX_RING_CAPACITY);
             let session = adapter.start_session(capacity)?;
-            let mut device = Device {
+            let device = Device {
                 tun: Tun { session },
                 mtu: adapter.get_mtu()? as u16,
             };
 
-            // This is not needed since we use netsh to set the address.
-            device.configure(config)?;
+            // This is not needed because address/route configuration for this
+            // code path is applied above via WinAPI/helper calls.
+            // device.configure(config)?;
 
             Ok(device)
         } else if layer == Layer::L2 {
@@ -306,6 +318,91 @@ impl Write for Writer {
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn netmask_to_prefix_len(mask: Ipv4Addr) -> u8 {
+    let bits = u32::from(mask);
+    let prefix = bits.leading_ones() as u8;
+    debug_assert_eq!(
+        bits,
+        u32::MAX.checked_shl(32 - prefix as u32).unwrap_or(0),
+        "non-contiguous netmask"
+    );
+    prefix
+}
+
+fn set_unicast_address(luid: u64, address: Ipv4Addr, mask: Ipv4Addr) -> io::Result<()> {
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        CreateUnicastIpAddressEntry, DeleteUnicastIpAddressEntry, MIB_UNICASTIPADDRESS_ROW,
+    };
+    use windows_sys::Win32::NetworkManagement::Ndis::NET_LUID_LH;
+    use windows_sys::Win32::Networking::WinSock::AF_INET;
+
+    unsafe {
+        let mut row: MIB_UNICASTIPADDRESS_ROW = std::mem::zeroed();
+        row.InterfaceLuid = NET_LUID_LH { Value: luid };
+        row.Address.si_family = AF_INET;
+        row.Address.Ipv4.sin_family = AF_INET;
+        row.Address.Ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(address.octets());
+        row.OnLinkPrefixLength = netmask_to_prefix_len(mask);
+        row.DadState = 4; // IpDadStatePreferred
+        row.ValidLifetime = u32::MAX;
+        row.PreferredLifetime = u32::MAX;
+        row.PrefixOrigin = 1; // IpPrefixOriginManual
+        row.SuffixOrigin = 1; // IpSuffixOriginManual
+
+        let del_status = DeleteUnicastIpAddressEntry(&row);
+        if del_status != 0 && del_status != 2
+        /* ERROR_NOT_FOUND */
+        {
+            log::warn!("DeleteUnicastIpAddressEntry failed: {del_status}");
+        }
+
+        let status = CreateUnicastIpAddressEntry(&row);
+        if status == 0 {
+            return Ok(());
+        }
+
+        log::error!("CreateUnicastIpAddressEntry failed: {status}");
+        Err(io::Error::from_raw_os_error(status as i32))
+    }
+}
+
+fn set_default_route(luid: u64, gateway: Ipv4Addr) -> io::Result<()> {
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        CreateIpForwardEntry2, DeleteIpForwardEntry2, MIB_IPFORWARD_ROW2,
+    };
+    use windows_sys::Win32::NetworkManagement::Ndis::NET_LUID_LH;
+    use windows_sys::Win32::Networking::WinSock::AF_INET;
+
+    unsafe {
+        let mut row: MIB_IPFORWARD_ROW2 = std::mem::zeroed();
+        row.InterfaceLuid = NET_LUID_LH { Value: luid };
+        row.DestinationPrefix.Prefix.si_family = AF_INET;
+        row.DestinationPrefix.Prefix.Ipv4.sin_family = AF_INET;
+        row.DestinationPrefix.PrefixLength = 0;
+        row.NextHop.si_family = AF_INET;
+        row.NextHop.Ipv4.sin_family = AF_INET;
+        row.NextHop.Ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(gateway.octets());
+        row.Metric = 0;
+        row.Protocol = 3; // MIB_IPPROTO_NETMGMT
+        row.ValidLifetime = u32::MAX;
+        row.PreferredLifetime = u32::MAX;
+
+        let del_status = DeleteIpForwardEntry2(&row);
+        if del_status != 0 && del_status != 2
+        /* ERROR_NOT_FOUND */
+        {
+            log::warn!("DeleteIpForwardEntry2 failed: {del_status}");
+        }
+
+        let status = CreateIpForwardEntry2(&row);
+        if status != 0 {
+            log::error!("CreateIpForwardEntry2 failed: {status}");
+            return Err(io::Error::from_raw_os_error(status as i32));
+        }
         Ok(())
     }
 }
