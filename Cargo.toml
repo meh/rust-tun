@@ -1,6 +1,6 @@
 [package]
 name = "tun"
-version = "0.8.7"
+version = "0.8.8"
 edition = "2024"
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
 license = "WTFPL"
@@ -29,11 +29,11 @@ verify_binary_signature = ["wintun-bindings/verify_binary_signature"]
 [dependencies]
 bytes = { version = "1.11.1" }
 cfg-if = "1.0.4"
-futures-core = { version = "0.3.31", optional = true }
-libc = { version = "0.2", features = ["extra_traits"] }
+futures-core = { version = "0.3.32", optional = true }
+libc = { version = "0.2.186", features = ["extra_traits"] }
 log = "0.4.29"
 thiserror = "2.0.18"
-tokio = { version = "1.49.0", features = [
+tokio = { version = "1.52.2", features = [
     "net",
     "macros",
     "io-util",
@@ -41,10 +41,10 @@ tokio = { version = "1.49.0", features = [
 tokio-util = { version = "0.7.18", features = ["codec"], optional = true }
 
 [target.'cfg(any(target_os = "macos", target_os = "freebsd"))'.dependencies]
-ipnet = "2.11.0"
+ipnet = "2.12.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-futures = { version = "0.3.31", optional = true }
+futures = { version = "0.3.32", optional = true }
 windows-sys = { version = "0.61.2", features = [
     "Win32_Foundation",
     "Win32_Networking_WinSock",
@@ -57,7 +57,7 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_LibraryLoader",
 ] }
-wintun-bindings = { version = "^0.7.34", features = [
+wintun-bindings = { version = "0.7.35", features = [
     "panic_on_unsent_packets",
     "async",
     "enable_inner_logging",
@@ -69,15 +69,15 @@ nix = { version = "0.31.2", features = ["ioctl"] }
 
 [dev-dependencies]
 ctrlc2 = { version = "3.7.3", features = ["async", "termination"] }
-env_logger = "0.11.9"
-futures = "0.3.31"
+env_logger = "0.11.10"
+futures = "0.3.32"
 packet = "0.1.4"
 serde_json = "1.0.149"
-tokio = { version = "1.49.0", features = ["rt-multi-thread"] }
+tokio = { version = "1.52.2", features = ["rt-multi-thread"] }
 tokio-util = { version = "0.7.18", features = [] }
 
 [target.'cfg(unix)'.dev-dependencies]
-futures = "0.3.31"
+futures = "0.3.32"
 nix = { version = "0.31.2", features = ["ioctl"] }
 
 [[example]]
