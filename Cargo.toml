@@ -33,7 +33,7 @@ futures-core = { version = "0.3.32", optional = true }
 libc = { version = "0.2.186", features = ["extra_traits"] }
 log = "0.4.29"
 thiserror = "2.0.18"
-tokio = { version = "1.52.2", features = [
+tokio = { version = "1.52.3", features = [
     "net",
     "macros",
     "io-util",
@@ -57,7 +57,7 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_LibraryLoader",
 ] }
-wintun-bindings = { version = "0.7.35", features = [
+wintun-bindings = { version = "0.7.37", features = [
     "panic_on_unsent_packets",
     "async",
     "enable_inner_logging",
@@ -73,7 +73,7 @@ env_logger = "0.11.10"
 futures = "0.3.32"
 packet = "0.1.4"
 serde_json = "1.0.149"
-tokio = { version = "1.52.2", features = ["rt-multi-thread"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread"] }
 tokio-util = { version = "0.7.18", features = [] }
 
 [target.'cfg(unix)'.dev-dependencies]
