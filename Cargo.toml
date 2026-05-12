@@ -68,7 +68,7 @@ wintun-bindings = { version = "0.7.37", features = [
 nix = { version = "0.31.2", features = ["ioctl"] }
 
 [dev-dependencies]
-ctrlc2 = { version = "3.7.3", features = ["async", "termination"] }
+ctrlc2 = { version = "4.0.0", features = ["async", "termination"] }
 env_logger = "0.11.10"
 futures = "0.3.32"
 packet = "0.1.4"
