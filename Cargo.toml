@@ -1,6 +1,6 @@
 [package]
 name = "tun"
-version = "0.8.8"
+version = "0.8.9"
 edition = "2024"
 authors = ["meh. <meh@schizofreni.co>", "@ssrlive"]
 license = "WTFPL"
@@ -65,10 +65,10 @@ wintun-bindings = { version = "0.7.37", features = [
 ] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31.2", features = ["ioctl"] }
+nix = { version = "0.31.3", features = ["ioctl"] }
 
 [dev-dependencies]
-ctrlc2 = { version = "3.7.3", features = ["async", "termination"] }
+ctrlc2 = { version = "4.0.0", features = ["async", "termination"] }
 env_logger = "0.11.10"
 futures = "0.3.32"
 packet = "0.1.4"
@@ -78,7 +78,7 @@ tokio-util = { version = "0.7.18", features = [] }
 
 [target.'cfg(unix)'.dev-dependencies]
 futures = "0.3.32"
-nix = { version = "0.31.2", features = ["ioctl"] }
+nix = { version = "0.31.3", features = ["ioctl"] }
 
 [[example]]
 name = "read-async"
