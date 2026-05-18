@@ -84,8 +84,9 @@ iOS
 You can pass the file descriptor of the TUN device to `tun` to create the interface.
 
 Here is an example to create the TUN device on iOS and pass the `fd` to `tun`:
-> Note: The method for retrieving file descriptor (tunFd) only works for iOS 14 and earlier.
->       And this [issue](https://github.com/meh/rust-tun/issues/140) provides a solution for iOS 15 and later.
+> [!NOTE]
+> The method for retrieving file descriptor (tunFd) only works for iOS 14 and earlier.
+> And [this issue](https://github.com/meh/rust-tun/issues/140) provides a solution for iOS 15 and later.
 ```swift
 // Swift
 class PacketTunnelProvider: NEPacketTunnelProvider {

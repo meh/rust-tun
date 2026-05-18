@@ -13,12 +13,12 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use crate::error::{Error, Result};
-use std::net::{IpAddr, Ipv4Addr};
-use std::net::{SocketAddr, SocketAddrV4};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
 
-/// Helper trait to convert things into IPv4 addresses.
+/// Helper trait to convert things into IP addresses.
 pub trait ToAddress {
-    /// Convert the type to an `Ipv4Addr`.
+    /// Convert the type to an `IpAddr`.
     fn to_address(&self) -> Result<IpAddr>;
 }
 
@@ -81,6 +81,18 @@ impl ToAddress for &Ipv4Addr {
     }
 }
 
+impl ToAddress for Ipv6Addr {
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(IpAddr::V6(*self))
+    }
+}
+
+impl ToAddress for &Ipv6Addr {
+    fn to_address(&self) -> Result<IpAddr> {
+        (*self).to_address()
+    }
+}
+
 impl ToAddress for IpAddr {
     fn to_address(&self) -> Result<IpAddr> {
         Ok(*self)
@@ -100,6 +112,18 @@ impl ToAddress for SocketAddrV4 {
 }
 
 impl ToAddress for &SocketAddrV4 {
+    fn to_address(&self) -> Result<IpAddr> {
+        (*self).to_address()
+    }
+}
+
+impl ToAddress for SocketAddrV6 {
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(IpAddr::V6(*self.ip()))
+    }
+}
+
+impl ToAddress for &SocketAddrV6 {
     fn to_address(&self) -> Result<IpAddr> {
         (*self).to_address()
     }
