@@ -30,7 +30,6 @@ use wintun_bindings::{Adapter, MAX_RING_CAPACITY, Session, load_from_path};
 /// A TUN device using the wintun driver.
 pub struct Device {
     pub(crate) tun: Tun,
-    mtu: u16,
 }
 
 impl Device {
@@ -80,7 +79,6 @@ impl Device {
             let session = adapter.start_session(capacity)?;
             let device = Device {
                 tun: Tun { session },
-                mtu: adapter.get_mtu()? as u16,
             };
 
             // This is not needed because address/route configuration for this
@@ -209,15 +207,13 @@ impl AbstractDevice for Device {
         Ok(self.tun.session.get_adapter().set_netmask(value)?)
     }
 
-    /// The return value is always `Ok(65535)` due to wintun
     fn mtu(&self) -> Result<u16> {
-        Ok(self.mtu)
+        let mtu = self.tun.session.get_adapter().get_mtu()?;
+        Ok(mtu as u16)
     }
 
-    /// This setting has no effect since the mtu of wintun is always 65535
     fn set_mtu(&mut self, mtu: u16) -> Result<()> {
         self.tun.session.get_adapter().set_mtu(mtu as _)?;
-        self.mtu = mtu;
         Ok(())
     }
 
