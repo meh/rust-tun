@@ -51,6 +51,10 @@ pub enum Error {
     ParseNum(#[from] std::num::ParseIntError),
 
     #[cfg(target_os = "windows")]
+    #[error("Failed to wait for IP interfaces")]
+    InterfaceTimeout,
+
+    #[cfg(target_os = "windows")]
     #[error(transparent)]
     WintunError(#[from] wintun_bindings::Error),
 

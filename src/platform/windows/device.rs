@@ -46,6 +46,22 @@ impl Device {
                     Adapter::create(&wintun, tun_name, tun_name, guid)?
                 }
             };
+            // Wait for IP interfaces to become configurable on Wintun device.
+            match (
+                config.platform_config.wait_for_ipv4_interface,
+                config.platform_config.wait_for_ipv6_interface,
+                config.platform_config.wait_for_interface_timeout,
+            ) {
+                (false, false, _) => (),
+                (ipv4, ipv6, timeout) => {
+                    sys::wait_for_interfaces(
+                        unsafe { adapter.get_luid().Value },
+                        ipv4,
+                        ipv6,
+                        timeout,
+                    )?;
+                }
+            }
             if let (Some(address), Some(mask)) = (config.address, config.netmask) {
                 let gateway = config.destination;
                 let luid_value = unsafe { adapter.get_luid().Value };

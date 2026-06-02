@@ -21,6 +21,7 @@ use crate::error::Result;
 use crate::{AbstractDevice, configuration::Configuration};
 pub use device::{Device, Reader, Tun, Writer};
 use std::ffi::OsString;
+use std::time::Duration;
 
 /// Platform-specific extensions for the abstract device.
 pub trait AbstractDeviceExt: AbstractDevice {
@@ -31,6 +32,9 @@ pub trait AbstractDeviceExt: AbstractDevice {
 #[derive(Clone, Debug)]
 pub struct PlatformConfig {
     pub(crate) device_guid: Option<u128>,
+    pub(crate) wait_for_ipv4_interface: bool,
+    pub(crate) wait_for_ipv6_interface: bool,
+    pub(crate) wait_for_interface_timeout: Duration,
     pub(crate) wintun_file: OsString,
     pub(crate) dns_servers: Option<Vec<std::net::IpAddr>>,
 }
@@ -39,6 +43,9 @@ impl Default for PlatformConfig {
     fn default() -> Self {
         Self {
             device_guid: None,
+            wait_for_ipv4_interface: true,
+            wait_for_ipv6_interface: true,
+            wait_for_interface_timeout: Duration::from_secs(5),
             wintun_file: "wintun.dll".into(),
             dns_servers: None,
         }
@@ -62,6 +69,12 @@ impl PlatformConfig {
 
     pub fn dns_servers(&mut self, dns_servers: &[std::net::IpAddr]) {
         self.dns_servers = Some(dns_servers.to_vec());
+    }
+
+    pub fn wait_for_interfaces(&mut self, ipv4: bool, ipv6: bool, timeout: Duration) {
+        self.wait_for_ipv4_interface = ipv4;
+        self.wait_for_ipv6_interface = ipv6;
+        self.wait_for_interface_timeout = timeout;
     }
 }
 
