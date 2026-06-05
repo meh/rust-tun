@@ -44,7 +44,9 @@ impl Default for PlatformConfig {
         Self {
             device_guid: None,
             wait_for_ipv4_interface: true,
-            wait_for_ipv6_interface: true,
+            // NOTE: IPv6 interface never appears if IPv6 is disabled on the system, so we don't wait for
+            // it by default. Consider skipping only if `DisabledComponents == 0xff`.
+            wait_for_ipv6_interface: false,
             wait_for_interface_timeout: Duration::from_secs(5),
             wintun_file: "wintun.dll".into(),
             dns_servers: None,
