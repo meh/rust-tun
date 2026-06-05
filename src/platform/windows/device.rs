@@ -432,6 +432,7 @@ fn set_interface_metric(luid: u64, metric: u32, ipv6: bool) -> io::Result<()> {
     let luid = NET_LUID_LH { Value: luid };
 
     let family = if ipv6 { AF_INET6 } else { AF_INET };
+    let family_name = if ipv6 { "ipv6" } else { "ipv4" };
 
     let mut row = MIB_IPINTERFACE_ROW {
         InterfaceLuid: luid,
@@ -441,8 +442,15 @@ fn set_interface_metric(luid: u64, metric: u32, ipv6: bool) -> io::Result<()> {
 
     // SAFETY: `row` is initialized and has luid set
     let status = unsafe { GetIpInterfaceEntry(&mut row) };
+    if ipv6 && status == ERROR_NOT_FOUND {
+        // IPv6 has no IP interface row, e.g. disabled on the host. The metric is
+        // a non-essential routing preference, so skip it rather than failing the
+        // whole tunnel setup. IPv4 must always be present, so it still errors.
+        log::warn!("no IP interface row, skipping metric family={family_name}");
+        return Ok(());
+    }
     if status != NO_ERROR {
-        log::error!("GetIpInterfaceEntry failed with error: {status}");
+        log::error!("GetIpInterfaceEntry failed with error: {status} family={family_name}");
         return Err(io::Error::from_raw_os_error(status as i32));
     }
 
@@ -454,7 +462,7 @@ fn set_interface_metric(luid: u64, metric: u32, ipv6: bool) -> io::Result<()> {
     // SAFETY: `row` is initialized and has luid set
     let status = unsafe { SetIpInterfaceEntry(&mut row) };
     if status != NO_ERROR {
-        log::error!("SetIpInterfaceEntry failed with error: {status}");
+        log::error!("SetIpInterfaceEntry failed with error: {status} family={family_name}");
         return Err(io::Error::from_raw_os_error(status as i32));
     }
 
