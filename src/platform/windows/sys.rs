@@ -335,5 +335,7 @@ unsafe extern "system" fn outer_callback(
     let cb = unsafe { &*context.cast::<InnerCallback>() };
     // SAFETY: `row` is set when type is not `MibInitialNotification`, which we do not use.
     let row = unsafe { &*row };
-    cb.lock().expect("NotifyIpInterfaceChange mutex poisoned")(row, notify_type);
+    _ = std::panic::catch_unwind(|| {
+        cb.lock().expect("NotifyIpInterfaceChange mutex poisoned")(row, notify_type)
+    });
 }
