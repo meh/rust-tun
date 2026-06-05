@@ -277,8 +277,10 @@ pub struct IpNotifierHandle {
 
 impl Drop for IpNotifierHandle {
     fn drop(&mut self) {
-        // SAFETY: `self.handle` is a valid notify handle that we own
-        unsafe { CancelMibChangeNotify2(self.handle) };
+        if !self.handle.is_null() {
+            // SAFETY: `self.handle` is a valid notify handle that we own
+            unsafe { CancelMibChangeNotify2(self.handle) };
+        }
 
         let callback = self
             .callback
