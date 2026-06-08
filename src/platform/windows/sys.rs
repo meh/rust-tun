@@ -16,7 +16,7 @@ use std::io;
 use std::net::Ipv4Addr;
 use std::os::windows::io::RawHandle;
 use std::ptr::NonNull;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use windows_sys::Win32::Foundation::{ERROR_NOT_FOUND, NO_ERROR};
@@ -205,9 +205,14 @@ pub fn wait_for_interfaces(luid: u64, ipv4: bool, ipv6: bool, timeout: Duration)
 
     match start_wait_for_interfaces(luid, ipv4, ipv6, tx).map_err(Error::Io)? {
         StartNotifyResult::AlreadyExist => Ok(()),
-        StartNotifyResult::Waiting(_handle) => rx
-            .recv_timeout(timeout)
-            .map_err(|_| Error::InterfaceTimeout),
+        StartNotifyResult::Waiting(_handle) => match rx.recv_timeout(timeout) {
+            Ok(()) => Ok(()),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Err(Error::InterfaceTimeout),
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => Err(Error::Io(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "interface notification channel disconnected",
+            ))),
+        },
     }
 }
 
@@ -228,15 +233,20 @@ fn start_wait_for_interfaces(
     ipv6: bool,
     on_found: std::sync::mpsc::SyncSender<()>,
 ) -> io::Result<StartNotifyResult> {
-    let mut found_ipv4 = !ipv4;
-    let mut found_ipv6 = !ipv6;
+    struct WaitState {
+        found_ipv4: bool,
+        found_ipv6: bool,
+        on_found: Option<std::sync::mpsc::SyncSender<()>>,
+    }
 
-    let mut on_found = Some(on_found);
+    let state = Arc::new(Mutex::new(WaitState {
+        found_ipv4: !ipv4,
+        found_ipv6: !ipv6,
+        on_found: Some(on_found),
+    }));
 
+    let callback_state = Arc::clone(&state);
     let handle = notify_ip_interface_change(move |row, notification_type| {
-        if found_ipv4 && found_ipv6 {
-            return;
-        }
         if notification_type != MibAddInstance {
             return;
         }
@@ -244,24 +254,51 @@ fn start_wait_for_interfaces(
         if unsafe { row.InterfaceLuid.Value } != luid {
             return;
         }
+
+        let mut state = callback_state
+            .lock()
+            .expect("NotifyIpInterfaceChange state mutex poisoned");
         match row.Family {
-            AF_INET => found_ipv4 = true,
-            AF_INET6 => found_ipv6 = true,
-            _ => (),
+            AF_INET => state.found_ipv4 = true,
+            AF_INET6 => state.found_ipv6 = true,
+            _ => return,
         }
-        if found_ipv4
-            && found_ipv6
-            && let Some(on_found) = on_found.take()
+
+        if state.found_ipv4
+            && state.found_ipv6
+            && let Some(on_found) = state.on_found.take()
         {
             let _ = on_found.send(());
         }
     })?;
 
-    // Make sure the interfaces were not already up
-    if (!ipv4 || ip_interface_entry_exists(luid, false)?)
-        && (!ipv6 || ip_interface_entry_exists(luid, true)?)
+    let ipv4_exists = if ipv4 {
+        ip_interface_entry_exists(luid, false)?
+    } else {
+        true
+    };
+    let ipv6_exists = if ipv6 {
+        ip_interface_entry_exists(luid, true)?
+    } else {
+        true
+    };
+
     {
-        return Ok(StartNotifyResult::AlreadyExist);
+        let mut state = state
+            .lock()
+            .expect("NotifyIpInterfaceChange state mutex poisoned");
+        if ipv4 {
+            state.found_ipv4 |= ipv4_exists;
+        }
+        if ipv6 {
+            state.found_ipv6 |= ipv6_exists;
+        }
+
+        // If both requested interfaces already exist by the time we begin waiting,
+        // return immediately and drop the notification handle.
+        if state.found_ipv4 && state.found_ipv6 {
+            return Ok(StartNotifyResult::AlreadyExist);
+        }
     }
 
     Ok(StartNotifyResult::Waiting(handle))
