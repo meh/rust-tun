@@ -12,19 +12,17 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use std::io::{self, Read, Write};
-use std::net::{IpAddr, Ipv4Addr};
+use std::io::{Read, Write};
+use std::net::IpAddr;
 use std::sync::Arc;
+
+use super::sys;
 
 use crate::Layer;
 use crate::configuration::Configuration;
 use crate::device::AbstractDevice;
 use crate::error::{Error, Result};
 use crate::windows::AbstractDeviceExt;
-use windows_sys::Win32::Foundation::{ERROR_NOT_FOUND, NO_ERROR};
-use windows_sys::Win32::NetworkManagement::IpHelper::{
-    InitializeUnicastIpAddressEntry, SetIpInterfaceEntry,
-};
 use wintun_bindings::{Adapter, MAX_RING_CAPACITY, Session, load_from_path};
 
 /// A TUN device using the wintun driver.
@@ -48,14 +46,30 @@ impl Device {
                     Adapter::create(&wintun, tun_name, tun_name, guid)?
                 }
             };
+            // Wait for IP interfaces to become configurable on Wintun device.
+            match (
+                config.platform_config.wait_for_ipv4_interface,
+                config.platform_config.wait_for_ipv6_interface,
+                config.platform_config.wait_for_interface_timeout,
+            ) {
+                (false, false, _) => (),
+                (ipv4, ipv6, timeout) => {
+                    sys::wait_for_interfaces(
+                        unsafe { adapter.get_luid().Value },
+                        ipv4,
+                        ipv6,
+                        timeout,
+                    )?;
+                }
+            }
             if let (Some(address), Some(mask)) = (config.address, config.netmask) {
                 let gateway = config.destination;
                 let luid_value = unsafe { adapter.get_luid().Value };
                 match (address, mask) {
                     (IpAddr::V4(addr), IpAddr::V4(mask_v4)) => {
-                        set_unicast_address(luid_value, addr, mask_v4)?;
+                        sys::set_unicast_address(luid_value, addr, mask_v4)?;
                         if let Some(IpAddr::V4(gw)) = gateway {
-                            set_default_route(luid_value, gw)?;
+                            sys::set_default_route(luid_value, gw)?;
                         }
                     }
                     _ => {
@@ -66,8 +80,8 @@ impl Device {
             if let Some(metric) = config.metric {
                 // SAFETY: LUID is always a u64
                 let luid = unsafe { adapter.get_luid().Value };
-                set_interface_metric(luid, metric.into(), false)?;
-                set_interface_metric(luid, metric.into(), true)?;
+                sys::set_interface_metric(luid, metric.into(), false)?;
+                sys::set_interface_metric(luid, metric.into(), true)?;
             }
             if let Some(dns_servers) = &config.platform_config.dns_servers {
                 adapter.set_dns_servers(dns_servers)?;
@@ -319,152 +333,4 @@ impl Write for Writer {
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
-}
-
-fn netmask_to_prefix_len(mask: Ipv4Addr) -> u8 {
-    let bits = u32::from(mask);
-    let prefix = bits.leading_ones() as u8;
-    debug_assert_eq!(
-        bits,
-        u32::MAX.checked_shl(32 - prefix as u32).unwrap_or(0),
-        "non-contiguous netmask"
-    );
-    prefix
-}
-
-fn set_unicast_address(luid: u64, address: Ipv4Addr, mask: Ipv4Addr) -> io::Result<()> {
-    use windows_sys::Win32::NetworkManagement::IpHelper::{
-        CreateUnicastIpAddressEntry, DeleteUnicastIpAddressEntry, GetUnicastIpAddressEntry,
-        MIB_UNICASTIPADDRESS_ROW,
-    };
-    use windows_sys::Win32::NetworkManagement::Ndis::NET_LUID_LH;
-    use windows_sys::Win32::Networking::WinSock::AF_INET;
-
-    unsafe {
-        // For deletion: use minimal row with only Address + Interface identifier
-        let mut probe_row: MIB_UNICASTIPADDRESS_ROW = std::mem::zeroed();
-        InitializeUnicastIpAddressEntry(&mut probe_row);
-        probe_row.InterfaceLuid = NET_LUID_LH { Value: luid };
-        probe_row.Address.si_family = AF_INET;
-        probe_row.Address.Ipv4.sin_family = AF_INET;
-        probe_row.Address.Ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(address.octets());
-
-        match GetUnicastIpAddressEntry(&mut probe_row) {
-            NO_ERROR => {
-                let del_status = DeleteUnicastIpAddressEntry(&probe_row);
-                if del_status != NO_ERROR {
-                    log::warn!("DeleteUnicastIpAddressEntry failed: {del_status}");
-                }
-            }
-            ERROR_NOT_FOUND => {}
-            status => {
-                log::warn!("GetUnicastIpAddressEntry probe failed: {status}");
-            }
-        }
-
-        // For creation: initialize with defaults, then set required fields
-        let mut create_row: MIB_UNICASTIPADDRESS_ROW = std::mem::zeroed();
-        InitializeUnicastIpAddressEntry(&mut create_row);
-
-        create_row.InterfaceLuid = NET_LUID_LH { Value: luid };
-        create_row.Address.si_family = AF_INET;
-        create_row.Address.Ipv4.sin_family = AF_INET;
-        create_row.Address.Ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(address.octets());
-        create_row.OnLinkPrefixLength = netmask_to_prefix_len(mask);
-        create_row.DadState = 4; // IpDadStatePreferred
-        create_row.ValidLifetime = u32::MAX;
-        create_row.PreferredLifetime = u32::MAX;
-        create_row.PrefixOrigin = 1; // IpPrefixOriginManual
-        create_row.SuffixOrigin = 1; // IpSuffixOriginManual
-
-        let status = CreateUnicastIpAddressEntry(&create_row);
-        if status != NO_ERROR {
-            log::error!("CreateUnicastIpAddressEntry failed: {status}");
-            return Err(io::Error::from_raw_os_error(status as i32));
-        }
-
-        Ok(())
-    }
-}
-
-fn set_default_route(luid: u64, gateway: Ipv4Addr) -> io::Result<()> {
-    use windows_sys::Win32::NetworkManagement::IpHelper::{
-        CreateIpForwardEntry2, DeleteIpForwardEntry2, MIB_IPFORWARD_ROW2,
-    };
-    use windows_sys::Win32::NetworkManagement::Ndis::NET_LUID_LH;
-    use windows_sys::Win32::Networking::WinSock::AF_INET;
-
-    unsafe {
-        let mut row: MIB_IPFORWARD_ROW2 = std::mem::zeroed();
-        row.InterfaceLuid = NET_LUID_LH { Value: luid };
-        row.DestinationPrefix.Prefix.si_family = AF_INET;
-        row.DestinationPrefix.Prefix.Ipv4.sin_family = AF_INET;
-        row.DestinationPrefix.PrefixLength = 0;
-        row.NextHop.si_family = AF_INET;
-        row.NextHop.Ipv4.sin_family = AF_INET;
-        row.NextHop.Ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(gateway.octets());
-        row.Metric = 0;
-        row.Protocol = 3; // MIB_IPPROTO_NETMGMT
-        row.ValidLifetime = u32::MAX;
-        row.PreferredLifetime = u32::MAX;
-
-        let del_status = DeleteIpForwardEntry2(&row);
-        if del_status != NO_ERROR && del_status != ERROR_NOT_FOUND {
-            log::warn!("DeleteIpForwardEntry2 failed: {del_status}");
-        }
-
-        let status = CreateIpForwardEntry2(&row);
-        if status != NO_ERROR {
-            log::error!("CreateIpForwardEntry2 failed: {status}");
-            return Err(io::Error::from_raw_os_error(status as i32));
-        }
-        Ok(())
-    }
-}
-
-fn set_interface_metric(luid: u64, metric: u32, ipv6: bool) -> io::Result<()> {
-    use windows_sys::Win32::NetworkManagement::IpHelper::{
-        GetIpInterfaceEntry, MIB_IPINTERFACE_ROW,
-    };
-    use windows_sys::Win32::NetworkManagement::Ndis::NET_LUID_LH;
-    use windows_sys::Win32::Networking::WinSock::{AF_INET, AF_INET6};
-
-    let luid = NET_LUID_LH { Value: luid };
-
-    let family = if ipv6 { AF_INET6 } else { AF_INET };
-    let family_name = if ipv6 { "ipv6" } else { "ipv4" };
-
-    let mut row = MIB_IPINTERFACE_ROW {
-        InterfaceLuid: luid,
-        Family: family,
-        ..Default::default()
-    };
-
-    // SAFETY: `row` is initialized and has luid set
-    let status = unsafe { GetIpInterfaceEntry(&mut row) };
-    if ipv6 && status == ERROR_NOT_FOUND {
-        // IPv6 has no IP interface row, e.g. disabled on the host. The metric is
-        // a non-essential routing preference, so skip it rather than failing the
-        // whole tunnel setup. IPv4 must always be present, so it still errors.
-        log::warn!("no IP interface row, skipping metric family={family_name}");
-        return Ok(());
-    }
-    if status != NO_ERROR {
-        log::error!("GetIpInterfaceEntry failed with error: {status} family={family_name}");
-        return Err(io::Error::from_raw_os_error(status as i32));
-    }
-
-    // `SitePrefixLength` must be zeroed and not modified
-    row.SitePrefixLength = 0;
-    row.Metric = metric;
-    row.UseAutomaticMetric = false;
-
-    // SAFETY: `row` is initialized and has luid set
-    let status = unsafe { SetIpInterfaceEntry(&mut row) };
-    if status != NO_ERROR {
-        log::error!("SetIpInterfaceEntry failed with error: {status} family={family_name}");
-        return Err(io::Error::from_raw_os_error(status as i32));
-    }
-
-    Ok(())
 }
