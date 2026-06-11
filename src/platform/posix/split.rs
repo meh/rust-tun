@@ -110,6 +110,24 @@ impl Reader {
         }
         Ok(amount - self.offset)
     }
+
+    /// Recv a packet from tun device, waiting at most `timeout`.
+    ///
+    /// A TUN device is a character device, so `SO_RCVTIMEO`-style read
+    /// timeouts do not apply; this is implemented as poll(2) followed by a
+    /// read on every call. If no packet arrives within `timeout`, an error
+    /// of kind `std::io::ErrorKind::TimedOut` is returned. A zero `timeout`
+    /// checks for a packet without blocking. If several threads receive from
+    /// the same device concurrently, another thread may consume the packet
+    /// first and the read may still block.
+    pub fn recv_timeout(
+        &self,
+        buf: &mut [u8],
+        timeout: std::time::Duration,
+    ) -> std::io::Result<usize> {
+        self.fd.wait_readable(timeout)?;
+        self.recv(buf)
+    }
 }
 
 impl Read for Reader {
@@ -282,6 +300,14 @@ impl Tun {
         self.reader.recv(buf)
     }
 
+    pub fn recv_timeout(
+        &self,
+        buf: &mut [u8],
+        timeout: std::time::Duration,
+    ) -> std::io::Result<usize> {
+        self.reader.recv_timeout(buf, timeout)
+    }
+
     pub fn send(&self, buf: &[u8]) -> std::io::Result<usize> {
         self.writer.send(buf)
     }
@@ -315,5 +341,53 @@ impl IntoRawFd for Tun {
         // guarantee fd is the unique owner such that Arc::into_inner can return some
         let fd = Arc::into_inner(self.reader.fd).unwrap(); // panic if accident
         fd.into_raw_fd()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Tun;
+    use crate::platform::posix::Fd;
+    use std::time::{Duration, Instant};
+
+    fn pipe() -> (Fd, Fd) {
+        let mut fds = [0; 2];
+        let res = unsafe { libc::pipe(fds.as_mut_ptr()) };
+        assert_eq!(
+            res,
+            0,
+            "pipe(2) failed: {}",
+            std::io::Error::last_os_error()
+        );
+        (
+            Fd::new(fds[0], true).unwrap(),
+            Fd::new(fds[1], true).unwrap(),
+        )
+    }
+
+    #[test]
+    fn recv_timeout_times_out_on_a_silent_fd() {
+        let (rx, _tx) = pipe();
+        let tun = Tun::new(rx, 1500, false);
+        let mut buf = [0u8; 1500];
+        let timeout = Duration::from_millis(100);
+        let start = Instant::now();
+        let err = tun.recv_timeout(&mut buf, timeout).unwrap_err();
+        assert_eq!(err.kind(), std::io::ErrorKind::TimedOut);
+        assert!(start.elapsed() >= timeout);
+    }
+
+    #[test]
+    fn recv_timeout_returns_data_arriving_before_expiry() {
+        let (rx, tx) = pipe();
+        let tun = Tun::new(rx, 1500, false);
+        let writer = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(50));
+            tx.write(b"hello").unwrap();
+        });
+        let mut buf = [0u8; 1500];
+        let amount = tun.recv_timeout(&mut buf, Duration::from_secs(10)).unwrap();
+        assert_eq!(&buf[..amount], b"hello");
+        writer.join().unwrap();
     }
 }

@@ -85,4 +85,45 @@ mod test {
 
         assert_eq!(crate::DEFAULT_MTU, dev.mtu().unwrap());
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn recv_timeout_times_out_on_a_silent_device() {
+        use std::time::{Duration, Instant};
+
+        // The device is never brought up, so no traffic can reach it.
+        let config = Configuration::default();
+        let dev = super::create(&config).unwrap();
+        let mut buf = [0u8; crate::DEFAULT_MTU as usize];
+        let timeout = Duration::from_millis(100);
+        let start = Instant::now();
+        let err = dev.recv_timeout(&mut buf, timeout).unwrap_err();
+        let elapsed = start.elapsed();
+        assert_eq!(err.kind(), std::io::ErrorKind::TimedOut);
+        assert!(elapsed >= timeout, "returned after {elapsed:?}");
+        assert!(elapsed < Duration::from_secs(10), "took {elapsed:?}");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn recv_timeout_returns_a_packet_arriving_before_expiry() {
+        use std::time::Duration;
+
+        let dev = super::create(
+            Configuration::default()
+                .address("192.168.51.1")
+                .netmask("255.255.255.0")
+                .up(),
+        )
+        .unwrap();
+
+        // Route a packet into the device from the kernel side; it stays
+        // queued on the interface until the read below picks it up.
+        let socket = std::net::UdpSocket::bind("192.168.51.1:0").unwrap();
+        socket.send_to(b"ping", "192.168.51.2:9").unwrap();
+
+        let mut buf = [0u8; crate::DEFAULT_MTU as usize];
+        let amount = dev.recv_timeout(&mut buf, Duration::from_secs(5)).unwrap();
+        assert!(amount > 0);
+    }
 }
