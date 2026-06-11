@@ -259,8 +259,7 @@ impl Tun {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
         self.reader.fd.set_nonblock()
     }
 
