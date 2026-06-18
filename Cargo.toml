@@ -27,11 +27,11 @@ async = [
 verify_binary_signature = ["wintun-bindings/verify_binary_signature"]
 
 [dependencies]
-bytes = { version = "1.11.1" }
+bytes = { version = "1.12.0" }
 cfg-if = "1.0.4"
 futures-core = { version = "0.3.32", optional = true }
 libc = { version = "0.2.186", features = ["extra_traits"] }
-log = "0.4.30"
+log = "0.4.32"
 thiserror = "2.0.18"
 tokio = { version = "1.52.3", features = [
     "net",
@@ -57,7 +57,7 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_LibraryLoader",
 ] }
-wintun-bindings = { version = "0.7.38", features = [
+wintun-bindings = { version = "0.7.39", features = [
     "panic_on_unsent_packets",
     "async",
     "enable_inner_logging",
