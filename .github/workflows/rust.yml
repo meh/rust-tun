@@ -32,6 +32,21 @@ jobs:
           cargo build --verbose --examples --tests --all-features --features="async tokio/rt-multi-thread"
           cargo clean
           cargo build --verbose --examples --tests --no-default-features
+      - name: Test
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cargo clean
+            cargo test --verbose --examples --tests --all-features
+            cargo clean
+            cargo test --verbose --examples --tests --no-default-features
+          else
+            sudo -E $(which cargo) clean
+            sudo -E $(which cargo) test --verbose --examples --tests --all-features
+            sudo -E $(which cargo) clean
+            sudo -E $(which cargo) test --verbose --examples --tests --no-default-features
+          fi
 
   build_n_test_android:
     strategy:
