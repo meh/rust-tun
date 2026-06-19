@@ -73,14 +73,30 @@ impl Device {
     }
 
     /// Set non-blocking mode
-    #[allow(dead_code)]
-    pub(crate) fn set_nonblock(&self) -> std::io::Result<()> {
+    pub fn set_nonblock(&self) -> std::io::Result<()> {
         self.tun.set_nonblock()
     }
 
     /// Recv a packet from tun device
     pub fn recv(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.tun.recv(buf)
+    }
+
+    /// Recv a packet from tun device, waiting at most `timeout`.
+    ///
+    /// A TUN device is a character device, so `SO_RCVTIMEO`-style read
+    /// timeouts do not apply; this is implemented as poll(2) followed by a
+    /// read on every call. If no packet arrives within `timeout`, an error
+    /// of kind `std::io::ErrorKind::TimedOut` is returned. A zero `timeout`
+    /// checks for a packet without blocking. If several threads receive from
+    /// the same device concurrently, another thread may consume the packet
+    /// first and the read may still block.
+    pub fn recv_timeout(
+        &self,
+        buf: &mut [u8],
+        timeout: std::time::Duration,
+    ) -> std::io::Result<usize> {
+        self.tun.recv_timeout(buf, timeout)
     }
 
     /// Send a packet to tun device
