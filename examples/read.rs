@@ -33,10 +33,11 @@ fn main() -> Result<(), BoxError> {
 
 fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     let mut config = tun::Configuration::default();
+    let mask = "255.255.255.0".parse::<std::net::Ipv4Addr>().unwrap();
 
     config
         .address((10, 0, 0, 9))
-        .netmask((255, 255, 255, 0))
+        .netmask(mask)
         .destination((10, 0, 0, 1))
         .up();
 
@@ -46,6 +47,10 @@ fn main_entry(quit: Receiver<()>) -> Result<(), BoxError> {
     });
 
     let mut dev = tun::create(&config)?;
+
+    use tun::AbstractDevice;
+    assert_eq!(mask, dev.netmask().unwrap());
+
     std::thread::spawn(move || {
         let mut buf = [0; 4096];
         loop {
