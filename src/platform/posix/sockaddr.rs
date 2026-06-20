@@ -35,7 +35,7 @@ fn rs_addr_to_sockaddr(addr: std::net::SocketAddr) -> sockaddr_union {
     match addr {
         std::net::SocketAddr::V4(ipv4) => {
             let mut addr: sockaddr_union = unsafe { std::mem::zeroed() };
-            #[cfg(any(target_os = "freebsd", target_os = "macos"))]
+            #[cfg(any(target_os = "freebsd", target_vendor = "apple"))]
             {
                 addr.addr4.sin_len = std::mem::size_of::<libc::sockaddr_in>() as u8;
             }
@@ -46,7 +46,7 @@ fn rs_addr_to_sockaddr(addr: std::net::SocketAddr) -> sockaddr_union {
         }
         std::net::SocketAddr::V6(ipv6) => {
             let mut addr: sockaddr_union = unsafe { std::mem::zeroed() };
-            #[cfg(any(target_os = "freebsd", target_os = "macos"))]
+            #[cfg(any(target_os = "freebsd", target_vendor = "apple"))]
             {
                 addr.addr6.sin6_len = std::mem::size_of::<libc::sockaddr_in6>() as u8;
             }
@@ -77,6 +77,19 @@ pub(crate) unsafe fn ipaddr_to_sockaddr<T>(
             size.min(std::mem::size_of::<sockaddr_union>()),
         )
     };
+}
+
+/// Apple/FreeBSD utun/netmask can return an odd sockaddr with family=0 and sa_len=7.
+#[allow(dead_code)]
+pub(crate) fn sockaddr_is_ipv4_family(sa: &libc::sockaddr) -> bool {
+    #[cfg(any(target_vendor = "apple", target_os = "freebsd"))]
+    {
+        (sa.sa_family == 0 && sa.sa_len == 7) || sa.sa_family == libc::AF_INET as libc::sa_family_t
+    }
+    #[cfg(not(any(target_vendor = "apple", target_os = "freebsd")))]
+    {
+        sa.sa_family == libc::AF_INET as libc::sa_family_t
+    }
 }
 
 #[repr(C)]

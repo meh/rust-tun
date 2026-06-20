@@ -16,7 +16,7 @@
 
 mod sockaddr;
 #[allow(unused_imports)]
-pub(crate) use sockaddr::{ipaddr_to_sockaddr, sockaddr_union};
+pub(crate) use sockaddr::{ipaddr_to_sockaddr, sockaddr_is_ipv4_family, sockaddr_union};
 
 mod fd;
 pub(crate) use self::fd::Fd;

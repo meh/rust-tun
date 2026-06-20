@@ -456,12 +456,11 @@ impl AbstractDevice for Device {
             }
 
             let sa = req.ifr_ifru.ifru_addr;
-            let family = sa.sa_family as i32;
             // On macOS utun interfaces, SIOCGIFNETMASK may return a sockaddr where
             // sa_family is not set to AF_INET and sa_len is only 7. This is a
             // platform-specific quirk of the Apple kernel utun/netmask ioctl path,
             // so accept either a normal AF_INET sockaddr or the odd family=0/sa_len=7 case.
-            if family == libc::AF_INET || family == 0 && sa.sa_len == 7 {
+            if posix::sockaddr_is_ipv4_family(&sa) {
                 let sin = *(&sa as *const _ as *const libc::sockaddr_in);
                 return Ok(IpAddr::V4(Ipv4Addr::from(u32::from_be(
                     sin.sin_addr.s_addr,
