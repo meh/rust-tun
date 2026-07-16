@@ -13,7 +13,8 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use libc::{
-    self, AF_INET, IFF_RUNNING, IFF_UP, IFNAMSIZ, O_RDWR, SOCK_DGRAM, c_char, c_short, ifreq,
+    self, AF_INET, IFF_RUNNING, IFF_UP, IFNAMSIZ, O_CLOEXEC, O_RDWR, SOCK_CLOEXEC, SOCK_DGRAM,
+    c_char, c_short, ifreq,
 };
 use std::{
     // ffi::{CStr, CString},
@@ -87,12 +88,12 @@ impl Device {
                 return Err(Error::InvalidQueuesNumber);
             }
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0), true)?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0), true)?;
 
             let (tun, tun_name) = {
                 if let Some(name) = dev.as_ref() {
                     let device_path = format!("/dev/{name}\0");
-                    let fd = libc::open(device_path.as_ptr() as *const _, O_RDWR);
+                    let fd = libc::open(device_path.as_ptr() as *const _, O_RDWR | O_CLOEXEC);
                     let tun = Fd::new(fd, true).map_err(|_| std::io::Error::last_os_error())?;
                     (tun, name.clone())
                 } else {
@@ -100,7 +101,8 @@ impl Device {
                         for i in 0..256 {
                             let device_name = format!("tun{i}");
                             let device_path = format!("/dev/{device_name}\0");
-                            let fd = libc::open(device_path.as_ptr() as *const _, O_RDWR);
+                            let fd =
+                                libc::open(device_path.as_ptr() as *const _, O_RDWR | O_CLOEXEC);
                             if fd > 0 {
                                 use std::io::Error;
                                 let tun = Fd::new(fd, true).map_err(|_| Error::last_os_error())?;
