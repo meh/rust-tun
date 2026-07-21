@@ -67,7 +67,8 @@ impl Device {
             let ctl = Fd::new(
                 unsafe { libc::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0) },
                 true,
-            )?;
+            )
+            .map_err(|_| std::io::Error::last_os_error())?;
             return Ok(Device {
                 tun: Tun::new(tun_fd, mtu, packet_information),
                 tun_name,
@@ -133,7 +134,8 @@ impl Device {
 
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0), true)?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0), true)
+                .map_err(|_| std::io::Error::last_os_error())?;
 
             let tun_name = CStr::from_ptr(req.ifr_name.as_ptr())
                 .to_string_lossy()
