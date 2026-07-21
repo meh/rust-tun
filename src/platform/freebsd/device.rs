@@ -103,7 +103,7 @@ impl Device {
                             let device_path = format!("/dev/{device_name}\0");
                             let fd =
                                 libc::open(device_path.as_ptr() as *const _, O_RDWR | O_CLOEXEC);
-                            if fd > 0 {
+                            if fd >= 0 {
                                 use std::io::Error;
                                 let tun = Fd::new(fd, true).map_err(|_| Error::last_os_error())?;
                                 break 'End (tun, device_name);
