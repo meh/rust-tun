@@ -14,7 +14,7 @@
 
 use libc::{
     self, AF_INET, IFF_MULTI_QUEUE, IFF_NAPI, IFF_NO_PI, IFF_RUNNING, IFF_TAP, IFF_TUN, IFF_UP,
-    IFF_VNET_HDR, IFNAMSIZ, O_RDWR, SOCK_DGRAM, c_char, c_short, ifreq,
+    IFF_VNET_HDR, IFNAMSIZ, O_CLOEXEC, O_RDWR, SOCK_CLOEXEC, SOCK_DGRAM, c_char, c_short, ifreq,
 };
 use nix::sys::ioctl::ioctl_param_type;
 use std::{
@@ -64,7 +64,11 @@ impl Device {
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
             let packet_information = config.platform_config.packet_information;
             let tun_name = config.tun_name.clone().unwrap_or_else(|| "".into());
-            let ctl = Fd::new(unsafe { libc::socket(AF_INET, SOCK_DGRAM, 0) }, true)?;
+            let ctl = Fd::new(
+                unsafe { libc::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0) },
+                true,
+            )
+            .map_err(|_| std::io::Error::last_os_error())?;
             return Ok(Device {
                 tun: Tun::new(tun_fd, mtu, packet_information),
                 tun_name,
@@ -118,7 +122,7 @@ impl Device {
                 | if queues_num > 1 { iff_multi_queue } else { 0 };
 
             let tun_fd = {
-                let fd = libc::open(c"/dev/net/tun".as_ptr() as *const _, O_RDWR);
+                let fd = libc::open(c"/dev/net/tun".as_ptr() as *const _, O_RDWR | O_CLOEXEC);
                 let tun_fd = Fd::new(fd, true).map_err(|_| std::io::Error::last_os_error())?;
 
                 if let Err(err) = tunsetiff(tun_fd.inner, &mut req as *mut _ as *mut _) {
@@ -130,7 +134,8 @@ impl Device {
 
             let mtu = config.mtu.unwrap_or(crate::DEFAULT_MTU);
 
-            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM, 0), true)?;
+            let ctl = Fd::new(libc::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0), true)
+                .map_err(|_| std::io::Error::last_os_error())?;
 
             let tun_name = CStr::from_ptr(req.ifr_name.as_ptr())
                 .to_string_lossy()
