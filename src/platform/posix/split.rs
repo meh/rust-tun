@@ -345,6 +345,37 @@ impl IntoRawFd for Tun {
 }
 
 #[cfg(test)]
+mod ipv6_tests {
+    use super::{generate_packet_information, is_ipv6};
+
+    #[test]
+    fn identifies_ipv4_and_ipv6_packets() {
+        assert!(!is_ipv6(&[0x45]).unwrap());
+        assert!(is_ipv6(&[0x60]).unwrap());
+    }
+
+    #[test]
+    fn rejects_empty_or_unknown_ip_packets() {
+        assert_eq!(
+            is_ipv6(&[]).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            is_ipv6(&[0x50]).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidData
+        );
+    }
+
+    #[test]
+    fn packet_information_uses_distinct_protocols() {
+        let ipv4 = generate_packet_information(true, false).unwrap();
+        let ipv6 = generate_packet_information(true, true).unwrap();
+        assert_ne!(ipv4, ipv6);
+        assert_eq!(generate_packet_information(false, true), None);
+    }
+}
+
+#[cfg(test)]
 mod test {
     use super::Tun;
     use crate::platform::posix::Fd;

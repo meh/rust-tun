@@ -25,6 +25,32 @@ use crate::error::{Error, Result};
 use crate::windows::AbstractDeviceExt;
 use wintun_bindings::{Adapter, MAX_RING_CAPACITY, Session, load_from_path};
 
+fn network_tuple_for_family(
+    adapter: &Adapter,
+    ipv4: bool,
+) -> Result<(IpAddr, IpAddr, Option<IpAddr>)> {
+    let address = adapter
+        .get_addresses()?
+        .into_iter()
+        .find(|address| address.is_ipv4() == ipv4)
+        .ok_or(Error::InvalidConfig)?;
+    let netmask = adapter.get_netmask_of_address(&address)?;
+    let gateway = adapter
+        .get_gateways()?
+        .into_iter()
+        .find(|gateway| gateway.is_ipv4() == ipv4);
+    Ok((address, netmask, gateway))
+}
+
+fn preferred_ip(addresses: Vec<IpAddr>) -> Result<IpAddr> {
+    addresses
+        .iter()
+        .find(|address| address.is_ipv4())
+        .or_else(|| addresses.first())
+        .copied()
+        .ok_or(Error::InvalidConfig)
+}
+
 /// A TUN device using the wintun driver.
 pub struct Device {
     pub(crate) tun: Tun,
@@ -157,43 +183,30 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        let addresses = self.tun.session.get_adapter().get_addresses()?;
-        addresses
-            .iter()
-            .find_map(|a| match a {
-                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
-                _ => None,
-            })
-            .ok_or(Error::InvalidConfig)
+        preferred_ip(self.tun.session.get_adapter().get_addresses()?)
     }
 
     fn set_address(&mut self, value: IpAddr) -> Result<()> {
-        let IpAddr::V4(value) = value else {
-            unimplemented!("do not support IPv6 yet")
-        };
-        Ok(self.tun.session.get_adapter().set_address(value)?)
+        let adapter = self.tun.session.get_adapter();
+        if let IpAddr::V4(value) = value {
+            return Ok(adapter.set_address(value)?);
+        }
+        let (_, netmask, gateway) = network_tuple_for_family(&adapter, false)?;
+        Ok(adapter.set_network_addresses_tuple(value, netmask, gateway)?)
     }
 
     fn destination(&self) -> Result<IpAddr> {
         // It's just the default gateway in windows.
-        self.tun
-            .session
-            .get_adapter()
-            .get_gateways()?
-            .iter()
-            .find_map(|a| match a {
-                std::net::IpAddr::V4(a) => Some(std::net::IpAddr::V4(*a)),
-                _ => None,
-            })
-            .ok_or(Error::InvalidConfig)
+        preferred_ip(self.tun.session.get_adapter().get_gateways()?)
     }
 
     fn set_destination(&mut self, value: IpAddr) -> Result<()> {
-        let IpAddr::V4(value) = value else {
-            unimplemented!("do not support IPv6 yet")
-        };
-        // It's just set the default gateway in windows.
-        Ok(self.tun.session.get_adapter().set_gateway(Some(value))?)
+        let adapter = self.tun.session.get_adapter();
+        if let IpAddr::V4(value) = value {
+            return Ok(adapter.set_gateway(Some(value))?);
+        }
+        let (address, netmask, _) = network_tuple_for_family(&adapter, false)?;
+        Ok(adapter.set_network_addresses_tuple(address, netmask, Some(value))?)
     }
 
     fn broadcast(&self) -> Result<IpAddr> {
@@ -201,6 +214,9 @@ impl AbstractDevice for Device {
     }
 
     fn set_broadcast(&mut self, value: IpAddr) -> Result<()> {
+        if value.is_ipv6() {
+            return Err(Error::NotImplemented);
+        }
         log::debug!("set_broadcast {value} is not need");
         Ok(())
     }
@@ -215,10 +231,12 @@ impl AbstractDevice for Device {
     }
 
     fn set_netmask(&mut self, value: IpAddr) -> Result<()> {
-        let IpAddr::V4(value) = value else {
-            unimplemented!("do not support IPv6 yet")
-        };
-        Ok(self.tun.session.get_adapter().set_netmask(value)?)
+        let adapter = self.tun.session.get_adapter();
+        if let IpAddr::V4(value) = value {
+            return Ok(adapter.set_netmask(value)?);
+        }
+        let (address, _, gateway) = network_tuple_for_family(&adapter, false)?;
+        Ok(adapter.set_network_addresses_tuple(address, value, gateway)?)
     }
 
     fn mtu(&self) -> Result<u16> {
