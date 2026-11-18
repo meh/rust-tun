@@ -42,10 +42,10 @@ jobs:
             cargo clean
             cargo test --verbose --examples --tests --no-default-features
           else
-            sudo -E $(which cargo) clean
-            sudo -E $(which cargo) test --verbose --examples --tests --all-features
-            sudo -E $(which cargo) clean
-            sudo -E $(which cargo) test --verbose --examples --tests --no-default-features
+            sudo env "RUSTUP_HOME=$HOME/.rustup" "CARGO_HOME=$CARGO_HOME" "$(which cargo)" clean
+            sudo env "RUSTUP_HOME=$HOME/.rustup" "CARGO_HOME=$CARGO_HOME" "$(which cargo)" test --verbose --examples --tests --all-features
+            sudo env "RUSTUP_HOME=$HOME/.rustup" "CARGO_HOME=$CARGO_HOME" "$(which cargo)" clean
+            sudo env "RUSTUP_HOME=$HOME/.rustup" "CARGO_HOME=$CARGO_HOME" "$(which cargo)" test --verbose --examples --tests --no-default-features
           fi
 
   build_n_test_android:

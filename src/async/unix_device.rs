@@ -51,7 +51,7 @@ impl AsyncDevice {
     pub fn new(device: Device) -> std::io::Result<AsyncDevice> {
         device.set_nonblock()?;
         Ok(AsyncDevice {
-            inner: AsyncFd::new(device)?,
+            inner: unsafe { AsyncFd::register(device)? },
         })
     }
 
@@ -66,7 +66,7 @@ impl AsyncDevice {
     /// Split the device into a reader and writer
     pub fn split(self) -> std::io::Result<(DeviceWriter, DeviceReader)> {
         let device = self.inner.into_inner();
-        let reader = std::sync::Arc::new(AsyncFd::new(device)?);
+        let reader = std::sync::Arc::new(unsafe { AsyncFd::register(device)? });
         let writer = reader.clone();
         Ok((DeviceWriter::new(writer)?, DeviceReader::new(reader)?))
     }
